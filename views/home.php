@@ -11,7 +11,7 @@
 
       <form action="index.php" method="post" class="nav-home-form">
         <input type="hidden" name="case" value="add">
-        <button type="submit">
+        <button type="submit" class="nav-home-form-button">
           <span>
 
             <i class="fas fa-plus"></i>
@@ -25,7 +25,7 @@
         <input type="hidden" name="case" value="list">
 
 
-        <button type="submit">
+        <button type="submit" class="nav-home-form-button">
           <span>
             <i class="fas fa-list"></i>
             <p>Ver todos</p>
@@ -40,7 +40,7 @@
         <input type="hidden" name="case" value="loggout">
 
 
-        <button type="submit">
+        <button type="submit" class="nav-home-form-button">
           <span>
 
             <i class="fas fa-sign-out-alt"></i>
@@ -55,13 +55,16 @@
       <form action="index.php" method="post" class="nav-home-form">
         <input type="hidden" name="case" value="profile">
 
-        <button type="submit">
+        <button type="submit" class="nav-home-form-button">
          <span>
          <i class="fas fa-user"></i>
          <p>Ver Perfil</p>
          </span>
         </button>
       </form>
+    
+    
+     
     </nav>
 
   </div>
@@ -72,15 +75,20 @@
     grid-template-columns: repeat(auto-fit,
         minmax(150px, 1fr));
     gap: 1rem;
-    min-height: 90vh;
+   
 
   }
 
-  nav-home-form {
+  .nav-home-form {
+    aspect-ratio: 1 / 1;
     width: 100%;
+    height: 100%;
     display: flex;
     flex-flow: column nowrap;
   }
+  .nav-home-form-button {
+    width: 100%;
+    height: 100%;
 
-
+  }
 </style>
