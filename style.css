@@ -23,7 +23,7 @@ body {
 }
 
 #superheader {
-  background-color: #111;
+  background-color: #0a0a23;
   min-height:15vh;
 }
 
@@ -32,7 +32,7 @@ section {
 }
 
 #superfooter {
-  background-color: #111;
+  background-color: #0a0a23;
   
   min-height: 15vh;
 }
@@ -69,18 +69,18 @@ input {
 
   border-radius: 500px;
   overflow: hidden;
-  background: #66ff663c;
-  color: black;
+  background: #f5f5dc ;
+  color: #0a0a23;
 }
 
 
 button {
   outline: none;
   cursor: pointer;
-  border: none;
+ 
   padding: 0.9rem 2rem;
   margin: 0;
- 
+  
   position: relative;
   display: inline-block;
   letter-spacing: 0.05rem;
@@ -88,8 +88,8 @@ button {
 
   border-radius: 1rem;
   overflow: hidden;
-  background: #9900CC;
-  color: ghostwhite;
+  background: #f5f5dc ;
+  color: white;
  }
  
  button span {
@@ -99,7 +99,7 @@ button {
  }
  
  button:hover span {
-  color: black;
+  color: #0a0a23;
  }
  
  button::before,
@@ -116,12 +116,14 @@ button {
   content: "";
   background: #000;
   width: 170%;
+  border: none;
   left: -50%;
   transform: skew(30deg);
   transition: transform 0.4s cubic-bezier(0.3, 1, 0.8, 1);
  }
  
- button:hover::before {
+ button:hover::before  {
   transform: translate3d(100%, 0, 0);
+
  }
  
