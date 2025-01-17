@@ -6,48 +6,60 @@
   <div class="supercont">
     
 
-    <nav class="homenav">
+    <nav class="nav-home">
 
 
-      <form action="index.php" method="post">
+      <form action="index.php" method="post" class="nav-home-form">
         <input type="hidden" name="case" value="add">
         <button type="submit">
-          <i class="fas fa-plus"></i>
-          <p>Añadir</p>
+          <span>
+
+            <i class="fas fa-plus"></i>
+            <p>Añadir</p>
+          </span>
         </button>
       </form>
 
 
-      <form action="index.php" method="post">
+      <form action="index.php" method="post" class="nav-home-form">
         <input type="hidden" name="case" value="list">
 
 
         <button type="submit">
-          <i class="fas fa-list"></i>
-          <p>Ver todos</p>
+          <span>
+            <i class="fas fa-list"></i>
+            <p>Ver todos</p>
+
+          </span>
         </button>
       </form>
 
 
 
-      <form action="index.php" method="post">
+      <form action="index.php" method="post" class="nav-home-form">
         <input type="hidden" name="case" value="loggout">
 
 
         <button type="submit">
-          <i class="fas fa-sign-out-alt"></i>
-          <p>Cerrar Session</p>
+          <span>
+
+            <i class="fas fa-sign-out-alt"></i>
+            <p>Cerrar Session</p>
+
+          </span>
         </button>
       </form>
 
 
 
-      <form action="index.php" method="post">
+      <form action="index.php" method="post" class="nav-home-form">
         <input type="hidden" name="case" value="profile">
 
         <button type="submit">
-          <i class="fas fa-user"></i>
-          <p>Ver Perfil</p>
+         <span>
+         <i class="fas fa-user"></i>
+         <p>Ver Perfil</p>
+         </span>
         </button>
       </form>
     </nav>
@@ -55,43 +67,20 @@
   </div>
 </section>
 <style>
-  .homenav {
+  .nav-home {
     display: grid;
     grid-template-columns: repeat(auto-fit,
         minmax(150px, 1fr));
     gap: 1rem;
+    min-height: 90vh;
 
   }
 
-  .homenav>form {
-    background-color: #aaa;
-    border-radius: 1rem;
-
-
-  }
-
-  .homenav>form>button {
-    background-color: transparent;
-    border: none;
-    outline: none;
+  nav-home-form {
     width: 100%;
-    height: 100%;
-    border-radius: 1rem;
-    padding: 1rem;
     display: flex;
     flex-flow: column nowrap;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
   }
 
-  .homenav>form>button:hover {
-    cursor: pointer;
-   background-color: rebeccapurple;
-   color: white;
-  }
 
-  .homenav>form>button>i {
-    font-size: 3rem;
-  }
 </style>
