@@ -26,15 +26,16 @@ class LunchController
   }
 
   // Crear un nuevo lunch
-  public function createLunch()
-  {
-    $id = $this->lunch->save();
+  // public function createLunch()
+  // {
+  //   if ($this->lunch->)
+  //   $id = $this->lunch->save();
 
-    $this->lunch->setId($id);
-    
-    $this->session();
+  //   $this->lunch->setId($id);
 
-  }
+  //   $this->session();
+
+  // }
 
 
 }

@@ -3,9 +3,10 @@
 // Definir configuraciones globales de la aplicación
 
 // Configuración de la base de datos
-define('DB_HOST', 'localhost');         // Dirección del servidor de base de datos
+define('DB_HOST', '96ff0q.stackhero-network.com');         // Dirección del servidor de base de datos
+define('DB_PORT', '3774');              // Usuario para conectar a la base de datos
 define('DB_USER', 'root');              // Usuario para conectar a la base de datos
-define('DB_PASS', '');                  // Contraseña del usuario
+define('DB_PASS', 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP');                  // Contraseña del usuario
 define('DB_NAME', 'darink');            // Nombre de la base de datos
 
 // Configuración de la aplicación

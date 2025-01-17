@@ -1,36 +1,45 @@
 <?php
 require_once 'config/config.php';
-class DatabaseConnectionException extends Exception {}
-class DatabaseQueryException extends Exception {}
+class DatabaseConnectionException extends Exception
+{
+}
+class DatabaseQueryException extends Exception
+{
+}
 
-class MySQL {
+class MySQL
+{
 
-    
-  /**
-   * Conexión de base de datos
-   */
-  private static $conn = null;
+    /**
+     * Conexión de base de datos
+     */
+    private static $mysqli = null;
 
-  /**
-   * Método para conectar a la base de datos (patrón Singleton)
-   * @return mysqli|null
-   * @throws DatabaseConnectionException
-   */
-  private static function connect() {
-    if (self::$conn === null) {
-      // Usar las constantes definidas en config.php para la conexión a la base de datos
-      self::$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+    /**
+     * Método para conectar a la base de datos (patrón Singleton)
+     * @return mysqli|null
+     * @throws DatabaseConnectionException
+     */
+    private static function connect()
+    {
+        if (self::$mysqli === null) {
 
-      if (self::$conn->connect_error) {
-        throw new DatabaseConnectionException("Error en la conexión: " . self::$conn->connect_error);
-      }
+            self::$mysqli = mysqli_init();
 
-      // Configuración de charset para UTF-8
-      self::$conn->set_charset('utf8');
+            self::$mysqli->real_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT, null, MYSQLI_CLIENT_SSL);
+         
+
+            if (self::$mysqli->connect_error) {
+                throw new DatabaseConnectionException("Error en la conexión: " . self::$mysqli->connect_error);
+            }
+
+            // Configuración de charset para UTF-8
+            self::$mysqli->set_charset('utf8');
+        }
+
+        // echo 'Success... ' . self::$mysqli->host_info . "\n";
+        return self::$mysqli;
     }
-
-    return self::$conn;
-  }
 
     /**
      * Ejecuta una consulta SQL (INSERT, UPDATE, DELETE) de manera segura (Prepared Statements)
@@ -39,7 +48,8 @@ class MySQL {
      * @return bool
      * @throws DatabaseQueryException
      */
-    public static function query(string $query, array $params = []): bool {
+    public static function query(string $query, array $params = []): bool
+    {
         $conn = self::connect();
 
         // Prepara la consulta
@@ -72,7 +82,8 @@ class MySQL {
      * @return array
      * @throws DatabaseQueryException
      */
-    public static function fetchAll(string $query, array $params = []): array {
+    public static function fetchAll(string $query, array $params = []): array
+    {
         $conn = self::connect();
 
         // Prepara la consulta
@@ -106,17 +117,19 @@ class MySQL {
      * Obtiene el ID del último registro insertado
      * @return int
      */
-    public static function lastInsertId(): int {
+    public static function lastInsertId(): int
+    {
         return self::connect()->insert_id;
     }
 
     /**
      * Desconectar la conexión de base de datos
      */
-    public static function disconnect() {
-        if (self::$conn !== null) {
-            self::$conn->close();
-            self::$conn = null;
+    public static function disconnect()
+    {
+        if (self::$mysqli !== null) {
+            self::$mysqli->close();
+            self::$mysqli = null;
         }
     }
 
@@ -125,11 +138,15 @@ class MySQL {
      * @param array $params
      * @return string
      */
-    private static function determineTypes(array $params): string {
-        return implode('', array_map(function($param) {
-            if (is_int($param)) return 'i'; // Integer
-            if (is_double($param)) return 'd'; // Double
-            if (is_string($param)) return 's'; // String
+    private static function determineTypes(array $params): string
+    {
+        return implode('', array_map(function ($param) {
+            if (is_int($param))
+                return 'i'; // Integer
+            if (is_double($param))
+                return 'd'; // Double
+            if (is_string($param))
+                return 's'; // String
             return 'b'; // Binary (default type)
         }, $params));
     }
