@@ -1,0 +1,27 @@
+* {
+  overflow: wrap  ;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: #eee;
+}
+
+.supercont {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+#superheader {
+  background-color: #aaa;
+}
+
+#superfooter {
+  background-color: #aaa;
+}
