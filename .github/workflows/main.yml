@@ -27,7 +27,7 @@ jobs:
         run: curl https://cli-assets.heroku.com/install.sh | sh
 
       - name: Set writable folder permissions
-        run: heroku run --app darink chmod -R 777 writable
+        run: heroku run "chmod -R 777 writable" --app darink
 
       - name: Authenticate with Heroku
         env:
