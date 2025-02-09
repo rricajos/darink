@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # 👈 Esto asegura que se haga un "full clone"
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -36,6 +38,7 @@ jobs:
           heroku git:remote -a darink
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
+          git fetch --all --unshallow  # 👈 Deshace el shallow clone
 
       - name: Deploy to Heroku
         env:
