@@ -22,17 +22,23 @@ jobs:
         run: composer install --no-dev --optimize-autoloader
 
       - name: Install Heroku CLI
-        run: |
-          curl https://cli-assets.heroku.com/install.sh | sh
+        run: curl https://cli-assets.heroku.com/install.sh | sh
 
       - name: Authenticate with Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: heroku auth:token
 
+      - name: Set up Heroku Git
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          heroku git:remote -a darink
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
       - name: Deploy to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
-          git remote add heroku https://heroku:${{ secrets.HEROKU_API_KEY }}@git.heroku.com/darink.git
-          git push heroku main --force
+          git push https://heroku:${{ secrets.HEROKU_API_KEY }}@git.heroku.com/darink.git main --force
