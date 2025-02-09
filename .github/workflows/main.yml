@@ -26,10 +26,11 @@ jobs:
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install.sh | sh
 
+      - name: Set owner folder permissions solve CodeIgniter\Cache\Exceptions\CacheException
+        run: heroku run "sudo chown www-data:www-data -R /var/www/html/codeigniter/writable" --app darink
+        
       - name: Set writable folder permissions solve CodeIgniter\Cache\Exceptions\CacheException
-        run: |
-          heroku run "sudo chown www-data:www-data -R /var/www/html/codeigniter/writable" --app darink
-          heroku run "sudo chmod 755 /var/www/html/codeigniter/writable/" --app darink
+        run: heroku run "sudo chmod 755 /var/www/html/codeigniter/writable/" --app darink
 
       - name: Authenticate with Heroku
         env:
