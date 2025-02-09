@@ -11,19 +11,37 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # 👈 Asegura un clon completo de Git
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.0"
+          php-version: "8.1"
           extensions: mbstring, intl, pdo, pdo_mysql
 
       - name: Install dependencies
         run: composer install --no-dev --optimize-autoloader
 
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Authenticate with Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: heroku auth:token
+
+      - name: Set up Heroku Git
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          heroku git:remote -a darink
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git fetch --all || true  # 👈 Solo si es necesario
+
       - name: Deploy to Heroku
         env:
-          HEROKU_API_KEY: ${{ secrets.HRKU-1b848a72-d000-4c33-be33-1cb2d5a2fcdb }}
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
-          git remote add heroku https://git.heroku.com/darink.git
-          git push heroku main --force
+          git push https://heroku:${{ secrets.HEROKU_API_KEY }}@git.heroku.com/darink.git main --force
