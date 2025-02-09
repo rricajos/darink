@@ -25,5 +25,5 @@ jobs:
         env:
           HEROKU_API_KEY: ${{ secrets.HRKU-1b848a72-d000-4c33-be33-1cb2d5a2fcdb }}
         run: |
-          git remote add heroku https://git.heroku.com/darink.git
+          git remote add heroku https://heroku:${{ secrets.HEROKU_API_KEY }}@git.heroku.com/darink.git
           git push heroku main --force
