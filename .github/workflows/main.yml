@@ -47,7 +47,7 @@ jobs:
           git push https://heroku:${{ secrets.HEROKU_API_KEY }}@git.heroku.com/darink.git main --force
 
       - name: Set owner folder permissions solve CodeIgniter\Cache\Exceptions\CacheException
-        run: heroku run "sudo chown www-data:www-data -R writable" --app darink
+        run: heroku run "chown www-data:www-data -R writable" --app darink
         
       - name: Set writable folder permissions solve CodeIgniter\Cache\Exceptions\CacheException
-        run: heroku run "sudo chmod 755 writable/" --app darink
+        run: heroku run "chmod 755 writable/" --app darink
