@@ -11,6 +11,8 @@
     },
     "require": {
         "php": "^8.1",
+         "ext-mbstring": "*",
+        "heroku/heroku-buildpack-php": "*",
         "codeigniter4/framework": "^4.0"
     },
     "require-dev": {
