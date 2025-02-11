@@ -149,7 +149,7 @@ URI     : https://colorlib.com
             <div class="row">
                 <div class="col-lg-6 offset-lg-12">
                     <!-- <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div> -->
-                    <h2>La regla del 20% (Principio de Pareto)</h2>
+                    <h2>Principio de Pareto</h2>
                     <p class="mb-4">El 20% de las causas que serán las responsables de
                         generar el 80% de las consecuencias.</p>
                     <a href="#" class="btn btn-primary">Leer más...</a>
@@ -173,16 +173,16 @@ URI     : https://colorlib.com
 
             <ul class="nav nav-tabs nav-justified" role="tablist">
                 <li class="nav-item">
-                    <a class="nav-link active" data-toggle="tab" href="#communication">Registra</a>
+                    <a class="nav-link active" data-toggle="tab" href="#communication">Sencilla</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#schedule">Observa</a>
+                    <a class="nav-link" data-toggle="tab" href="#schedule">Eficiente</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" data-toggle="tab" href="#messages">Estadistica</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#livechat">Personaliza</a>
+                    <a class="nav-link" data-toggle="tab" href="#livechat">Personalizable</a>
                 </li>
             </ul>
             <div class="tab-content">
@@ -296,13 +296,13 @@ URI     : https://colorlib.com
 
         <div class="container">
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <img src="images/dualphone.png" alt="dual phone" class="img-fluid">
                 </div>
-                <div class="col-md-6 d-flex align-items-center">
+                <div class="col-md-8 d-flex align-items-center">
                     <div>
                         <!-- <div class="box-icon"><span class="ti-rocket gradient-fill ti-3x"></span></div> -->
-                        <h2>Intestino sano; Cerebro sano</h2>
+                        <h2>Intestino sano, cerebro sano</h2>
                         <p class="mb-4">
                             La Célebre frase de Hipócrates - Todas las enfermedades empiezan en el intestino. -
                             Considerado el
