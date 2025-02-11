@@ -96,8 +96,9 @@ URI     : https://colorlib.com
                                 <span class="ti-face-smile gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
                                     <h4 class="card-title">Simple</h4>
-                                    <p class="card-text">Rápida y sencilla de entender y utilizar. No contamos calorías,
-                                        proteínas, carbohidratos etc.</p>
+                                    <p class="card-text">Diseñada para ser rápida, clara y fácil de usar. No necesitas
+                                        contar calorías ni seguir métricas complicadas.</p>
+
                                 </div>
                             </div>
                         </div>
@@ -110,8 +111,9 @@ URI     : https://colorlib.com
                                 <span class="ti-settings gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
                                     <h4 class="card-title">Personal</h4>
-                                    <p class="card-text">Queremos que esta aplicación la sientas tuya, dale tu estilo
-                                        único y detergente.</p>
+                                    <p class="card-text">Adáptala a tu estilo y necesidades. Queremos que la sientas
+                                        tuya y la uses como mejor te funcione.</p>
+
                                 </div>
                             </div>
                         </div>
@@ -123,9 +125,11 @@ URI     : https://colorlib.com
                             <div class="media">
                                 <span class="ti-lock gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
-                                    <h4 class="card-title">Privada</h4>
-                                    <p class="card-text">Ofrecemos todas las herramientas posible para proteger tu
-                                        privacidad.</p>
+                                    <h4 class="card-title">Segura</h4>
+                                    <p class="card-text">Protegemos tu información con los más altos estándares de
+                                        seguridad para garantizar tu tranquilidad.</p>
+
+
                                 </div>
                             </div>
                         </div>
@@ -143,7 +147,7 @@ URI     : https://colorlib.com
 
         <div class="container">
             <div class="row">
-                <div class="col-lg-6 offset-lg-6">
+                <div class="col-lg-6 offset-lg-12">
                     <!-- <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div> -->
                     <h2>La regla del 20% (Principio de Pareto)</h2>
                     <p class="mb-4">El 20% de las causas que serán las responsables de
