@@ -1,14 +1,5 @@
 <!doctype html>
 <html lang="en">
-<!--
-
-Page    : index / DARINK
-Version : 1.0
-Author  : Colorlib
-URI     : https://colorlib.com
-
- -->
-
 <head>
     <title>Darink - App Landing Page </title>
     <!-- Required meta tags -->
@@ -34,7 +25,6 @@ URI     : https://colorlib.com
 <body data-spy="scroll" data-target="#navbar" data-offset="30">
 
     <!-- Nav Menu -->
-
     <div class="nav-menu fixed-top">
         <div class="container">
             <div class="row">
@@ -52,7 +42,7 @@ URI     : https://colorlib.com
                                 <li class="nav-item"> <a class="nav-link" href="#gallery">GALERIA</a> </li>
                                 <li class="nav-item"> <a class="nav-link" href="#pricing">PRECIO</a> </li>
                                 <li class="nav-item"> <a class="nav-link" href="#contact">@RRICAJOS</a> </li>
-                                <li class="nav-item"><a href="#"
+                                <li class="nav-item"><a href="/auth"
                                         class="btn btn-outline-light my-3 my-sm-0 ml-lg-3">Connect</a></li>
                             </ul>
                         </div>
