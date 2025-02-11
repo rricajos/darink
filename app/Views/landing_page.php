@@ -123,9 +123,8 @@ URI     : https://colorlib.com
                             <div class="media">
                                 <span class="ti-lock gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
-                                    <h4 class="card-title">Segura</h4>
-                                    <p class="card-text">Esta aplicación de código abierto está desarrollada con
-                                        CodeIgniter 4 y PHP, implementando un modo de máxima seguridad.</p>
+                                    <h4 class="card-title">Privada</h4>
+                                    <p class="card-text">Ofrecemos todas las herramientas posible para proteger tu privacidad.</p>
                                 </div>
                             </div>
                         </div>
