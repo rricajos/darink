@@ -40,15 +40,20 @@ URI     : https://colorlib.com
             <div class="row">
                 <div class="col-md-12">
                     <nav class="navbar navbar-dark navbar-expand-lg">
-                        <a class="navbar-brand" href="index.html"><img src="images/logo.png" class="img-fluid" alt="logo"></a> <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"></span> </button>
+                        <a class="navbar-brand" href="index.html"><img src="images/logo.png" class="img-fluid"
+                                alt="logo"></a> <button class="navbar-toggler" type="button" data-toggle="collapse"
+                            data-target="#navbar" aria-controls="navbar" aria-expanded="false"
+                            aria-label="Toggle navigation"> <span class="navbar-toggler-icon"></span> </button>
                         <div class="collapse navbar-collapse" id="navbar">
                             <ul class="navbar-nav ml-auto">
-                                <li class="nav-item"> <a class="nav-link active" href="#home">HOME <span class="sr-only">(current)</span></a> </li>
-                                <li class="nav-item"> <a class="nav-link" href="#features">FEATURES</a> </li>
-                                <li class="nav-item"> <a class="nav-link" href="#gallery">GALLERY</a> </li>
-                                <li class="nav-item"> <a class="nav-link" href="#pricing">PRICING</a> </li>
-                                <li class="nav-item"> <a class="nav-link" href="#contact">CONTACT</a> </li>
-                                <li class="nav-item"><a href="#" class="btn btn-outline-light my-3 my-sm-0 ml-lg-3">Connect</a></li>
+                                <li class="nav-item"> <a class="nav-link active" href="#home">INICIO <span
+                                            class="sr-only">(current)</span></a> </li>
+                                <li class="nav-item"> <a class="nav-link" href="#features">CARACTERÍSTICAS</a> </li>
+                                <li class="nav-item"> <a class="nav-link" href="#gallery">GALERIA</a> </li>
+                                <li class="nav-item"> <a class="nav-link" href="#pricing">PRECIO</a> </li>
+                                <li class="nav-item"> <a class="nav-link" href="#contact">@RRICAJOS</a> </li>
+                                <li class="nav-item"><a href="#"
+                                        class="btn btn-outline-light my-3 my-sm-0 ml-lg-3">Connect</a></li>
                             </ul>
                         </div>
                     </nav>
@@ -60,8 +65,8 @@ URI     : https://colorlib.com
 
     <header class="bg-gradient" id="home">
         <div class="container mt-5">
-            <h1>Mobile App Landing Page Template</h1>
-            <p class="tagline">The one and only solution for any kind of mobila app landing needs. Just change the screenshots and texts and you are good to go. </p>
+            <h1>Applicación del Nutricionista Minamlista</h1>
+            <p class="tagline">Enfocado en ayudar con los trastornos de conducta alimentaria (TCA) </p>
         </div>
         <div class="img-holder mt-3"><img src="images/iphonex.png" alt="phone" class="img-fluid"></div>
     </header>
@@ -78,8 +83,8 @@ URI     : https://colorlib.com
         <div class="container">
 
             <div class="section-title">
-                <small>HIGHLIGHTS</small>
-                <h3>Features you love</h3>
+                <small>FILOSOFIA</small>
+                <h3>Filosofia de darink.app </h3>
             </div>
 
 
@@ -91,7 +96,8 @@ URI     : https://colorlib.com
                                 <span class="ti-face-smile gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
                                     <h4 class="card-title">Simple</h4>
-                                    <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque </p>
+                                    <p class="card-text">Rápida y sencilla de entender y utilizar. No contamos calorías,
+                                        proteínas, carbohidratos etc.</p>
                                 </div>
                             </div>
                         </div>
@@ -103,8 +109,9 @@ URI     : https://colorlib.com
                             <div class="media">
                                 <span class="ti-settings gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
-                                    <h4 class="card-title">Customize</h4>
-                                    <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque </p>
+                                    <h4 class="card-title">Personal</h4>
+                                    <p class="card-text">Queremos que esta aplicación la sientas tuya, dale tu estilo
+                                        único y detergente.</p>
                                 </div>
                             </div>
                         </div>
@@ -116,8 +123,9 @@ URI     : https://colorlib.com
                             <div class="media">
                                 <span class="ti-lock gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
-                                    <h4 class="card-title">Secure</h4>
-                                    <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque </p>
+                                    <h4 class="card-title">Segura</h4>
+                                    <p class="card-text">Esta aplicación de código abierto está desarrollada con
+                                        CodeIgniter 4 y PHP, implementando un modo de máxima seguridad.</p>
                                 </div>
                             </div>
                         </div>
@@ -137,9 +145,10 @@ URI     : https://colorlib.com
             <div class="row">
                 <div class="col-lg-6 offset-lg-6">
                     <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div>
-                    <h2>Discover our App</h2>
-                    <p class="mb-4">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Obcaecati vel exercitationem eveniet vero maxime ratione </p>
-                    <a href="#" class="btn btn-primary">Read more</a>
+                    <h2>La regla 20/80</h2>
+                    <p class="mb-4">El 20% de las causas que serán las responsables de
+                        generar el 80% de las consecuencias.</p>
+                    <a href="#" class="btn btn-primary">Leer más...</a>
                 </div>
             </div>
             <div class="perspective-phone">
@@ -154,37 +163,51 @@ URI     : https://colorlib.com
     <div class="section light-bg">
         <div class="container">
             <div class="section-title">
-                <small>FEATURES</small>
-                <h3>Do more with our app</h3>
+                <small>CARACTERÍSTICAS</small>
+                <h3>Características de tu herramienta digital 💕</h3>
             </div>
 
             <ul class="nav nav-tabs nav-justified" role="tablist">
                 <li class="nav-item">
-                    <a class="nav-link active" data-toggle="tab" href="#communication">Communication</a>
+                    <a class="nav-link active" data-toggle="tab" href="#communication">Registra</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#schedule">Scheduling</a>
+                    <a class="nav-link" data-toggle="tab" href="#schedule">Historial</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#messages">Messages</a>
+                    <a class="nav-link" data-toggle="tab" href="#messages">Estadistica</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#livechat">Live Chat</a>
+                    <a class="nav-link" data-toggle="tab" href="#livechat">Personaliza</a>
                 </li>
             </ul>
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="communication">
                     <div class="d-flex flex-column flex-lg-row">
-                        <img src="images/graphic.png" alt="graphic" class="img-fluid rounded align-self-start mr-lg-5 mb-5 mb-lg-0">
+                        <img src="images/graphic.png" alt="graphic"
+                            class="img-fluid rounded align-self-start mr-lg-5 mb-5 mb-lg-0">
                         <div>
 
-                            <h2>Communicate with ease</h2>
-                            <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills. </p>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien. Vestibulum sit amet mattis ante. Ut placerat dui eu nulla
-                                congue tincidunt ac a nibh. Mauris accumsan pulvinar lorem placerat volutpat. Praesent quis facilisis elit. Sed condimentum neque quis ex porttitor,
+                            <h2>Registra tus Comidas.</h2>
+                            <p class="lead">Como funciona el Registro de Comidas en darink.app?</p>
+                            <p>
+                                Las comidas estan compuestas de alimentos y los alimentos causan o tapan emociones.
+                            <ul>
+                                <li>(automático) Comida: Registra automaticamente la hora y el lugar.</li>
+                                <li>(manual) Alimento: Registraras manualmente el titulo que deses y el tamaño relativo.
+                                </li>
+                                <li>(opcional) Semaforo: Elije entre los tres colores de un semaforo y comparte contigo
+                                    como te hizo sentir o el contexto.</li>
+                            </ul>
+
+
                             </p>
-                            <p> malesuada faucibus augue aliquet. Sed elit est, eleifend sed dapibus a, semper a eros. Vestibulum blandit vulputate pharetra. Phasellus lobortis leo a nisl euismod, eu faucibus justo sollicitudin. Mauris consectetur, tortor
-                                sed tempor malesuada, sem nunc porta augue, in dictum arcu tortor id turpis. Proin aliquet vulputate aliquam.
+                            <p> Proximamente estamos planteando la opcion de que puedas programar registro de tus
+                                comidas
+                                habituales a un número XXXX de tu preferencia para que pierdas 1 segundo hacer el
+                                registro tecleandolo en un panel númerico. <i>Desde fuera parecera que estas llamando
+                                    alguien.</i>
+
                             </p>
                         </div>
                     </div>
@@ -193,28 +216,44 @@ URI     : https://colorlib.com
                     <div class="d-flex flex-column flex-lg-row">
                         <div>
                             <h2>Scheduling when you want</h2>
-                            <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills. </p>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien. Vestibulum sit amet mattis ante. Ut placerat dui eu nulla
-                                congue tincidunt ac a nibh. Mauris accumsan pulvinar lorem placerat volutpat. Praesent quis facilisis elit. Sed condimentum neque quis ex porttitor,
+                            <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills.
                             </p>
-                            <p> malesuada faucibus augue aliquet. Sed elit est, eleifend sed dapibus a, semper a eros. Vestibulum blandit vulputate pharetra. Phasellus lobortis leo a nisl euismod, eu faucibus justo sollicitudin. Mauris consectetur, tortor
-                                sed tempor malesuada, sem nunc porta augue, in dictum arcu tortor id turpis. Proin aliquet vulputate aliquam.
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
+                                pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien.
+                                Vestibulum sit amet mattis ante. Ut placerat dui eu nulla
+                                congue tincidunt ac a nibh. Mauris accumsan pulvinar lorem placerat volutpat. Praesent
+                                quis facilisis elit. Sed condimentum neque quis ex porttitor,
+                            </p>
+                            <p> malesuada faucibus augue aliquet. Sed elit est, eleifend sed dapibus a, semper a eros.
+                                Vestibulum blandit vulputate pharetra. Phasellus lobortis leo a nisl euismod, eu
+                                faucibus justo sollicitudin. Mauris consectetur, tortor
+                                sed tempor malesuada, sem nunc porta augue, in dictum arcu tortor id turpis. Proin
+                                aliquet vulputate aliquam.
                             </p>
                         </div>
-                        <img src="images/graphic.png" alt="graphic" class="img-fluid rounded align-self-start mr-lg-5 mb-5 mb-lg-0">
+                        <img src="images/graphic.png" alt="graphic"
+                            class="img-fluid rounded align-self-start mr-lg-5 mb-5 mb-lg-0">
                     </div>
                 </div>
                 <div class="tab-pane fade" id="messages">
                     <div class="d-flex flex-column flex-lg-row">
-                        <img src="images/graphic.png" alt="graphic" class="img-fluid rounded align-self-start mr-lg-5 mb-5 mb-lg-0">
+                        <img src="images/graphic.png" alt="graphic"
+                            class="img-fluid rounded align-self-start mr-lg-5 mb-5 mb-lg-0">
                         <div>
                             <h2>Realtime Messaging service</h2>
-                            <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills. </p>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien. Vestibulum sit amet mattis ante. Ut placerat dui eu nulla
-                                congue tincidunt ac a nibh. Mauris accumsan pulvinar lorem placerat volutpat. Praesent quis facilisis elit. Sed condimentum neque quis ex porttitor,
+                            <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills.
                             </p>
-                            <p> malesuada faucibus augue aliquet. Sed elit est, eleifend sed dapibus a, semper a eros. Vestibulum blandit vulputate pharetra. Phasellus lobortis leo a nisl euismod, eu faucibus justo sollicitudin. Mauris consectetur, tortor
-                                sed tempor malesuada, sem nunc porta augue, in dictum arcu tortor id turpis. Proin aliquet vulputate aliquam.
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
+                                pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien.
+                                Vestibulum sit amet mattis ante. Ut placerat dui eu nulla
+                                congue tincidunt ac a nibh. Mauris accumsan pulvinar lorem placerat volutpat. Praesent
+                                quis facilisis elit. Sed condimentum neque quis ex porttitor,
+                            </p>
+                            <p> malesuada faucibus augue aliquet. Sed elit est, eleifend sed dapibus a, semper a eros.
+                                Vestibulum blandit vulputate pharetra. Phasellus lobortis leo a nisl euismod, eu
+                                faucibus justo sollicitudin. Mauris consectetur, tortor
+                                sed tempor malesuada, sem nunc porta augue, in dictum arcu tortor id turpis. Proin
+                                aliquet vulputate aliquam.
                             </p>
                         </div>
                     </div>
@@ -223,15 +262,23 @@ URI     : https://colorlib.com
                     <div class="d-flex flex-column flex-lg-row">
                         <div>
                             <h2>Live chat when you needed</h2>
-                            <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills. </p>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien. Vestibulum sit amet mattis ante. Ut placerat dui eu nulla
-                                congue tincidunt ac a nibh. Mauris accumsan pulvinar lorem placerat volutpat. Praesent quis facilisis elit. Sed condimentum neque quis ex porttitor,
+                            <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills.
                             </p>
-                            <p> malesuada faucibus augue aliquet. Sed elit est, eleifend sed dapibus a, semper a eros. Vestibulum blandit vulputate pharetra. Phasellus lobortis leo a nisl euismod, eu faucibus justo sollicitudin. Mauris consectetur, tortor
-                                sed tempor malesuada, sem nunc porta augue, in dictum arcu tortor id turpis. Proin aliquet vulputate aliquam.
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
+                                pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien.
+                                Vestibulum sit amet mattis ante. Ut placerat dui eu nulla
+                                congue tincidunt ac a nibh. Mauris accumsan pulvinar lorem placerat volutpat. Praesent
+                                quis facilisis elit. Sed condimentum neque quis ex porttitor,
+                            </p>
+                            <p> malesuada faucibus augue aliquet. Sed elit est, eleifend sed dapibus a, semper a eros.
+                                Vestibulum blandit vulputate pharetra. Phasellus lobortis leo a nisl euismod, eu
+                                faucibus justo sollicitudin. Mauris consectetur, tortor
+                                sed tempor malesuada, sem nunc porta augue, in dictum arcu tortor id turpis. Proin
+                                aliquet vulputate aliquam.
                             </p>
                         </div>
-                        <img src="images/graphic.png" alt="graphic" class="img-fluid rounded align-self-start mr-lg-5 mb-5 mb-lg-0">
+                        <img src="images/graphic.png" alt="graphic"
+                            class="img-fluid rounded align-self-start mr-lg-5 mb-5 mb-lg-0">
                     </div>
                 </div>
             </div>
@@ -252,8 +299,10 @@ URI     : https://colorlib.com
                     <div>
                         <div class="box-icon"><span class="ti-rocket gradient-fill ti-3x"></span></div>
                         <h2>Launch your App</h2>
-                        <p class="mb-4">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Obcaecati vel exercitationem eveniet vero maxime ratione </p>
-                        <a href="#" class="btn btn-primary">Read more</a></div>
+                        <p class="mb-4">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Obcaecati vel
+                            exercitationem eveniet vero maxime ratione </p>
+                        <a href="#" class="btn btn-primary">Read more</a>
+                    </div>
                 </div>
             </div>
 
@@ -273,21 +322,24 @@ URI     : https://colorlib.com
                             <div class="circle-icon mr-4">1</div>
                             <div class="media-body">
                                 <h5>Create an Account</h5>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium obcaecati vel exercitationem </p>
+                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
+                                    pellentesque pretium obcaecati vel exercitationem </p>
                             </div>
                         </li>
                         <li class="media my-4">
                             <div class="circle-icon mr-4">2</div>
                             <div class="media-body">
                                 <h5>Share with friends</h5>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium obcaecati vel exercitationem eveniet</p>
+                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
+                                    pellentesque pretium obcaecati vel exercitationem eveniet</p>
                             </div>
                         </li>
                         <li class="media">
                             <div class="circle-icon mr-4">3</div>
                             <div class="media-body">
                                 <h5>Enjoy your life</h5>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium obcaecati vel exercitationem </p>
+                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
+                                    pellentesque pretium obcaecati vel exercitationem </p>
                             </div>
                         </li>
                     </ul>
@@ -314,19 +366,25 @@ URI     : https://colorlib.com
             <div class="testimonials owl-carousel">
                 <div class="testimonials-single">
                     <img src="images/client.png" alt="client" class="client-img">
-                    <blockquote class="blockquote">Uniquely streamline highly efficient scenarios and 24/7 initiatives. Conveniently embrace multifunctional ideas through proactive customer service. Distinctively conceptualize 2.0 intellectual capital via user-centric partnerships.</blockquote>
+                    <blockquote class="blockquote">Uniquely streamline highly efficient scenarios and 24/7 initiatives.
+                        Conveniently embrace multifunctional ideas through proactive customer service. Distinctively
+                        conceptualize 2.0 intellectual capital via user-centric partnerships.</blockquote>
                     <h5 class="mt-4 mb-2">Crystal Gordon</h5>
                     <p class="text-primary">United States</p>
                 </div>
                 <div class="testimonials-single">
                     <img src="images/client.png" alt="client" class="client-img">
-                    <blockquote class="blockquote">Uniquely streamline highly efficient scenarios and 24/7 initiatives. Conveniently embrace multifunctional ideas through proactive customer service. Distinctively conceptualize 2.0 intellectual capital via user-centric partnerships.</blockquote>
+                    <blockquote class="blockquote">Uniquely streamline highly efficient scenarios and 24/7 initiatives.
+                        Conveniently embrace multifunctional ideas through proactive customer service. Distinctively
+                        conceptualize 2.0 intellectual capital via user-centric partnerships.</blockquote>
                     <h5 class="mt-4 mb-2">Crystal Gordon</h5>
                     <p class="text-primary">United States</p>
                 </div>
                 <div class="testimonials-single">
                     <img src="images/client.png" alt="client" class="client-img">
-                    <blockquote class="blockquote">Uniquely streamline highly efficient scenarios and 24/7 initiatives. Conveniently embrace multifunctional ideas through proactive customer service. Distinctively conceptualize 2.0 intellectual capital via user-centric partnerships.</blockquote>
+                    <blockquote class="blockquote">Uniquely streamline highly efficient scenarios and 24/7 initiatives.
+                        Conveniently embrace multifunctional ideas through proactive customer service. Distinctively
+                        conceptualize 2.0 intellectual capital via user-centric partnerships.</blockquote>
                     <h5 class="mt-4 mb-2">Crystal Gordon</h5>
                     <p class="text-primary">United States</p>
                 </div>
@@ -437,16 +495,24 @@ URI     : https://colorlib.com
             <div class="row pt-4">
                 <div class="col-md-6">
                     <h4 class="mb-3">Can I try before I buy?</h4>
-                    <p class="light-font mb-5">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien. Vestibulum sit amet mattis ante. </p>
+                    <p class="light-font mb-5">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum,
+                        urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien.
+                        Vestibulum sit amet mattis ante. </p>
                     <h4 class="mb-3">What payment methods do you accept?</h4>
-                    <p class="light-font mb-5">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien. Vestibulum sit amet mattis ante. </p>
+                    <p class="light-font mb-5">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum,
+                        urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien.
+                        Vestibulum sit amet mattis ante. </p>
 
                 </div>
                 <div class="col-md-6">
                     <h4 class="mb-3">Can I change my plan later?</h4>
-                    <p class="light-font mb-5">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien. Vestibulum sit amet mattis ante. </p>
+                    <p class="light-font mb-5">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum,
+                        urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien.
+                        Vestibulum sit amet mattis ante. </p>
                     <h4 class="mb-3">Do you have a contract?</h4>
-                    <p class="light-font mb-5">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien. Vestibulum sit amet mattis ante. </p>
+                    <p class="light-font mb-5">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum,
+                        urna eu pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien.
+                        Vestibulum sit amet mattis ante. </p>
 
                 </div>
             </div>
@@ -463,7 +529,8 @@ URI     : https://colorlib.com
 
                 <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div>
                 <h2>Download Anywhere</h2>
-                <p class="tagline">Available for all major mobile and desktop platforms. Rapidiously visualize optimal ROI rather than enterprise-wide methods of empowerment. </p>
+                <p class="tagline">Available for all major mobile and desktop platforms. Rapidiously visualize optimal
+                    ROI rather than enterprise-wide methods of empowerment. </p>
                 <div class="my-4">
 
                     <a href="#" class="btn btn-light"><img src="images/appleicon.png" alt="icon"> App Store</a>
@@ -480,10 +547,12 @@ URI     : https://colorlib.com
         <div class="container">
             <div class="row">
                 <div class="col-lg-6 text-center text-lg-left">
-                    <p class="mb-2"> <span class="ti-location-pin mr-2"></span> 1485 Pacific St, Brooklyn, NY 11216 USA</p>
+                    <p class="mb-2"> <span class="ti-location-pin mr-2"></span> 1485 Pacific St, Brooklyn, NY 11216 USA
+                    </p>
                     <div class=" d-block d-sm-inline-block">
                         <p class="mb-2">
-                            <span class="ti-email mr-2"></span> <a class="mr-4" href="mailto:support@mobileapp.com">support@mobileapp.com</a>
+                            <span class="ti-email mr-2"></span> <a class="mr-4"
+                                href="mailto:support@mobileapp.com">support@mobileapp.com</a>
                         </p>
                     </div>
                     <div class="d-block d-sm-inline-block">
@@ -508,7 +577,8 @@ URI     : https://colorlib.com
     <!-- // end .section -->
     <footer class="my-5 text-center">
         <!-- Copyright removal is not prohibited! -->
-        <p class="mb-2"><small>COPYRIGHT © 2025. ALL RIGHTS RESERVED. DARINK TEMPLATE BY <a href="https://colorlib.com">COLORLIB</a></small></p>
+        <p class="mb-2"><small>COPYRIGHT © 2025. ALL RIGHTS RESERVED. DARINK TEMPLATE BY <a
+                    href="https://colorlib.com">COLORLIB</a></small></p>
 
         <small>
             <a href="#" class="m-2">PRESS</a>
