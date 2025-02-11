@@ -124,7 +124,8 @@ URI     : https://colorlib.com
                                 <span class="ti-lock gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
                                     <h4 class="card-title">Privada</h4>
-                                    <p class="card-text">Ofrecemos todas las herramientas posible para proteger tu privacidad.</p>
+                                    <p class="card-text">Ofrecemos todas las herramientas posible para proteger tu
+                                        privacidad.</p>
                                 </div>
                             </div>
                         </div>
@@ -143,7 +144,7 @@ URI     : https://colorlib.com
         <div class="container">
             <div class="row">
                 <div class="col-lg-6 offset-lg-6">
-                    <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div>
+                    <!-- <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div> -->
                     <h2>La regla del 20% (Principio de Pareto)</h2>
                     <p class="mb-4">El 20% de las causas que serán las responsables de
                         generar el 80% de las consecuencias.</p>
@@ -296,7 +297,7 @@ URI     : https://colorlib.com
                 </div>
                 <div class="col-md-6 d-flex align-items-center">
                     <div>
-                        <div class="box-icon"><span class="ti-rocket gradient-fill ti-3x"></span></div>
+                        <!-- <div class="box-icon"><span class="ti-rocket gradient-fill ti-3x"></span></div> -->
                         <h2>Intestino sano; Cerebro sano</h2>
                         <p class="mb-4">
                             La Célebre frase de Hipócrates - Todas las enfermedades empiezan en el intestino. -
@@ -323,7 +324,7 @@ URI     : https://colorlib.com
                         <li class="media">
                             <div class="circle-icon mr-4">1</div>
                             <div class="media-body">
-                                <h5>Create an Account</h5>
+                                <h5>Crea tu cuenta</h5>
                                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
                                     pellentesque pretium obcaecati vel exercitationem </p>
                             </div>
@@ -331,7 +332,7 @@ URI     : https://colorlib.com
                         <li class="media my-4">
                             <div class="circle-icon mr-4">2</div>
                             <div class="media-body">
-                                <h5>Share with friends</h5>
+                                <h5>Registra tus comidas</h5>
                                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
                                     pellentesque pretium obcaecati vel exercitationem eveniet</p>
                             </div>
@@ -339,7 +340,7 @@ URI     : https://colorlib.com
                         <li class="media">
                             <div class="circle-icon mr-4">3</div>
                             <div class="media-body">
-                                <h5>Enjoy your life</h5>
+                                <h5>Compartelo con quien quieras</h5>
                                 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
                                     pellentesque pretium obcaecati vel exercitationem </p>
                             </div>
@@ -361,8 +362,8 @@ URI     : https://colorlib.com
     <div class="section">
         <div class="container">
             <div class="section-title">
-                <small>TESTIMONIALS</small>
-                <h3>What our Customers Says</h3>
+                <small>TESTIMONIOS</small>
+                <h3>Qué dicen los Usuarios de darink.app</h3>
             </div>
 
             <div class="testimonials owl-carousel">
@@ -401,8 +402,8 @@ URI     : https://colorlib.com
     <div class="section light-bg" id="gallery">
         <div class="container">
             <div class="section-title">
-                <small>GALLERY</small>
-                <h3>App Screenshots</h3>
+                <small>GALLERIA</small>
+                <h3>Capturas de pantalla</h3>
             </div>
 
             <div class="img-gallery owl-carousel owl-theme">
@@ -424,47 +425,47 @@ URI     : https://colorlib.com
     <div class="section" id="pricing">
         <div class="container">
             <div class="section-title">
-                <small>PRICING</small>
-                <h3>Upgrade to Pro</h3>
+                <small>PRECIO</small>
+                <h3>Qué precio tiene</h3>
             </div>
 
             <div class="card-deck">
                 <div class="card pricing">
                     <div class="card-head">
-                        <small class="text-primary">PERSONAL</small>
-                        <span class="price">$14<sub>/m</sub></span>
+                        <small class="text-primary">BASIC</small>
+                        <span class="price">$2<sub>/m</sub></span>
                     </div>
                     <ul class="list-group list-group-flush">
-                        <div class="list-group-item">10 Projects</div>
-                        <div class="list-group-item">5 GB Storage</div>
-                        <div class="list-group-item">Basic Support</div>
-                        <div class="list-group-item"><del>Collaboration</del></div>
-                        <div class="list-group-item"><del>Reports and analytics</del></div>
+                        <div class="list-group-item">Registro Programable</div>
+                        <div class="list-group-item">Historial Infinito</div>
+                        <div class="list-group-item">Estadísticas y Reportes</div>
+                        <div class="list-group-item"><del>Adjuntar Imagenes</del></div>
+                        <div class="list-group-item"><del>Colaboraciones</del></div>
                     </ul>
                     <div class="card-body">
-                        <a href="#" class="btn btn-primary btn-lg btn-block">Choose this Plan</a>
+                        <a href="#" class="btn btn-primary btn-lg btn-block">Elegir este plan</a>
                     </div>
                 </div>
                 <div class="card pricing popular">
                     <div class="card-head">
-                        <small class="text-primary">FOR TEAMS</small>
-                        <span class="price">$29<sub>/m</sub></span>
+                        <small class="text-primary">PERSONAL</small>
+                        <span class="price">$20<sub>/m</sub></span>
                     </div>
                     <ul class="list-group list-group-flush">
-                        <div class="list-group-item">Unlimited Projects</div>
-                        <div class="list-group-item">100 GB Storage</div>
-                        <div class="list-group-item">Priority Support</div>
-                        <div class="list-group-item">Collaboration</div>
-                        <div class="list-group-item">Reports and analytics</div>
+                        <div class="list-group-item">Registro Programable</div>
+                        <div class="list-group-item">Historial Infinito</div>
+                        <div class="list-group-item">Estadísticas y Reportes</div>
+                        <div class="list-group-item">Adjuntar Imagenes</div>
+                        <div class="list-group-item">Colaboraciones</div>
                     </ul>
                     <div class="card-body">
-                        <a href="#" class="btn btn-primary btn-lg btn-block">Choose this Plan</a>
+                        <a href="#" class="btn btn-primary btn-lg btn-block">Elegir este plan</a>
                     </div>
                 </div>
                 <div class="card pricing">
                     <div class="card-head">
-                        <small class="text-primary">ENTERPRISE</small>
-                        <span class="price">$249<sub>/m</sub></span>
+                        <small class="text-primary">PROFESIONAL</small>
+                        <span class="price">$200<sub>/m</sub></span>
                     </div>
                     <ul class="list-group list-group-flush">
                         <div class="list-group-item">Unlimited Projects</div>
@@ -474,7 +475,7 @@ URI     : https://colorlib.com
                         <div class="list-group-item">Web hooks</div>
                     </ul>
                     <div class="card-body">
-                        <a href="#" class="btn btn-primary btn-lg btn-block">Choose this Plan</a>
+                        <a href="#" class="btn btn-primary btn-lg btn-block">Elegir este plan</a>
                     </div>
                 </div>
             </div>
@@ -491,7 +492,7 @@ URI     : https://colorlib.com
         <div class="container">
             <div class="section-title">
                 <small>FAQ</small>
-                <h3>Frequently Asked Questions</h3>
+                <h3>Preguntas Frecuentes</h3>
             </div>
 
             <div class="row pt-4">
