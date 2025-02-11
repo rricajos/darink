@@ -145,7 +145,7 @@ URI     : https://colorlib.com
             <div class="row">
                 <div class="col-lg-6 offset-lg-6">
                     <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div>
-                    <h2>La regla 20/80</h2>
+                    <h2>La regla del 20% (Principio de Pareto)</h2>
                     <p class="mb-4">El 20% de las causas que serán las responsables de
                         generar el 80% de las consecuencias.</p>
                     <a href="#" class="btn btn-primary">Leer más...</a>
@@ -172,7 +172,7 @@ URI     : https://colorlib.com
                     <a class="nav-link active" data-toggle="tab" href="#communication">Registra</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#schedule">Historial</a>
+                    <a class="nav-link" data-toggle="tab" href="#schedule">Observa</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" data-toggle="tab" href="#messages">Estadistica</a>
@@ -215,7 +215,7 @@ URI     : https://colorlib.com
                 <div class="tab-pane fade" id="schedule">
                     <div class="d-flex flex-column flex-lg-row">
                         <div>
-                            <h2>Scheduling when you want</h2>
+                            <h2>Mira atrás cuando quieras</h2>
                             <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills.
                             </p>
                             <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
@@ -240,7 +240,7 @@ URI     : https://colorlib.com
                         <img src="images/graphic.png" alt="graphic"
                             class="img-fluid rounded align-self-start mr-lg-5 mb-5 mb-lg-0">
                         <div>
-                            <h2>Realtime Messaging service</h2>
+                            <h2>Estádistica tu progreso</h2>
                             <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills.
                             </p>
                             <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
@@ -261,8 +261,8 @@ URI     : https://colorlib.com
                 <div class="tab-pane fade" id="livechat">
                     <div class="d-flex flex-column flex-lg-row">
                         <div>
-                            <h2>Live chat when you needed</h2>
-                            <p class="lead">Uniquely underwhelm premium outsourcing with proactive leadership skills.
+                            <h2>Personaliza tu set de colores y tu privacidad al 100%.</h2>
+                            <p class="lead">
                             </p>
                             <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer rutrum, urna eu
                                 pellentesque pretium, nisi nisi fermentum enim, et sagittis dolor nulla vel sapien.
@@ -298,9 +298,12 @@ URI     : https://colorlib.com
                 <div class="col-md-6 d-flex align-items-center">
                     <div>
                         <div class="box-icon"><span class="ti-rocket gradient-fill ti-3x"></span></div>
-                        <h2>Launch your App</h2>
-                        <p class="mb-4">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Obcaecati vel
-                            exercitationem eveniet vero maxime ratione </p>
+                        <h2>Intestino sano; Cerebro sano</h2>
+                        <p class="mb-4">
+                            La Célebre frase de Hipócrates - Todas las enfermedades empiezan en el intestino. -
+                            Considerado el
+                            padre de la medicina moderna, quien vio la importancia de cuidar nuestro intestino para
+                            tener buena salud.</p>
                         <a href="#" class="btn btn-primary">Read more</a>
                     </div>
                 </div>
