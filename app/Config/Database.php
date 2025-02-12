@@ -26,10 +26,10 @@ class Database extends Config
      */
     public array $default = [
         'DSN'          => '',
-        'hostname'     => 'localhost',
-        'username'     => '',
-        'password'     => '',
-        'database'     => '',
+        'hostname'     => '96ff0q.stackhero-network.com',
+        'username'     => 'root',
+        'password'     => 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
+        'database'     => 'darink',
         'DBDriver'     => 'MySQLi',
         'DBPrefix'     => '',
         'pConnect'     => false,

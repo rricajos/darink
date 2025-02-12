@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <title>Darink - App Landing Page </title>
     <!-- Required meta tags -->
@@ -36,12 +37,12 @@
                             aria-label="Toggle navigation"> <span class="navbar-toggler-icon"></span> </button>
                         <div class="collapse navbar-collapse" id="navbar">
                             <ul class="navbar-nav ml-auto">
-                                <li class="nav-item"> <a class="nav-link active" href="#home">INICIO <span
+                                <li class="nav-item"> <a class="nav-link active" href="#home">INICIO<span
                                             class="sr-only">(current)</span></a> </li>
-                                <li class="nav-item"> <a class="nav-link" href="#features">CARACTERÍSTICAS</a> </li>
-                                <li class="nav-item"> <a class="nav-link" href="#gallery">GALERIA</a> </li>
+                                <li class="nav-item"> <a class="nav-link" href="#philosophy">FILOSOFIA</a> </li>
+                                <li class="nav-item"> <a class="nav-link" href="#gallery">IMAGENES</a> </li>
                                 <li class="nav-item"> <a class="nav-link" href="#pricing">PRECIO</a> </li>
-                                <li class="nav-item"> <a class="nav-link" href="#contact">@RRICAJOS</a> </li>
+
                                 <li class="nav-item"><a href="/auth"
                                         class="btn btn-outline-light my-3 my-sm-0 ml-lg-3">Connect</a></li>
                             </ul>
@@ -55,17 +56,17 @@
 
     <header class="bg-gradient" id="home">
         <div class="container mt-5">
-            <h1>Applicación del Nutricionista Minamlista</h1>
-            <p class="tagline">Enfocado en ayudar con los trastornos de conducta alimentaria (TCA) </p>
+            <h1>Applicación del Nutricionista Minimalista</h1>
+            <p class="tagline">Enfocado en ayudar con los trastornos de conducta alimentaria (TCA)</p>
         </div>
         <div class="img-holder mt-3"><img src="images/iphonex.png" alt="phone" class="img-fluid"></div>
     </header>
 
-    <div class="client-logos my-5">
+    <!-- <div class="client-logos my-5">
         <div class="container text-center">
             <img src="images/client-logos.png" alt="client logos" class="img-fluid">
         </div>
-    </div>
+    </div> -->
 
     <div class="section light-bg" id="features">
 
@@ -73,8 +74,8 @@
         <div class="container">
 
             <div class="section-title">
-                <small>FILOSOFIA</small>
-                <h3>Filosofia de darink.app </h3>
+                <small>BENEFICIOS</small>
+                <h3>Top 3 Características y Beneficios </h3>
             </div>
 
 
@@ -86,8 +87,9 @@
                                 <span class="ti-face-smile gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
                                     <h4 class="card-title">Simple</h4>
-                                    <p class="card-text">Diseñada para ser rápida, clara y fácil de usar. No necesitas
-                                        contar calorías ni seguir métricas complicadas.</p>
+                                    <p class="card-text">Diseñada para ser rápida, clara y fácil de usar. <strong> No
+                                            necesitas
+                                            contar calorías</strong> ni seguir métricas complicadas.</p>
 
                                 </div>
                             </div>
@@ -101,8 +103,9 @@
                                 <span class="ti-settings gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
                                     <h4 class="card-title">Personal</h4>
-                                    <p class="card-text">Adáptala a tu estilo y necesidades. Queremos que la sientas
-                                        tuya y la uses como mejor te funcione.</p>
+                                    <p class="card-text">Adáptala a tu estilo y necesidades. Sabemos que <strong> la
+                                            sentiras
+                                            tuya</strong> y que la usaras como mejor te funcione.</p>
 
                                 </div>
                             </div>
@@ -116,10 +119,9 @@
                                 <span class="ti-lock gradient-fill ti-3x mr-3"></span>
                                 <div class="media-body">
                                     <h4 class="card-title">Segura</h4>
-                                    <p class="card-text">Protegemos tu información con los más altos estándares de
-                                        seguridad para garantizar tu tranquilidad.</p>
-
-
+                                    <p class="card-text">Protegemos tu información con los más <strong>altos estándares
+                                            de
+                                            seguridad</strong> para garantizar tu tranquilidad.</p>
                                 </div>
                             </div>
                         </div>
@@ -132,47 +134,30 @@
 
 
     </div>
-    <!-- // end .section -->
-    <div class="section">
 
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-6 offset-lg-12">
-                    <!-- <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div> -->
-                    <h2>Principio de Pareto</h2>
-                    <p class="mb-4">El 20% de las causas que serán las responsables de
-                        generar el 80% de las consecuencias.</p>
-                    <a href="#" class="btn btn-primary">Leer más...</a>
-                </div>
-            </div>
-            <div class="perspective-phone">
-                <img src="images/perspective.png" alt="perspective phone" class="img-fluid">
-            </div>
-        </div>
 
-    </div>
-    <!-- // end .section -->
 
 
     <div class="section light-bg">
         <div class="container">
+
             <div class="section-title">
-                <small>CARACTERÍSTICAS</small>
-                <h3>Características de tu herramienta digital 💕</h3>
+                <small>FUNCIONAMIENTO</small>
+                <h3>Como funciona la Applicación.</h3>
             </div>
 
             <ul class="nav nav-tabs nav-justified" role="tablist">
                 <li class="nav-item">
-                    <a class="nav-link active" data-toggle="tab" href="#communication">Sencilla</a>
+                    <a class="nav-link active" data-toggle="tab" href="#communication">Registra</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#schedule">Eficiente</a>
+                    <a class="nav-link" data-toggle="tab" href="#schedule">Revisa</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#messages">Estadistica</a>
+                    <a class="nav-link" data-toggle="tab" href="#messages">Especula</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#livechat">Personalizable</a>
+                    <a class="nav-link" data-toggle="tab" href="#livechat">Personaliza</a>
                 </li>
             </ul>
             <div class="tab-content">
@@ -280,26 +265,53 @@
 
         </div>
     </div>
-    <!-- // end .section -->
 
-    <div class="section">
+    <!-- <div class="section">
 
         <div class="container">
             <div class="row">
-                <div class="col-md-4">
-                    <img src="images/dualphone.png" alt="dual phone" class="img-fluid">
+                <div class="col-lg-8 offset-lg-12">
+                    <img src="images/perspective.png" alt="perspective phone" class="img-fluid">
                 </div>
-                <div class="col-md-8 d-flex align-items-center">
+                <div class="col-lg-4 offset-lg-12">
+
+                    <h2>Principio de Pareto en la Nutrición</h2>
+                    <p class="mb-4">El 20% de las causas que serán las responsables de
+                        generar el 80% de las consecuencias. ¿Por que esta aplicación nos ayudara a identificar ese 20%?
+                    </p>
+                    <a href="#" class="btn btn-primary">Leer más...</a>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div> -->
+
+
+
+
+    <!-- // end .section -->
+
+    <div class="section bg-gradient" id="philosophy">
+
+        <div class="container">
+            <div class="row">
+
+                <div class="col-lg-4 offset-lg-12">
                     <div>
                         <!-- <div class="box-icon"><span class="ti-rocket gradient-fill ti-3x"></span></div> -->
-                        <h2>Intestino sano, cerebro sano</h2>
-                        <p class="mb-4">
-                            La Célebre frase de Hipócrates - Todas las enfermedades empiezan en el intestino. -
-                            Considerado el
-                            padre de la medicina moderna, quien vio la importancia de cuidar nuestro intestino para
-                            tener buena salud.</p>
-                        <a href="#" class="btn btn-primary">Read more</a>
+                        <h2 style="color: var(--white);">Intestino sano, cerebro sano</h2>
+                        <p style="color: var(--white); class=" mb-4 c-white">
+                            Hipócrates Considerado el padre de la medicina moderna, quien vio la
+                            importancia de cuidar nuestro intestino para tener buena salud.</p>
+                        <a href="#" class="btn btn-primary " style="background: var(--purple); color: var(--white)">
+                            <span style="font-weight: bold; color: var(--white) !important;">𖦹</span>
+                            Leer más </a>
                     </div>
+                </div>
+                <div class="col-lg-8 offset-lg-12">
+                    <img src="images/dualphone.png" alt="dual phone" class="img-fluid">
                 </div>
             </div>
 
@@ -309,7 +321,7 @@
     <!-- // end .section -->
 
 
-    <div class="section light-bg">
+    <div class="section">
 
         <div class="container">
             <div class="row">
@@ -357,7 +369,7 @@
         <div class="container">
             <div class="section-title">
                 <small>TESTIMONIOS</small>
-                <h3>Qué dicen los Usuarios de darink.app</h3>
+                <h3>Qué dicen nuestros Usuarios</h3>
             </div>
 
             <div class="testimonials owl-carousel">
@@ -393,13 +405,13 @@
     <!-- // end .section -->
 
 
-    <div class="section light-bg" id="gallery">
+    <div class="section bg-gradient" id="gallery">
         <div class="container">
-            <div class="section-title">
-                <small>GALLERIA</small>
-                <h3>Capturas de pantalla</h3>
+            <div class="section-title container mt-5">
+                <small style="color: #fff">IMAGENES</small>
+                <h3 style="color: #fff"> Valen más que mil palabras</h3>
             </div>
-
+            
             <div class="img-gallery owl-carousel owl-theme">
                 <img src="images/screen1.jpg" alt="image">
                 <img src="images/screen2.jpg" alt="image">
