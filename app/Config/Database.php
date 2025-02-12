@@ -26,7 +26,7 @@ class Database extends Config
      */
     public array $default = [
         'DSN' => '',
-        'hostname' => 'https://96ff0q.stackhero-network.com:3774',
+        'hostname' => '96ff0q.stackhero-network.com:3774',
         'username' => 'root',
         'password' => 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
         'database' => 'darink',
