@@ -27,34 +27,25 @@ class Database extends Config
     public array $default = [
         'DSN'          => '',
         'hostname'     => '96ff0q.stackhero-network.com',
-        'username'     => 'root',
-        'password'     => 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
-        'database'     => 'darink',
-        'DBDriver'     => 'MySQLi',
+        'username'     => getenv('DATABASE_USER') ?: 'root',
+        'password'     => getenv('DATABASE_PASS') ?: 'tu_password',
+        'database'     => getenv('DATABASE_NAME') ?: 'darink',
+        'DBDriver'     => 'MySQLi',  // ✅ Usa MySQLi correctamente
         'DBPrefix'     => '',
         'pConnect'     => false,
-        'DBDebug'      => true,
+        'DBDebug'      => (ENVIRONMENT !== 'production'),
         'charset'      => 'utf8mb4',
         'DBCollat'     => 'utf8mb4_general_ci',
-        'swapPre'      => '',
-        'encrypt'      => true,
-        'ssl'          => true, // Habilita SSL
-        'ssl_verify'   => false, // No verificar certificado
-        'ssl_key'      => 'C:\xampp\mysql\certs\isrgrootx1.pem', // Ruta al archivo .key si es necesario
-        'ssl_cert'     => '', // Ruta al archivo .crt si es necesario
-        'ssl_ca'       => '', // Ruta al archivo .pem o .ca si es necesario
+        'encrypt'      => true, // ✅ Habilita SSL
+        'ssl'          => true,
+        'ssl_ca'       => getenv('MYSQL_SSL_CA') ?: '/app/certs/isrgrootx1.pem', // ✅ Ruta correcta al certificado
+        'ssl_verify'   => false,  // No verificar certificado del servidor
         'compress'     => false,
         'strictOn'     => false,
         'failover'     => [],
-        'port'         => 3774,
-        'numberNative' => false,
-        'foundRows'    => false,
-        'dateFormat'   => [
-            'date'     => 'Y-m-d',
-            'datetime' => 'Y-m-d H:i:s',
-            'time'     => 'H:i:s',
-        ],
+        'port'         => getenv('DATABASE_PORT') ?: 3774,
     ];
+    
 
     //    /**
     //     * Sample database connection for SQLite3.
