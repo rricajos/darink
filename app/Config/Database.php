@@ -39,7 +39,7 @@ class Database extends Config
         'swapPre' => '',
         'encrypt' => true, // Habilitar cifrado
 
-        'ssl_ca' => 'C:\Users\ricajos\Codes\darink\app\certs\isrgrootx1.pem',
+        'ssl_ca' => 'app/Certs\isrgrootx1.pem',
         'compress' => false,
         'strictOn' => false,
         'failover' => [],
