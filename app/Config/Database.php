@@ -25,12 +25,12 @@ class Database extends Config
      * @var array<string, mixed>
      */
     public array $default = [
-        'DSN' => '',
+        'DSN'      => 'mysql:host=96ff0q.stackhero-network.com;dbname=darink;port=3774;charset=utf8mb4',
         'hostname' => '96ff0q.stackhero-network.com',
         'username' => 'root',
         'password' => 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
         'database' => 'darink',
-        'DBDriver' => 'MySQLi',
+        'DBDriver' => 'PDO',
         'DBPrefix' => '',
         'pConnect' => false,
         'DBDebug' => (ENVIRONMENT !== 'production'), // Desactivar en producción
@@ -43,7 +43,7 @@ class Database extends Config
         'compress' => true,
         'strictOn' => false,
         'failover' => [],
-        'port' => 3306,
+        'port' => 3774,
         'numberNative' => false,
         'foundRows' => false,
         'dateFormat' => [
@@ -51,6 +51,7 @@ class Database extends Config
             'datetime' => 'Y-m-d H:i:s',
             'time' => 'H:i:s',
         ],
+     
     ];
 
 
