@@ -41,7 +41,7 @@
                                             class="sr-only">(current)</span></a> </li>
                                 <li class="nav-item"> <a class="nav-link" href="#philosophy">FILOSOFIA</a> </li>
                                 <li class="nav-item"> <a class="nav-link" href="#gallery">IMAGENES</a> </li>
-                                <li class="nav-item"> <a class="nav-link" href="#pricing">PRECIO</a> </li>
+                             
 
                                 <li class="nav-item"><a href="/auth"
                                         class="btn btn-outline-light my-3 my-sm-0 ml-lg-3">Connect</a></li>
