@@ -293,7 +293,12 @@
 
     <!-- // end .section -->
 
-    <div class="section bg-gradient" id="philosophy">
+    <div class="section bg-gradient" id="philosophy" style="min-height: 100vh;
+    display: flex
+;
+    flex-direction: column;
+    justify-content: center;
+    flex-wrap: nowrap;">
 
         <div class="container">
             <div class="row">
@@ -411,7 +416,7 @@
                 <small style="color: #fff">IMAGENES</small>
                 <h3 style="color: #fff"> Valen más que mil palabras</h3>
             </div>
-            
+
             <div class="img-gallery owl-carousel owl-theme">
                 <img src="images/screen1.jpg" alt="image">
                 <img src="images/screen2.jpg" alt="image">
