@@ -25,27 +25,35 @@ class Database extends Config
      * @var array<string, mixed>
      */
     public array $default = [
-        'DSN'          => '',
-        'hostname'     => '96ff0q.stackhero-network.com',
-        'username'     => getenv('DATABASE_USER') ?: 'root',
-        'password'     => getenv('DATABASE_PASS') ?: 'tu_password',
-        'database'     => getenv('DATABASE_NAME') ?: 'darink',
-        'DBDriver'     => 'MySQLi',  // ✅ Usa MySQLi correctamente
-        'DBPrefix'     => '',
-        'pConnect'     => false,
-        'DBDebug'      => (ENVIRONMENT !== 'production'),
-        'charset'      => 'utf8mb4',
-        'DBCollat'     => 'utf8mb4_general_ci',
-        'encrypt'      => true, // ✅ Habilita SSL
-        'ssl'          => true,
-        'ssl_ca'       => getenv('MYSQL_SSL_CA') ?: '/app/certs/isrgrootx1.pem', // ✅ Ruta correcta al certificado
-        'ssl_verify'   => false,  // No verificar certificado del servidor
-        'compress'     => false,
-        'strictOn'     => false,
-        'failover'     => [],
-        'port'         => getenv('DATABASE_PORT') ?: 3774,
+        'DSN' => '',
+        'hostname' => '96ff0q.stackhero-network.com:3774',
+        'username' => 'root',
+        'password' => 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
+        'database' => 'darink',
+        'DBDriver' => 'MySQLi',
+        'DBPrefix' => '',
+        'pConnect' => false,
+        'DBDebug' => (ENVIRONMENT !== 'production'), // Desactivar en producción
+        'charset' => 'utf8mb4',
+        'DBCollat' => 'utf8mb4_general_ci',
+        'swapPre' => '',
+        'encrypt' => true, // Habilitar cifrado
+
+        'ssl_ca' => 'C:\Users\ricajos\Codes\darink\app\certs\isrgrootx1.pem',
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port' => 3774,
+        'numberNative' => false,
+        'foundRows' => false,
+        'dateFormat' => [
+            'date' => 'Y-m-d',
+            'datetime' => 'Y-m-d H:i:s',
+            'time' => 'H:i:s',
+        ],
     ];
-    
+
+
 
     //    /**
     //     * Sample database connection for SQLite3.
@@ -159,29 +167,29 @@ class Database extends Config
      * @var array<string, mixed>
      */
     public array $tests = [
-        'DSN'         => '',
-        'hostname'    => '127.0.0.1',
-        'username'    => '',
-        'password'    => '',
-        'database'    => ':memory:',
-        'DBDriver'    => 'SQLite3',
-        'DBPrefix'    => 'db_',  // Needed to ensure we're working correctly with prefixes live. DO NOT REMOVE FOR CI DEVS
-        'pConnect'    => false,
-        'DBDebug'     => true,
-        'charset'     => 'utf8',
-        'DBCollat'    => '',
-        'swapPre'     => '',
-        'encrypt'     => false,
-        'compress'    => false,
-        'strictOn'    => false,
-        'failover'    => [],
-        'port'        => 3306,
+        'DSN' => '',
+        'hostname' => '127.0.0.1',
+        'username' => '',
+        'password' => '',
+        'database' => ':memory:',
+        'DBDriver' => 'SQLite3',
+        'DBPrefix' => 'db_',  // Needed to ensure we're working correctly with prefixes live. DO NOT REMOVE FOR CI DEVS
+        'pConnect' => false,
+        'DBDebug' => true,
+        'charset' => 'utf8',
+        'DBCollat' => '',
+        'swapPre' => '',
+        'encrypt' => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port' => 3306,
         'foreignKeys' => true,
         'busyTimeout' => 1000,
-        'dateFormat'  => [
-            'date'     => 'Y-m-d',
+        'dateFormat' => [
+            'date' => 'Y-m-d',
             'datetime' => 'Y-m-d H:i:s',
-            'time'     => 'H:i:s',
+            'time' => 'H:i:s',
         ],
     ];
 
