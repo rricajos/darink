@@ -12,8 +12,7 @@
         <p style="color: red;"><?= session()->getFlashdata('error') ?></p>
     <?php endif; ?>
 
-    <!-- <form action="<?= site_url('auth/process') ?>" method="post"> -->
-    <form action="http://localhost:8081/auth/process" method="post">
+    <form action="<?= site_url('auth/process') ?>" method="post">
         <label for="username">Usuario:</label>
         <input type="text" name="username" required><br><br>
 
