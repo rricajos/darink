@@ -40,10 +40,10 @@ class Database extends Config
         'encrypt' => true, // Habilitar cifrado
 
         'ssl_ca' => 'app/Certs/isrgrootx1.pem',
-        'compress' => false,
+        'compress' => true,
         'strictOn' => false,
         'failover' => [],
-        'port' => 3774,
+        'port' => 3306,
         'numberNative' => false,
         'foundRows' => false,
         'dateFormat' => [
