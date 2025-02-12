@@ -536,7 +536,7 @@
         <div class="container">
             <div class="call-to-action">
 
-                <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div>
+                <!-- <div class="box-icon"><span class="ti-mobile gradient-fill ti-3x"></span></div> -->
                 <h2>Download Anywhere</h2>
                 <p class="tagline">Available for all major mobile and desktop platforms. Rapidiously visualize optimal
                     ROI rather than enterprise-wide methods of empowerment. </p>
