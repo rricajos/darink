@@ -26,10 +26,10 @@ class Database extends Config
      */
     public array $default = [
         'DSN'          => '',
-        'hostname'     => getenv('DATABASE_HOST') ?: '96ff0q.stackhero-network.com',
-        'username'     => getenv('DATABASE_USER') ?: 'root',
-        'password'     => getenv('DATABASE_PASS') ?: 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
-        'database'     => getenv('DATABASE_NAME') ?: 'darink',
+        'hostname'     => '96ff0q.stackhero-network.com',
+        'username'     => 'root',
+        'password'     => 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
+        'database'     => 'darink',
         'DBDriver'     => 'MySQLi',
         'DBPrefix'     => '',
         'pConnect'     => false,
@@ -38,13 +38,15 @@ class Database extends Config
         'DBCollat'     => 'utf8mb4_general_ci',
         'swapPre'      => '',
         'encrypt'      => true,
-        'ssl'          => true, 
-        'ssl_ca'       => getenv('MYSQL_SSL_CA') ?: '/app/certs/isrgrootx1.pem',
-        'ssl_verify'   => false,
+        'ssl'          => true, // Habilita SSL
+        'ssl_verify'   => false, // No verificar certificado
+        'ssl_key'      => 'C:\xampp\mysql\certs\isrgrootx1.pem', // Ruta al archivo .key si es necesario
+        'ssl_cert'     => '', // Ruta al archivo .crt si es necesario
+        'ssl_ca'       => '', // Ruta al archivo .pem o .ca si es necesario
         'compress'     => false,
         'strictOn'     => false,
         'failover'     => [],
-        'port'         => getenv('DATABASE_PORT') ?: 3774,
+        'port'         => 3774,
         'numberNative' => false,
         'foundRows'    => false,
         'dateFormat'   => [
