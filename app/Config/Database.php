@@ -39,7 +39,7 @@ class Database extends Config
         'swapPre' => '',
         'encrypt' => true, 
 
-        'ssl_ca' => 'app/Certs/isrgrootx1.pem',
+        'ssl_ca' => 'app/certs/isrgrootx1.pem',
         // 'ssl_cert' => 'app/Certs/client-cert.pem', 
         // 'ssl_key'  => 'app/Certs/client-key.pem', 
 
