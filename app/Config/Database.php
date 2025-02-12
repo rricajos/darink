@@ -25,64 +25,37 @@ class Database extends Config
      * @var array<string, mixed>
      */
     public array $default = [
-        'DSN'      => 'mysql:host=96ff0q.stackhero-network.com;dbname=darink;charset=utf8mb4;port=3774',
-        'hostname' => '', // Remove hostname when using DSN
+        'DSN' => '',
+        'hostname' => '96ff0q.stackhero-network.com',
         'username' => 'root',
         'password' => 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
-        'DBDriver' => 'PDO',
+        'database' => 'darink',
+        'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,
-        'DBDebug' => (ENVIRONMENT !== 'production'), // Disable in production
+        'DBDebug' => (ENVIRONMENT !== 'production'), // Desactivar en producción
         'charset' => 'utf8mb4',
-        'encrypt' => true, // Ensure SSL is enabled
+        'DBCollat' => 'utf8mb4_general_ci',
+        'swapPre' => '',
+        'encrypt' => true, 
+
+        'ssl_ca' => 'app/Certs/isrgrootx1.pem',
+        // 'ssl_cert' => 'app/Certs/client-cert.pem', 
+        // 'ssl_key'  => 'app/Certs/client-key.pem', 
+
+        'compress' => false,
         'strictOn' => false,
         'failover' => [],
         'port' => 3774,
-    
-        // PDO-specific options (including SSL)
-        'options' => [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,  // Throw exceptions on errors
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,        // Return results as associative arrays
-            PDO::MYSQL_ATTR_SSL_CA       => 'app/Certs/isrgrootx1.pem', // Secure connection
-        ],
-        
-        // Date format settings (optional)
+        'numberNative' => false,
+        'foundRows' => false,
         'dateFormat' => [
-            'date'     => 'Y-m-d',
+            'date' => 'Y-m-d',
             'datetime' => 'Y-m-d H:i:s',
-            'time'     => 'H:i:s',
+            'time' => 'H:i:s',
         ],
-    ];
-    
-    // public array $default = [
-    //     'DSN'      => 'mysql:host=96ff0q.stackhero-network.com;dbname=darink;port=3774;charset=utf8mb4',
-    //     'hostname' => '96ff0q.stackhero-network.com',
-    //     'username' => 'root',
-    //     'password' => 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
-    //     'database' => 'darink',
-    //     'DBDriver' => 'PDO',
-    //     'DBPrefix' => '',
-    //     'pConnect' => false,
-    //     'DBDebug' => (ENVIRONMENT !== 'production'), // Desactivar en producción
-    //     'charset' => 'utf8mb4',
-    //     'DBCollat' => 'utf8mb4_general_ci',
-    //     'swapPre' => '',
-    //     'encrypt' => true, // Habilitar cifrado
 
-    //     'ssl_ca' => 'app/Certs/isrgrootx1.pem',
-    //     'compress' => false,
-    //     'strictOn' => false,
-    //     'failover' => [],
-    //     'port' => 3774,
-    //     'numberNative' => false,
-    //     'foundRows' => false,
-    //     'dateFormat' => [
-    //         'date' => 'Y-m-d',
-    //         'datetime' => 'Y-m-d H:i:s',
-    //         'time' => 'H:i:s',
-    //     ],
-     
-    // ];
+    ];
 
 
 
