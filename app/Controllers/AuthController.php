@@ -15,7 +15,7 @@ class AuthController extends BaseController
 
         // Si no hay sesión, mostrar vista de bienvenida o auth general
         return view('auth/index');
-    }
+    }   
 
     public function signIn()
     {
