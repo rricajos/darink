@@ -5,7 +5,6 @@
 
 <?= $this->section('content') ?>
 
-<?php echo base_url() ?>
 
 <h1>Bienvenido 👋</h1>
 <p>Elige entre iniciar sesión, registrarte o conocer los planes:</p>
