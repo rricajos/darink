@@ -1,5 +1,4 @@
 <?php
-
 use CodeIgniter\Router\RouteCollection;
 
 /**
@@ -25,10 +24,11 @@ $routes->post('/signup', 'SignUpController::register');
 
 $routes->get('/auth/signout', 'AuthController::signOut');
 
-// Rutas de usuario
-$routes->get('/user/profile', 'UserController::profile');
-$routes->get('/user/settings', 'UserController::settings');
-$routes->post('/user/settings', 'UserController::settings');
+// ✅ Rutas de usuario protegidas con filtro 'auth'
+$routes->group('user', ['filter' => 'auth'], function($routes) {
+    $routes->get('profile', 'UserController::profile');
+    $routes->match(['get', 'post'], 'settings', 'UserController::settings');
+});
 
-// Soporte (si decides implementarlo)
+// Soporte
 $routes->post('/support/request', 'SupportController::request');

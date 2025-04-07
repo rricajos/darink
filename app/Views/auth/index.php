@@ -15,7 +15,7 @@
     <a href="<?= site_url('signup') ?>">Registrarse</a>
 </div>
 
-<h2>Elige tu plan</h2>
+<!-- <h2>Elige tu plan</h2>
 <div class="plans">
     <div class="plan">
         <h3>Gratis</h3>
@@ -44,7 +44,7 @@
             <li>Soporte prioritario 24/7</li>
         </ul>
     </div>
-</div>
+</div> -->
 
 <div class="support-form">
     <h2>¿Necesitas ayuda?</h2>
