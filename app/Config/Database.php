@@ -26,27 +26,22 @@ class Database extends Config
      */
     public array $default = [
         'DSN' => '',
-        'hostname' => '96ff0q.stackhero-network.com',
-        'username' => 'root',
-        'password' => 'vSCdv2YMI2vCcIs2zKuFEds4U2ZNxodP',
-        'database' => 'darink',
+        'hostname' => 'localhost',
+        'username' => '',
+        'password' => '',
+        'database' => '',
         'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,
-        'DBDebug' => (ENVIRONMENT !== 'production'), // Desactivar en producción
+        'DBDebug' => true,
         'charset' => 'utf8mb4',
         'DBCollat' => 'utf8mb4_general_ci',
         'swapPre' => '',
-        'encrypt' => true, 
-
-        'ssl_ca' => 'app/certs/isrgrootx1.pem',
-        // 'ssl_cert' => 'app/Certs/client-cert.pem', 
-        // 'ssl_key'  => 'app/Certs/client-key.pem', 
-
+        'encrypt' => false,
         'compress' => false,
         'strictOn' => false,
         'failover' => [],
-        'port' => 3774,
+        'port' => 3306,
         'numberNative' => false,
         'foundRows' => false,
         'dateFormat' => [
@@ -54,10 +49,7 @@ class Database extends Config
             'datetime' => 'Y-m-d H:i:s',
             'time' => 'H:i:s',
         ],
-
     ];
-
-
 
     //    /**
     //     * Sample database connection for SQLite3.
@@ -206,6 +198,19 @@ class Database extends Config
         // we don't overwrite live data on accident.
         if (ENVIRONMENT === 'testing') {
             $this->defaultGroup = 'tests';
+        }
+
+        /* 
+        So if you want to use SSL with MySQL, you need a hack. 
+        For example, set the array values as a JSON string in your .env file:
+
+        database.default.encrypt = {"ssl_verify":true,"ssl_ca":"/var/www/html/BaltimoreCyberTrustRoot.crt.pem"}
+        
+        and decode it in the constructor in the Config class:
+        */
+        $array = json_decode($this->default['encrypt'], true);
+        if (is_array($array)) {
+            $this->default['encrypt'] = $array;
         }
     }
 }
