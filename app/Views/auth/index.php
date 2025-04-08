@@ -5,7 +5,14 @@
 <main class="super-main grid-auto-fit-256px;"
     style="align-items: center; justify-content: space-between; gap: var(--spacing-xl); padding: var(--spacing-md);">
 
-    <!-- Columna izquierda -->
+
+    <!-- Imagen izquierda -->
+    <div class="image-wrapper" style="max-width: 340px; width: 100%;">
+        <img src="<?= base_url('images/florr.png') ?>" alt="Ilustración alimentación consciente"
+            style="width: 100%; border-radius: var(--border-radius-md);" class="floating-image-a">
+    </div>
+
+    <!-- Columna derecha -->
     <div class="flex-column-nowrap" style="gap: var(--spacing-lg); max-width: 400px;">
 
         <h1 style="font-size: var(--font-size-xxl); color: var(--color-primary);">
@@ -27,11 +34,7 @@
 
     </div>
 
-    <!-- Imagen derecha -->
-    <div class="image-wrapper" style="max-width: 340px; width: 100%;">
-        <img src="<?= base_url('images/florr.png') ?>" alt="Ilustración alimentación consciente"
-            style="width: 100%; border-radius: var(--border-radius-md);" class="floating-image-a">
-    </div>
+
 
 </main>
 

@@ -101,6 +101,7 @@ li {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--grid-size-xl), 1fr));
     gap: var(--spacing-lg);
+
 }
 
 @keyframes float-a {

@@ -49,6 +49,9 @@
     <?= $this->renderSection('content') ?>
   </main>
 
+  <?= view('partials/footer') ?>
+
+  <script src="<?= base_url('js/navbar.js') ?>"></script>
 </body>
 
 </html>
