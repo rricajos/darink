@@ -21,6 +21,7 @@
 
     /* Colores */
     --color-bg: #ffffff;
+    --color-bg-2: #f1f8ff;
     --color-text: #111111;
     --color-primary: #0077ff;
     --color-secondary: #00c9a7;
@@ -32,8 +33,9 @@
     --border-radius-lg: 16px;
 
     /* Grid utils */
-    --grid-size-sm: 64px;
-    --grid-size-md: 128px;
+    --grid-size-sx: 64px;
+    --grid-size-sm: 128px;
+    --grid-size-md: 250px;
     --grid-size-lg: 256px;
     --grid-size-xl: 320px;
 }
@@ -86,11 +88,17 @@ li {
 
 [class*="grid-auto-fit-128px"] {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(var(--grid-size-md), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(var(--grid-size-sx), 1fr));
     gap: var(--spacing-md);
 }
 
 [class*="grid-auto-fit-256px"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--grid-size-md), 1fr));
+    gap: var(--spacing-lg);
+}
+
+[class*="grid-auto-fit-250px"] {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--grid-size-lg), 1fr));
     gap: var(--spacing-lg);

@@ -35,6 +35,7 @@
 
   <!-- CSS principal -->
   <link rel="stylesheet" href="<?= base_url('/css/style.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('/css/navbar.css') ?>">
 
   <!-- Fuente opcional desde Google Fonts -->
   <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"> -->
@@ -42,7 +43,7 @@
 
 <body>
 
-  <?= view('partials/header') ?>
+  <?= view('partials/navbar') ?>
   
 
   <main>
