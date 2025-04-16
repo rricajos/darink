@@ -36,8 +36,11 @@
   <!-- CSS principal -->
   <link rel="stylesheet" href="<?= base_url('/css/style.css') ?>">
   <link rel="stylesheet" href="<?= base_url('/css/navbar.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('/css/dashboard.css') ?>">
 
   <!-- Fuente opcional desde Google Fonts -->
+  <link rel="stylesheet" href="/font-awesome-4.7.0/css/font-awesome.min.css">
+
   <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"> -->
 </head>
 

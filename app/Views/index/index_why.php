@@ -4,7 +4,7 @@
       padding: var(--spacing-xl); 
       gap: var(--spacing-md); 
       text-align: left; 
-      background-color: var(--color-bg-2); 
+      background-color: var(--color-bg-2) ; 
       border-radius: var(--border-radius-lg);">
 
 

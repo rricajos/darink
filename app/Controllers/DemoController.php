@@ -3,11 +3,11 @@ namespace App\Controllers;
 
 use CodeIgniter\Controller;
 
-class Dashboard extends Controller
+class DemoController extends Controller
 {
     public function index()
     {
-        if (!session()->get('logged_in')) {
+        if (bORIsession()->get('logged_in')) {
             return redirect()->to('/login');
         }
         

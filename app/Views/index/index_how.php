@@ -38,11 +38,11 @@
                 style="font-size: var(--font-size-md); color: var(--color-text); line-height: 1.5; padding: var(--spacing-sm);">
                 Puedes registrar todo lo que consumes, tanto alimentos sólidos como líquidos, <strong>
                     sin contar calorías ni
-                    macro-nutrientes.
+                    macro-nutrientes./
                 </strong>
                 <br><br>
                 <i style="font-size: var(--font-size-sm);">
-                    Buscamos una forma de que puedas compartir tu esfuerzo y tus experiencias, sin sentirte expuesto.
+                    Buscamos una forma de que puedas compartir tu esfuerzo y tus experiencias, sin sentirte expuesto/a.
                 </i>
             </p>
         </div>
@@ -90,7 +90,6 @@
                 </li>
                 <li>
                     <strong style="color: red;">🔴 Rojo:</strong> Parar, no puedo controlar la emoción
-
                 </li>
 
             </ul>

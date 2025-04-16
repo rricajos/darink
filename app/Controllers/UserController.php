@@ -7,6 +7,10 @@ use App\Models\UserModel;
 
 class UserController extends BaseController
 {
+    public function addFood() {
+        
+    }
+
     public function profile()
     {
         // Verifica si el usuario está autenticado
@@ -27,7 +31,7 @@ class UserController extends BaseController
         }
 
         // Muestra la vista con los datos del usuario
-        return view('user/profile', ['user' => $user]);
+        return view('profile', ['user' => $user]);
     }
 
     public function settings()

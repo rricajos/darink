@@ -40,6 +40,8 @@
 }
 
 .navbar-toggle {
+  outline: none;
+  box-shadow: none;
   display: none;
   background: none;
   border: none;
@@ -48,9 +50,15 @@
   height: 24px;
   position: relative;
   z-index: 31;
-  margin-right: var(--spacing-xs);
+  margin-right: var(--spacing-lg);
+  
 }
+.navbar-toggle:focus, 
+.navbar-toggle:active {
+  box-shadow: none;
+  outline: none;
 
+}
 .navbar-toggle .bar {
   position: absolute;
   width: 100%;
