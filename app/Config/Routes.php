@@ -35,6 +35,7 @@ $routes->get('/auth/signout', 'AuthController::signOut');
 // ✅ Rutas de usuario protegidas con filtro 'auth'
 $routes->group('user', ['filter' => 'auth'], function($routes) {
     $routes->get('add/food', 'DashboardController::addFood');
+    $routes->get('list/food', 'FoodController::list');
     $routes->post('save/food', 'FoodController::save');
     $routes->get('dashboard', 'DashboardController::index');
     $routes->get('profile', 'UserController::profile');
