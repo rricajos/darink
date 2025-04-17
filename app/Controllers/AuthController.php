@@ -3,86 +3,150 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
+use App\Models\UserModel;
+use Exception;
 
 class AuthController extends BaseController
 {
+
+
+
+    /**
+     * Página principal del sistema de autenticación.
+     * Si el usuario ya está autenticado, lo redirige al dashboard.
+     */
     public function index()
     {
-        // Si el usuario ya está autenticado, redirigir al perfil
-        if (session()->get('isLoggedIn')) {
-            return redirect()->to('/user/profile');
+        if ($this->user->isLoggedIn()) {
+            return redirect()->to('/dashboard');
         }
 
-        // Si no hay sesión, mostrar vista de bienvenida o auth general
-        return view('index');
+        return view('index'); // Vista de bienvenida o landing
     }
 
-    public function getLogin()
+
+
+
+    /**
+     * Maneja el inicio de sesión.
+     * - GET: muestra el formulario
+     * - POST: procesa las credenciales
+     */
+    public function signin()
     {
-        // Si el usuario ya está autenticado, redirigir al perfil
-        if (session()->get('isLoggedIn')) {
-            return true;
-        } else {
-            return false;
+        // Si ya está autenticado, redirige con mensaje
+        if ($this->user->isLoggedIn()) {
+            $this->user->setRedirectAfterLogout(current_url());
+
+            return redirect()
+                ->to('/dashboard')
+                ->with('message', 'Ya has iniciado sesión. Por favor cierra sesión antes de acceder a esta página.');
         }
-    }
 
-    public function signIn()
-    {
-        // Redirige al controlador SignIn
-        return redirect()->to('/signin');
-    }
-
-    public function signUp()
-    {
-        // Redirige al controlador SignUp
-        return redirect()->to('/signup');
-    }
-
-    public function signOut()
-    {
-        // Cierra sesión
-        session()->destroy();
-        return redirect()->to('/signin')->with('message', 'Sesión cerrada correctamente.');
-    }
-
-    public function postUser()
-    {
-        $session = session();
-        $request = $this->request;
+        $get = 'auth/signin';
+        $post = null;
     
-        // 1. Obtener datos del formulario
-        $email = $request->getPost('user_email');
-        $password = $request->getPost('user_password');
+        if ($this->request->getMethod() === 'POST') {
+            try {
+                $userModel = new UserModel();
+                $email = $this->request->getPost('user_email');
+                $password = $this->request->getPost('user_password');
     
-        // 2. Validar que se enviaron los campos
-        if (empty($email) || empty($password)) {
-            return redirect()->back()->withInput()->with('error', 'Por favor completa todos los campos.');
-        }
+                if (empty($email) || empty($password)) {
+                    throw new Exception('Por favor completa todos los campos.');
+                }
     
-        // 3. Buscar usuario en base de datos
-        $userModel = new \App\Models\UserModel();
-        $user = $userModel->where('user_email', $email)->first();
+                $user = $userModel->where('user_email', $email)->first();
     
-        if (!$user) {
-            return redirect()->back()->withInput()->with('error', 'El correo no está registrado.');
+                if (!$user || !password_verify($password, $user['user_password'])) {
+                    throw new Exception('Correo o contraseña inválidos.');
+                }
+    
+                $this->user->setSession($user);
+                $post = redirect()->to('/dashboard')->with('message', 'Sesión iniciada correctamente.');
+            } catch (Exception $e) {
+                $post = redirect()->back()->withInput()->with('error', $e->getMessage());
+            }
         }
     
-        // 4. Verificar contraseña
-        if (!password_verify($password, $user['user_password'])) {
-            return redirect()->back()->withInput()->with('error', 'Contraseña incorrecta.');
-        }
-    
-        // 5. Autenticación exitosa: crear sesión
-        $sessionData = [
-            'user_id'       => $user['user_id'],
-            'user_nickname' => $user['user_nickname'],
-            'user_email'    => $user['user_email'],
-            'isLoggedIn'    => true
-        ];
-        $session->set($sessionData);
-    
-        return redirect()->to('/dashboard')->with('message', 'Sesión iniciada correctamente');
+        return $post ?? view($get);
     }
+
+
+
+
+
+    /**
+     * Maneja el registro de usuarios.
+     * - GET: muestra el formulario
+     * - POST: procesa el nuevo usuario
+     */
+    public function signup()
+    {
+        // Si ya está autenticado, redirige con intención guardada
+        if ($this->user->isLoggedIn()) {
+            $this->user->setRedirectAfterLogout(current_url());
+
+            return redirect()
+                ->to('/dashboard')
+                ->with('message', 'Ya tienes una sesión iniciada. Por favor cierra sesión para registrar otra cuenta.');
+        }
+
+        if ($this->request->getMethod() === 'POST') {
+            try {
+                $userModel = new UserModel();
+
+                // Validación de acuerdo a las reglas del modelo
+                if (!$this->validate($userModel->getValidationRules())) {
+                    throw new Exception('Hay errores en el formulario.');
+                }
+
+                $data = $this->request->getPost();
+
+                if (empty($data['user_password'])) {
+                    throw new Exception('La contraseña es obligatoria.');
+                }
+
+                $data['user_password'] = password_hash($data['user_password'], PASSWORD_DEFAULT);
+
+                if (!$userModel->save($data)) {
+                    throw new Exception('No se pudo registrar el usuario.');
+                }
+
+                // Extraer datos esenciales para la sesión
+                $user = [
+                    'user_id'       => $userModel->getInsertID(),
+                    'user_email'    => $data['user_email'],
+                    'user_nickname' => $data['user_nickname'] ?? null,
+                ];
+
+                $this->user->setSession($user);
+
+                return redirect()->to('/profile')->with('message', 'Registro exitoso. ¡Bienvenido!');
+            } catch (Exception $e) {
+                return redirect()->back()->withInput()->with('error', $e->getMessage());
+            }
+        }
+
+        return view('auth/signup');
+    }
+
+
+
+
     
+
+    /**
+     * Cierra la sesión del usuario y redirige a la última ruta pública intentada (si existe).
+     */
+    public function signout()
+    {
+        // Recuperar la intención previa si existía
+        $redirectTo = $this->user->getRedirectAfterLogout() ?? '/auth/signin';
+
+        $this->user->destroy(); // cerrar sesión
+        $this->user->clearRedirectAfterLogout(); // limpiar dato residual
+
+        return redirect()->to($redirectTo)->with('message', 'Sesión cerrada correctamente.');
+    }
 }

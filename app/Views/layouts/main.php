@@ -9,10 +9,12 @@
   <title><?= $title ?? 'Darink.App – Alimentación con conciencia' ?></title>
 
   <!-- Descripción para SEO -->
-  <meta name="description" content="Darink.App es una aplicación diseñada para acompañarte en tu camino hacia una alimentación más sana, consciente y compasiva.">
+  <meta name="description"
+    content="Darink.App es una aplicación diseñada para acompañarte en tu camino hacia una alimentación más sana, consciente y compasiva.">
 
   <!-- Palabras clave opcionales -->
-  <meta name="keywords" content="TCA, alimentación consciente, salud mental, trastornos alimentarios, bienestar, autocuidado, app de salud">
+  <meta name="keywords"
+    content="TCA, alimentación consciente, salud mental, trastornos alimentarios, bienestar, autocuidado, app de salud">
 
   <!-- Autor -->
   <meta name="author" content="Darink Team">
@@ -47,13 +49,23 @@
 <body>
 
   <?= view('partials/navbar') ?>
-  
 
-  <main>
+  <div class="super-flex-column-nowrap">
+  <?= view('partials/alerts') ?>
+  </div>
+
+
+  <main class="super-flex-column-wrap">
     <?= $this->renderSection('content') ?>
   </main>
 
   <?= view('partials/footer') ?>
+
+  <?php
+  echo '<pre>';
+  print_r(session()->get());
+  echo '</pre>';
+  ?>
 
   <script src="<?= base_url('js/navbar.js') ?>"></script>
 </body>

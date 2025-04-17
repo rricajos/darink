@@ -7,9 +7,7 @@ use App\Models\UserModel;
 
 class UserController extends BaseController
 {
-    public function addFood() {
-        
-    }
+    
 
     public function profile()
     {

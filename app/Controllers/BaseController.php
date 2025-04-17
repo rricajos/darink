@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Controllers;
-
+use App\Services\UserService;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
@@ -44,6 +44,12 @@ abstract class BaseController extends Controller
     // protected $session;
 
     /**
+     * Summary of userId
+     * @var UserService
+     */
+    protected $user;
+
+    /**
      * @return void
      */
     public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
@@ -52,7 +58,9 @@ abstract class BaseController extends Controller
         parent::initController($request, $response, $logger);
 
         // Preload any models, libraries, etc, here.
-
         // E.g.: $this->session = service('session');
+
+         // Si ya pasó el filtro, el user_id está garantizado
+         $this->user = new UserService();
     }
 }

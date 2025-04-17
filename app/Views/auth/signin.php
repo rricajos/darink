@@ -2,44 +2,44 @@
 
 <?= $this->section('content') ?>
 
-<section class="super-flex-column-nowrap" style="align-items: center; gap: var(--spacing-md); padding: var(--spacing-lg);">
+<section class="super-flex-column-nowrap"
+  style="align-items: center; gap: var(--spacing-md); padding: var(--spacing-lg);">
 
   <h2 style="font-size: var(--font-size-xl);">Iniciar sesión</h2>
 
   <?php if (session()->getFlashdata('error')): ?>
-      <div class="flash flash-error">
-          <?= esc(session()->getFlashdata('error')) ?>
-      </div>
+    <div class="flash flash-error">
+      <?= esc(session()->getFlashdata('error')) ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if (session()->getFlashdata('errors') && is_array(session()->getFlashdata('errors'))): ?>
+    <div class="flash flash-error">
+      <ul>
+        <?php foreach (session()->getFlashdata('errors') as $error): ?>
+          <li><?= esc($error) ?></li>
+        <?php endforeach ?>
+      </ul>
+    </div>
   <?php endif; ?>
 
   <?php if (session()->getFlashdata('message')): ?>
-      <div class="flash flash-message">
-          <?= esc(session()->getFlashdata('message')) ?>
-      </div>
+    <div class="flash flash-message">
+      <?= esc(session()->getFlashdata('message')) ?>
+    </div>
   <?php endif; ?>
 
-  <form action="<?= site_url('signin') ?>" method="post" class="form-auth flex-column-nowrap" style="gap: var(--spacing-sm);">
+  <form action="<?= site_url('auth/signin') ?>" method="POST" class="form-auth flex-column-nowrap"
+    style="gap: var(--spacing-sm);">
 
-      <?= csrf_field() ?>
+    <?= csrf_field() ?>
 
-      <input
-          type="email"
-          name="user_email"
-          placeholder="Correo electrónico"
-          value="<?= old('user_email') ?>"
-          required
-          class="input"
-      >
+    <input type="email" name="user_email" placeholder="Correo electrónico" value="<?= old('user_email') ?>" required
+      class="input">
 
-      <input
-          type="password"
-          name="user_password"
-          placeholder="Contraseña"
-          required
-          class="input"
-      >
+    <input type="password" name="user_password" placeholder="Contraseña" required class="input">
 
-      <button type="submit" class="btn-primary">Entrar</button>
+    <button type="submit" class="btn-primary">Entrar</button>
 
   </form>
 </section>
@@ -101,5 +101,3 @@
 
 
 <?= $this->endSection() ?>
-
-

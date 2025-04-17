@@ -18,7 +18,7 @@
     </div>
 <?php endif; ?>
 
-<form action="<?= site_url('signup') ?>" method="post" class="form-auth flex-column-nowrap" style="gap: var(--spacing-sm);">
+<form action="<?= site_url('auth/signup') ?>" method="POST" class="form-auth flex-column-nowrap" style="gap: var(--spacing-sm);">
 
     <?= csrf_field() ?>
 

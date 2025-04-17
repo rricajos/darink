@@ -6,32 +6,64 @@ use CodeIgniter\Controller;
 
 class FoodController extends BaseController
 {
-  public function list()
+
+  protected $foodModel;
+
+  public function __construct()
   {
-    $model = new \App\Models\FoodModel();
-
-    $foods = $model->orderBy('food_start', 'DESC')->findAll();
-
-    return view('list_food', ['foods' => $foods]);
+    $this->foodModel = new FoodModel();
   }
-  public function save()
+
+  /**
+   * CREATE - mostrar formulario / procesar creación
+   */
+  public function create()
   {
-    $model = new FoodModel();
+     // Verificar que hay un lunch activo y usuario logueado
+     $lunchId = session()->get('last_lunch_id');
+     if (!$lunchId || !$this->user->isLoggedIn()) {
+         return redirect()->to('/lunch/create')->with('error', 'Primero registra un almuerzo antes de añadir comida.');
+     }
+ 
+     // Obtener y combinar fecha y hora de inicio y fin
+     $startDate = $this->request->getPost('food_start_date');
+     $startTime = $this->request->getPost('food_start_time');
+     $endDate   = $this->request->getPost('food_end_date') ?? $startDate;
+     $endTime   = $this->request->getPost('food_end_time') ?? $startTime;
+ 
+     // Datos a guardar
+     $data = [
+         'food_title'     => $this->request->getPost('food_item'),
+         'food_size'      => $this->request->getPost('food_quantity'),
+         'food_created_at'=> "$startDate $startTime",
+         'food_updated_at'=> "$endDate $endTime",
+         'lunch_id'       => $lunchId
+     ];
+ 
+     // Insertar en la base de datos
+     $this->foodModel->insert($data);
+     $foodId = $this->foodModel->getInsertID();
+ 
+     // Guardar semáforo solo si fue indicado
+     $lightColor = $this->request->getPost('food_traffic_light');
+     $lightNote  = $this->request->getPost('food_note');
+ 
+     if ($lightColor || $lightNote) {
+         $lightModel = new \App\Models\LightModel();
+         $lightModel->insert([
+             'light_color'   => $lightColor,
+             'light_message' => $lightNote,
+             'food_id'       => $foodId
+         ]);
+     }
+ 
+     return redirect()->to("/lunch/{$lunchId}")->with('message', 'Comida registrada con éxito.');
+ }
 
-    $data = [
-      'food_start' => $this->request->getPost('food_start_date') . ' ' . $this->request->getPost('food_start_time'),
-      'food_end' => $this->combineDatetime($this->request->getPost('food_end_date'), $this->request->getPost('food_end_time')),
-      'location' => $this->request->getPost('food_location'),
-      'item' => $this->request->getPost('food_item'),
-      'quantity' => $this->request->getPost('food_quantity'),
-      'traffic_light' => $this->request->getPost('food_traffic_light'),
-      'comment' => $this->request->getPost('food_note'),
-    ];
 
-    $model->insert($data);
 
-    return redirect()->to('/user/dashboard')->with('message', 'Comida registrada con éxito');
-  }
+
+
 
   private function combineDatetime($date, $time)
   {

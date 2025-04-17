@@ -4,19 +4,20 @@ use CodeIgniter\Model;
 
 class FoodModel extends Model
 {
-    protected $table      = 'food_entries';
-    protected $primaryKey = 'id';
+    protected $table      = 'foods';
+    protected $primaryKey = 'food_id';
 
     protected $allowedFields = [
-        'food_start',
-        'food_end',
-        'location',
-        'item',
-        'quantity',
-        'traffic_light',
-        'comment'
+
+        'food_title',
+        'food_photo',
+        'food_size',
+        'food_created_at',
+        'food_updated_at',
+        'lunch_id'
     ];
 
     protected $useTimestamps = true;
-    protected $createdField  = 'created_at';
+    protected $createdField  = 'food_created_at';
+    protected $updatedField  = 'food_updated_at';
 }

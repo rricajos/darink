@@ -1,10 +1,8 @@
-<?= $this->extend('layouts/main') ?>
 
-<?= $this->section('content') ?>
 
 <h1>🍽️ Registrar comida</h1>
 
-<form action="<?= base_url('/user/save/food') ?>" method="post" class="form-add-food">
+<form action="<?= base_url('/food/create') ?>" method="POST" class="form-add-food">
 
 
   <?php
@@ -33,11 +31,11 @@
     <input type="time" id="food_end_time" name="food_end_time">
 
     <p>📍 Lugar:</p>
-    <label><input type="radio" name="food_location" value="home" required> En casa</label>
-    <label><input type="radio" name="food_location" value="work"> En el trabajo</label>
-    <label><input type="radio" name="food_location" value="school"> Escuela</label>
-    <label><input type="radio" name="food_location" value="restaurant"> Bar/Restaurante</label>
-    <label><input type="radio" name="food_location" value="unknown" checked> Indeterminado</label>
+    <label><input type="radio" name="lunch_location" value="house" required <?= ($lunch_location ?? '') === 'house' ? 'checked' : '' ?>> En casa</label>
+    <label><input type="radio" name="lunch_location" value="work" <?= ($lunch_location ?? '') === 'work' ? 'work' : '' ?>> En el trabajo</label>
+    <label><input type="radio" name="lunch_location" value="school" <?= ($lunch_location ?? '') === 'school' ? 'school' : '' ?>> Escuela</label>
+    <label><input type="radio" name="lunch_location" value="restaurant"<?= ($lunch_location ?? '') === 'restaurant' ? 'restaurant' : '' ?>> Bar/Restaurante</label>
+    <label><input type="radio" name="lunch_location" value="unknown" <?= ($lunch_location ?? '') === 'unknown' ? 'checked' : '' ?>> Indeterminado</label>
   </fieldset>
 
 
@@ -52,7 +50,7 @@
     <label><input type="radio" name="food_quantity" value="big" required> Big</label>
     <label><input type="radio" name="food_quantity" value="regular"> Regular</label>
     <label><input type="radio" name="food_quantity" value="small"> Small</label>
-    <label><input type="radio" name="food_quantity" value="tiny" > Tiny</label>
+    <label><input type="radio" name="food_quantity" value="tiny"> Tiny</label>
     <label><input type="radio" name="food_quantity" value="unkown" checked> Tiny</label>
   </fieldset>
 
@@ -123,4 +121,3 @@
   }
 </style>
 
-<?= $this->endSection() ?>
