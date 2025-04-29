@@ -16,7 +16,7 @@
     </div>
 <?php endif; ?>
 
-<form action="<?= site_url('lunch/create/') ?>" method="POST">
+<form action="<?= site_url('lunch/create') ?>" method="POST">
     <?= csrf_field() ?>
 
     <label>Tag:

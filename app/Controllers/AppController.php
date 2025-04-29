@@ -55,7 +55,7 @@ class AppController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->lunchModel->errors());
         }
 
-        return redirect()->to('/lunch/' . $this->lunchModel->getInsertID())->with('success', 'Lunch creado correctamente');
+        return redirect()->to('/lunch/')->with('success', 'Lunch creado correctamente');
     }
 
 
