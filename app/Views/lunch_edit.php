@@ -29,7 +29,7 @@
 <form id="formLunch" action="<?= site_url('lunch/update/' . $lunch['lunch_id']) ?>" method="POST">
   <?= csrf_field() ?>
 
-  <label>Tag:
+  <label>🏷️ Tag:
     <select name="lunch_tag">
       <option value="breakfast" <?= $lunch['lunch_tag'] == 'breakfast' ? 'selected' : '' ?>>Breakfast</option>
       <option value="brunch" <?= $lunch['lunch_tag'] == 'brunch' ? 'selected' : '' ?>>Brunch</option>
@@ -40,7 +40,7 @@
     </select>
   </label><br><br>
 
-  <label>Location:
+  <label>📍 Location:
     <select name="lunch_location">
       <option value="house" <?= $lunch['lunch_location'] == 'house' ? 'selected' : '' ?>>House</option>
       <option value="work" <?= $lunch['lunch_location'] == 'work' ? 'selected' : '' ?>>Work</option>
@@ -50,12 +50,12 @@
     </select>
   </label><br><br>
 
-  <label>Start Time:
+  <label>⏳ Start Time:
     <input type="datetime-local" name="lunch_start_at"
       value="<?= date('Y-m-d\TH:i', strtotime($lunch['lunch_start_at'])) ?>">
   </label><br><br>
 
-  <label>End Time:
+  <label>⌛ End Time:
     <input type="datetime-local" name="lunch_end_at"
       value="<?= date('Y-m-d\TH:i', strtotime($lunch['lunch_end_at'])) ?>">
   </label><br><br>
@@ -65,7 +65,6 @@
 <hr>
 
 <!-- LISTA DE FOODS -->
-<h2>Foods en este Lunch</h2>
 
 <?php if (!empty($foods)): ?>
   <table border="1" cellpadding="5" cellspacing="0">
@@ -96,10 +95,10 @@
           <td><?= esc($food['food_size']) ?></td>
           <td><?= esc($food['food_amount']) ?></td>
           <td>
-            <a href="<?= site_url('food/edit/' . $food['food_id']) ?>">Editar</a>
+            <a class="btn" href="<?= site_url('food/edit/' . $food['food_id']) ?>">Editar</a>
             <form action="<?= site_url('food/delete/' . $food['food_id']) ?>" method="post" style="display:inline;">
               <?= csrf_field() ?>
-              <button type="submit" onclick="return confirm('¿Seguro de eliminar este food?')">Eliminar</button>
+              <button class="btn btn-danger" type="submit" onclick="return confirm('¿Seguro de eliminar este food?')">Eliminar</button>
             </form>
           </td>
         </tr>
@@ -113,7 +112,7 @@
 <hr>
 
 <!-- FORMULARIO PARA CREAR NUEVO FOOD -->
-<h2>Agregar nuevo Food</h2>
+<h2>🥝 Agregar nuevo Food</h2>
 
 <form id="formFood" action="<?= site_url('food/create') ?>" method="post">
   <?= csrf_field() ?>
@@ -138,12 +137,8 @@
       <option value="large">Grande</option>
     </select>
   </label><br><br>
-
-  <hr>
-
-  <h2>Semáforo</h2>
-
-  <label>Color:
+ 
+  <label>🚦 Como te has sentido al hacerlo?
     <select name="light_color">
       <option value="green">Verde</option>
       <option value="yellow">Amarillo</option>
@@ -151,7 +146,7 @@
     </select>
   </label><br><br>
 
-  <label>Mensaje:
+  <label>Por si quieres dar detalles:
     <textarea name="light_message" rows="3"></textarea>
   </label><br><br>
 
