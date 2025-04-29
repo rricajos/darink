@@ -1,75 +1,83 @@
 <?php
+
 namespace App\Controllers;
 
+use App\Controllers\BaseController;
 use App\Models\FoodModel;
-use CodeIgniter\Controller;
 
 class FoodController extends BaseController
 {
+    protected $foodModel;
 
-  protected $foodModel;
-
-  public function __construct()
-  {
-    $this->foodModel = new FoodModel();
-  }
-
-  /**
-   * CREATE - mostrar formulario / procesar creación
-   */
-  public function create()
-  {
-     // Verificar que hay un lunch activo y usuario logueado
-     $lunchId = session()->get('last_lunch_id');
-     if (!$lunchId || !$this->user->isLoggedIn()) {
-         return redirect()->to('/lunch/create')->with('error', 'Primero registra un almuerzo antes de añadir comida.');
-     }
- 
-     // Obtener y combinar fecha y hora de inicio y fin
-     $startDate = $this->request->getPost('food_start_date');
-     $startTime = $this->request->getPost('food_start_time');
-     $endDate   = $this->request->getPost('food_end_date') ?? $startDate;
-     $endTime   = $this->request->getPost('food_end_time') ?? $startTime;
- 
-     // Datos a guardar
-     $data = [
-         'food_title'     => $this->request->getPost('food_item'),
-         'food_size'      => $this->request->getPost('food_quantity'),
-         'food_created_at'=> "$startDate $startTime",
-         'food_updated_at'=> "$endDate $endTime",
-         'lunch_id'       => $lunchId
-     ];
- 
-     // Insertar en la base de datos
-     $this->foodModel->insert($data);
-     $foodId = $this->foodModel->getInsertID();
- 
-     // Guardar semáforo solo si fue indicado
-     $lightColor = $this->request->getPost('food_traffic_light');
-     $lightNote  = $this->request->getPost('food_note');
- 
-     if ($lightColor || $lightNote) {
-         $lightModel = new \App\Models\LightModel();
-         $lightModel->insert([
-             'light_color'   => $lightColor,
-             'light_message' => $lightNote,
-             'food_id'       => $foodId
-         ]);
-     }
- 
-     return redirect()->to("/lunch/{$lunchId}")->with('message', 'Comida registrada con éxito.');
- }
-
-
-
-
-
-
-  private function combineDatetime($date, $time)
-  {
-    if (empty($date) || empty($time)) {
-      return null;
+    public function __construct()
+    {
+        $this->foodModel = new FoodModel();
     }
-    return $date . ' ' . $time;
-  }
+
+    // POST /food/create
+    public function create()
+    {
+        $data = $this->request->getPost();
+    
+        // Insertar el Food
+        $foodData = [
+            'food_title'  => $data['food_title'],
+            'food_size'   => $data['food_size'],
+            'food_amount' => $data['food_amount'],
+            'lunch_id'    => $data['lunch_id'],
+        ];
+    
+        $foodId = $this->foodModel->insert($foodData, true); // true = devolver el ID insertado
+    
+        if (!$foodId) {
+            return redirect()->back()->withInput()->with('errors', $this->foodModel->errors());
+        }
+    
+        // Insertar el Light asociado
+        $lightModel = new \App\Models\LightModel();
+        $lightData = [
+            'light_color'   => $data['light_color'],      // verde, amarillo o rojo
+            'light_message' => $data['light_message'],    // comentario breve
+            'food_id'       => $foodId,                   // ¡asociamos correctamente!
+        ];
+        $lightModel->insert($lightData);
+    
+        return redirect()->back()->with('success', 'Food y Light creados correctamente');
+    }
+    
+
+
+
+    public function edit($id = null)
+    {
+        $food = $this->foodModel->find($id);
+
+        if (!$food) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Food no encontrado');
+        }
+
+        return view('food_edit', ['food' => $food]);
+    }
+
+    public function update($id = null)
+    {
+        $data = $this->request->getPost();
+
+        if (!$this->foodModel->update($id, $data)) {
+            return redirect()->back()->withInput()->with('errors', $this->foodModel->errors());
+        }
+
+        // Redireccionar de vuelta al lunch_edit
+        return redirect()->to('/lunch/' . $data['lunch_id'])->with('success', 'Food actualizado correctamente');
+    }
+
+    // POST /food/delete/{id}
+    public function delete($id = null)
+    {
+        if (!$this->foodModel->delete($id)) {
+            return redirect()->back()->with('error', 'No se pudo eliminar el food');
+        }
+
+        return redirect()->back()->with('success', 'Food eliminado correctamente');
+    }
 }

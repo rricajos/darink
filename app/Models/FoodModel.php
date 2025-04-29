@@ -10,7 +10,7 @@ class FoodModel extends Model
     protected $allowedFields = [
 
         'food_title',
-        'food_photo',
+        'food_amount',
         'food_size',
         'food_created_at',
         'food_updated_at',

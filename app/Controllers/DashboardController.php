@@ -3,7 +3,7 @@ namespace App\Controllers;
 
 use CodeIgniter\Controller;
 
-class DashboardController extends Controller
+class DashboardController extends BaseController
 {
     public function index()
     {
@@ -15,9 +15,4 @@ class DashboardController extends Controller
         return redirect()->to('/user/dashboard');
     }
 
-
-    public function addFood()
-    {
-        return view('add_food');
-    }
 }

@@ -10,23 +10,6 @@ class AuthController extends BaseController
 {
 
 
-
-    /**
-     * Página principal del sistema de autenticación.
-     * Si el usuario ya está autenticado, lo redirige al dashboard.
-     */
-    public function index()
-    {
-        if ($this->user->isLoggedIn()) {
-            return redirect()->to('/dashboard');
-        }
-
-        return view('index'); // Vista de bienvenida o landing
-    }
-
-
-
-
     /**
      * Maneja el inicio de sesión.
      * - GET: muestra el formulario

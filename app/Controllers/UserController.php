@@ -7,7 +7,6 @@ use App\Models\UserModel;
 
 class UserController extends BaseController
 {
-    
 
     public function profile()
     {

@@ -37,6 +37,9 @@
 
   <!-- CSS principal -->
   <link rel="stylesheet" href="<?= base_url('/css/style.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('/css/table.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('/css/input.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('/css/button.css') ?>">
   <link rel="stylesheet" href="<?= base_url('/css/navbar.css') ?>">
   <link rel="stylesheet" href="<?= base_url('/css/dashboard.css') ?>">
 
@@ -62,9 +65,9 @@
   <?= view('partials/footer') ?>
 
   <?php
-  echo '<pre>';
-  print_r(session()->get());
-  echo '</pre>';
+  // echo '<pre>';
+  // print_r(session()->get());
+  // echo '</pre>';
   ?>
 
   <script src="<?= base_url('js/navbar.js') ?>"></script>

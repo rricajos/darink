@@ -11,48 +11,58 @@ $routes->setTranslateURIDashes(false);
 $routes->set404Override();
 $routes->setAutoRoute(true); // Puedes cambiar esto según tu preferencia
 
+$routes->get('/', 'AppController::index');
+
+
 // 🔐 AUTENTICACIÓN
 $routes->group('auth', function ($routes) {
     $routes->match(['GET', 'POST'], 'signin', 'AuthController::signin');
     $routes->match(['GET', 'POST'], 'signup', 'AuthController::signup');
     $routes->get('signout', 'AuthController::signout');
-    $routes->get('/', 'AuthController::index');
 });
 
-// Página raíz redirige a login (o dashboard si está logueado)
-$routes->get('/', 'AuthController::index');
 
-// Ruta temporal
-$routes->get('/demo', 'AuthController::index');
-
-
-
-// ✅ Rutas de usuario protegidas con filtro 'auth' /user/*
+// ✅ Rutas de usuario protegidas con filtro 'auth' /*
 $routes->group('/', ['filter' => 'auth'], function ($routes) {
 
-    // CREATE             
-    $routes->match(['GET', 'POST'], 'lunch/create', 'LunchController::create');
-    $routes->match(['POST'], 'food/create', 'FoodController::create');
+    // CREATE   
+    $routes->get('lunch', 'AppController::index');
+    $routes->get('lunch/new', 'AppController::new');
+    $routes->get('lunch/(:num)', 'AppController::edit/$1');
+    $routes->post('lunch/create', 'AppController::create');
+    $routes->post('lunch/update/(:num)', 'AppController::update/$1');
+    $routes->post('lunch/delete/(:num)', 'AppController::delete/$1');
 
-    // READ
-    $routes->get('lunch/', 'LunchController::readList');                     // vista por defecto
-    $routes->get('lunch/read', 'LunchController::readList');                     // vista por defecto
-    $routes->get('lunch/read/list', 'LunchController::readList');
-    $routes->get('lunch/read/calendar', 'LunchController::readCalendar');
-    $routes->get('lunch/read/agenda', 'LunchController::readAgenda');
-    $routes->get('lunch/(:num)', 'LunchController::read/$1');
 
-    // UPDATE
-    $routes->get('lunch/update/(:num)', 'LunchController::update/$1');          // mostrar formulario
-    $routes->post('lunch/update/(:num)', 'LunchController::update/$1');         // procesar actualización
+    $routes->post('food/create', 'FoodController::create');
+    $routes->post('food/delete/(:num)', 'FoodController::delete/$1');
+    $routes->get('food/edit/(:num)', 'FoodController::edit/$1');
+    $routes->post('food/update/(:num)', 'FoodController::update/$1');
+    
 
-    // DELETE
-    $routes->get('lunch/delete/(:num)', 'LunchController::delete/$1');          // mostrar formulario
-    $routes->post('lunch/delete/(:num)', 'LunchController::delete/$1');         // procesar actualización
+
+    // $routes->get('lunch/create', 'LunchController::create');
+    // $routes->post('food/create', 'FoodController::create');
+
+    // // READ
+    // $routes->get('lunch/', 'AppController::readList');                     // vista por defecto
+    // $routes->get('lunch/read', 'AppController::readList');                     // vista por defecto
+    // $routes->get('lunch/read/list', 'AppController::readList');
+    // $routes->get('lunch/read/calendar', 'AppController::readCalendar');
+    // $routes->get('lunch/read/agenda', 'AppController::readAgenda');
+    // $routes->get('lunch/(:num)', 'AppController::getLunch/$1');
+
+    // // UPDATE
+    // $routes->get('lunch/update/(:num)', 'LunchController::update/$1');          // mostrar formulario
+    // $routes->post('lunch/update/(:num)', 'LunchController::update/$1');         // procesar actualización
+
+    // // DELETE
+    // $routes->get('lunch/delete/(:num)', 'LunchController::delete/$1');          // mostrar formulario
+    // $routes->post('lunch/delete/(:num)', 'LunchController::delete/$1');         // procesar actualización
 
     // Otros
-    $routes->get('', 'DashboardController::reindex');
-    $routes->get('dashboard', 'DashboardController::index');
+
+    $routes->get('dashboard', 'AppController::index');
     $routes->get('profile', 'UserController::profile');
     $routes->match(['get', 'post'], 'settings', 'UserController::settings');
 });
@@ -75,6 +85,3 @@ $routes->group('/', ['filter' => 'auth'], function ($routes) {
 //     $routes->get('profile', 'UserController::profile');
 //     $routes->match(['get', 'post'], 'settings', 'UserController::settings');
 // });
-
-// Soporte
-$routes->post('/support/request', 'SupportController::request');

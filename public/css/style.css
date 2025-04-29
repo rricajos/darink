@@ -42,21 +42,23 @@
 
 * {
     box-sizing: border-box;
-    padding: 0;
-    margin: 0;
+    /* padding: 0;
+    margin: 0; */
 }
 
 body {
     /* Muy bien pensado para compatibilidad y rendimiento. 👌  */
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-
+    margin: 0;
     scrollbar-width: none;       /* Firefox */
     -ms-overflow-style: none;    /* Internet Explorer 10+ */
 }
 body::-webkit-scrollbar {
     display: none;               /* Chrome, Safari y Opera */
 }
-
+main {
+    padding: 0.75rem;
+}
 li {
     list-style: none;
     padding: var(--spacing-xxs);

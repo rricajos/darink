@@ -1,0 +1,62 @@
+/* Estilo base para todos los botones */
+button, .btn {
+  display: inline-block;
+  padding: 10px 20px;
+  margin: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  background-color: #007bff; /* azul bonito */
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+button:hover, .btn:hover {
+  background-color: #0056b3;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+button:disabled, .btn:disabled {
+  background-color: #c0c0c0;
+  cursor: not-allowed;
+}
+
+/* Botones de acción específicos */
+.btn-danger {
+  background-color: #dc3545;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+}
+
+.btn-success {
+  background-color: #28a745;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background-color: #e0a800;
+}
+
+/* Responsive ajuste de tamaño (opcional) */
+@media (max-width: 600px) {
+  button, .btn {
+      width: auto;
+      padding: 12px;
+      font-size: 1.1rem;
+  }
+}

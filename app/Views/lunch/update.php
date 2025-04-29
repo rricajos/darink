@@ -3,7 +3,7 @@
 
 <h2>✏️ Editar almuerzo</h2>
 
-<form action="<?= base_url("/user/lunch/update/{$lunch['lunch_id']}") ?>" method="post">
+<form action="<?= base_url("/lunch/update/{$lunch['lunch_id']}") ?>" method="POST">
     <label>Lugar:</label>
     <input type="text" name="lunch_location" value="<?= esc($lunch['lunch_location']) ?>" required>
 

@@ -23,40 +23,45 @@ class LunchController extends BaseController
         // Procesar formulario
         if ($this->request->getMethod() === 'POST') {
             $data = [
-                'lunch_tag'       => $this->request->getPost('lunch_tag') ?? 'lunch',
-                'lunch_location'  => $this->request->getPost('lunch_location') ?? 'house',
-                'lunch_start_at'  => $this->request->getPost('lunch_start_at') ?? date('Y-m-d H:i:s'),
-                'lunch_end_at'    => $this->request->getPost('lunch_end_at') ?? date('Y-m-d H:i:s'),
-                'user_id'         => $this->user->id()
+                'lunch_tag' => $this->request->getPost('lunch_tag') ?? 'lunch',
+                'lunch_location' => $this->request->getPost('lunch_location') ?? 'house',
+                'lunch_start_at' => $this->request->getPost('lunch_start_at') ?? date('Y-m-d H:i:s'),
+                'lunch_end_at' => $this->request->getPost('lunch_end_at') ?? date('Y-m-d H:i:s'),
+                'user_id' => $this->user->id()
             ];
-    
-            $this->lunchModel->insert($data);
-    
-            // Guardar valores en sesión para próximos usos
-            session()->set([
-                'last_lunch_tag'      => $data['lunch_tag'],
-                'last_lunch_location' => $data['lunch_location'],
-                'last_lunch_start_at' => $data['lunch_start_at'],
-                'last_lunch_end_at'   => $data['lunch_end_at'],
-            ]);
-    
-            return redirect()->to('/lunch')->with('message', 'Almuerzo registrado con éxito');
+
+            $id = $this->lunchModel->insert($data);
+
+            if (is_int($id)) {
+
+                // Guardar valores en sesión para próximos usos
+                session()->set([
+                    'last_lunch_id' => $id,
+                    'last_lunch_tag' => $data['lunch_tag'],
+                    'last_lunch_location' => $data['lunch_location'],
+                    'last_lunch_start_at' => $data['lunch_start_at'],
+                    'last_lunch_end_at' => $data['lunch_end_at'],
+                ]); 
+
+                return $id;
+            } 
         }
-    
+
         // Valores por defecto desde sesión o actuales
-        $lastTag      = session()->get('last_lunch_tag') ?? 'lunch';
+        $lastTag = session()->get('last_lunch_tag') ?? 'lunch';
         $lastLocation = session()->get('last_lunch_location') ?? 'house';
-        $lastStart    = session()->get('last_lunch_start_at') ?? date('Y-m-d H:i');
-        $lastEnd      = session()->get('last_lunch_end_at') ?? date('Y-m-d H:i');
-    
+        $lastStart = session()->get('last_lunch_start_at') ?? date('Y-m-d H:i');
+        $lastEnd = session()->get('last_lunch_end_at') ?? date('Y-m-d H:i');
+
+        // Mostramos el formulario con valores desde session o actuales
         return view('lunch/create', [
-            'default_tag'      => $lastTag,
+            'default_tag' => $lastTag,
             'default_location' => $lastLocation,
-            'default_start'    => date('Y-m-d\TH:i', strtotime($lastStart)),
-            'default_end'      => date('Y-m-d\TH:i', strtotime($lastEnd)),
+            'default_start' => date('Y-m-d\TH:i', strtotime($lastStart)),
+            'default_end' => date('Y-m-d\TH:i', strtotime($lastEnd)),
         ]);
     }
-    
+
 
 
     /**
@@ -71,7 +76,7 @@ class LunchController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Lunch $id no encontrado.");
         }
 
-        return view('lunch/read', ['lunch' => $lunch]);
+        return $lunch;
     }
 
     /**
@@ -111,7 +116,7 @@ class LunchController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Lunch $id no encontrado.");
         }
 
-        if ($this->request->getMethod() === 'post') {
+        if ($this->request->getMethod() === 'POST') {
             $data = $this->request->getPost();
 
             $this->lunchModel->update($id, [
@@ -121,7 +126,7 @@ class LunchController extends BaseController
                 'lunch_tag' => $data['lunch_tag']
             ]);
 
-            return redirect()->to("/user/lunch/read/$id")->with('message', 'Almuerzo actualizado');
+            return redirect()->to("/lunch/$id")->with('message', 'Almuerzo actualizado');
         }
 
         return view('lunch/update', ['lunch' => $lunch]);
@@ -133,13 +138,14 @@ class LunchController extends BaseController
     public function delete($id)
     {
         $lunch = $this->lunchModel->find($id);
+        
         if (!$lunch) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Lunch $id no encontrado.");
+            return redirect()->to('lunch')->with('message', "Lunch $id no encontrado.");
         }
 
-        if ($this->request->getMethod() === 'post') {
+        if ($this->request->getMethod() === 'POST') {
             $this->lunchModel->delete($id);
-            return redirect()->to('/user/lunch/read')->with('message', 'Almuerzo eliminado');
+            return redirect()->to('lunch')->with('message', 'Almuerzo eliminado');
         }
 
         return view('lunch/delete', ['lunch' => $lunch]);
