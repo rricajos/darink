@@ -26,7 +26,6 @@ $routes->group('auth', function ($routes) {
 $routes->group('/', ['filter' => 'auth'], function ($routes) {
 
     // CREATE   
-    
     $routes->get('lunch', 'AppController::all');
     $routes->get('lunch/new', 'AppController::new');
 
@@ -41,7 +40,7 @@ $routes->group('/', ['filter' => 'auth'], function ($routes) {
     $routes->get('food/edit/(:num)', 'FoodController::edit/$1');
     $routes->post('food/update/(:num)', 'FoodController::update/$1');
 
-    $routes->get('dashboard', 'AppController::index');
+    $routes->get('dashboard', 'AppController::dashboard');
     $routes->get('profile', 'UserController::profile');
     $routes->match(['get', 'post'], 'settings', 'UserController::settings');
 });

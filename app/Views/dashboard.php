@@ -4,7 +4,7 @@
 <?php
 $menuItems = [
   ['url' => '/dashboard', 'icon' => 'fa fa-calendar', 'label' => 'Calendar View', 'active' => true],
-  ['url' => '/lunch/index', 'icon' => 'fa fa-list', 'label' => 'List View'],
+  ['url' => '/lunch', 'icon' => 'fa fa-list', 'label' => 'List View'],
   // ['url' => '/agenda', 'icon' => 'fa fa-calendar-check-o', 'label' => 'Agenda View'], // Si no carga, usa fa-calendar
   ['url' => '/lunch/new', 'icon' => 'fa fa-cutlery', 'label' => 'Add Lunch'],
   // ['url' => '/graphs', 'icon' => 'fa fa-line-chart', 'label' => 'Graphs'],

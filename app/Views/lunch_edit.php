@@ -31,8 +31,6 @@
 
 
 
-<h2>Editar Lunch</h2>
-
 <!-- FORMULARIO DE EDITAR LUNCH -->
 <form id="formLunch" action="<?= site_url('lunch/update/' . $lunch['lunch_uuid']) ?>" method="POST">
   <?= csrf_field() ?>

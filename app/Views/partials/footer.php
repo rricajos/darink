@@ -66,10 +66,11 @@
 
 </footer>
 <pre>
-<?php print_r(get_defined_vars()); ?>
+<?php
+// print_r(get_defined_vars()); ?>
 </pre>
 <?php
-echo '<pre>';
-print_r(session()->get());
-echo '</pre>';
+// echo '<pre>';
+// print_r(session()->get());
+// echo '</pre>';
 ?>

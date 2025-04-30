@@ -19,12 +19,18 @@ class AppController extends BaseController
 
     public function index()
     {
-        return view('dashboard');
+        return view('index');
     }
 
     public function reindex()
     {
         return redirect()->to('/');
+    }
+
+    
+    public function dashboard()
+    {
+        return view('dashboard');
     }
 
 
@@ -109,10 +115,10 @@ class AppController extends BaseController
 
 
     // POST /lunch/update/{id}
-    public function update($id = null)
+    public function update($uuid = null)
     {
-        $lunch = $this->lunchModel->find($id);
-
+        $lunch = $this->lunchModel->where('lunch_uuid', value: $uuid)->first();
+ 
         if (!$lunch) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Lunch no encontrado');
         }
@@ -125,19 +131,19 @@ class AppController extends BaseController
 
         $data = $this->request->getPost();
 
-        if (!$this->lunchModel->update($id, $data)) {
+        if (!$this->lunchModel->update($lunch["lunch_id"], $data)) {
             return redirect()->back()->withInput()->with('errors', $this->lunchModel->errors());
         }
 
         // Redireccionar con mensaje de éxito
-        return redirect()->to('lunch/' . $id)->with('success', 'changes_saved');
+        return redirect()->to('lunch/' . $uuid)->with('success', 'changes_saved');
 
     }
 
     // POST /lunch/delete/{id}
-    public function delete($id = null)
+    public function delete($uuid = null)
     {
-        $lunch = $this->lunchModel->find($id);
+        $lunch = $this->lunchModel->where('lunch_uuid', value: $uuid)->first();
 
         if (!$lunch) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Lunch no encontrado');
@@ -149,7 +155,7 @@ class AppController extends BaseController
         }
 
 
-        if (!$this->lunchModel->delete($id)) {
+        if (!$this->lunchModel->delete($lunch['lunch_id'])) {
             return redirect()->back()->with('error', 'No se pudo eliminar el lunch');
         }
 

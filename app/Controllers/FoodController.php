@@ -49,6 +49,10 @@ class FoodController extends BaseController
     {
         $data = $this->request->getPost();
 
+        if (empty(trim($data['food_title'] ?? ''))) {
+            return redirect()->back()->withInput()->with('error', 'El título de la comida no puede estar vacío.');
+        }
+
         // 🥗 1. Buscar el lunch_id a partir del UUID
         $lunchModel = new \App\Models\LunchModel();
         $lunch = $lunchModel->where('lunch_uuid', $data['lunch_uuid'])->first();

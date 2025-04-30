@@ -1,13 +1,13 @@
 <?php if (session()->getFlashdata('error')): ?>
-  <div class="flash flash-error"><?= esc(session('error')) ?></div>
+  <div class="alert alert-danger"><?= esc(session('error')) ?></div>
 <?php endif ?>
 
 <?php if (session()->getFlashdata('message')): ?>
-  <div class="flash flash-message"><?= esc(session('message')) ?></div>
+  <div class="alert alert-warning"><?= esc(session('message')) ?></div>
 <?php endif ?>
 
 <?php if ($errors = session()->getFlashdata('errors')): ?>
-  <div class="flash flash-error">
+  <div class="alert alert-danger">
     <ul>
       <?php foreach ((array) $errors as $error): ?>
         <li><?= esc($error) ?></li>
