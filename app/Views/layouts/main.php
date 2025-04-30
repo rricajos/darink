@@ -42,6 +42,7 @@
   <link rel="stylesheet" href="<?= base_url('/css/button.css') ?>">
   <link rel="stylesheet" href="<?= base_url('/css/navbar.css') ?>">
   <link rel="stylesheet" href="<?= base_url('/css/dashboard.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('/css/food_feedback_component.css') ?>">
 
   <!-- Fuente opcional desde Google Fonts -->
   <link rel="stylesheet" href="/font-awesome-4.7.0/css/font-awesome.min.css">
@@ -64,13 +65,10 @@
 
   <?= view('partials/footer') ?>
 
-  <?php
-  // echo '<pre>';
-  // print_r(session()->get());
-  // echo '</pre>';
-  ?>
+
 
   <script src="<?= base_url('js/navbar.js') ?>"></script>
+  <script src="<?= base_url('js/food_feedback_component.js') ?>"></script>
 </body>
 
 </html>

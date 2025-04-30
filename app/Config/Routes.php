@@ -26,41 +26,20 @@ $routes->group('auth', function ($routes) {
 $routes->group('/', ['filter' => 'auth'], function ($routes) {
 
     // CREATE   
-    $routes->get('lunch', 'AppController::index');
+    
+    $routes->get('lunch', 'AppController::all');
     $routes->get('lunch/new', 'AppController::new');
-    $routes->get('lunch/(:num)', 'AppController::edit/$1');
-    $routes->post('lunch/create', 'AppController::create');
-    $routes->post('lunch/update/(:num)', 'AppController::update/$1');
-    $routes->post('lunch/delete/(:num)', 'AppController::delete/$1');
 
+    // 🔄 Cambiar de (:num) a (:segment) para UUID
+    $routes->get('lunch/(:segment)', 'AppController::edit/$1');
+    $routes->post('lunch/create', 'AppController::create');
+    $routes->post('lunch/update/(:segment)', 'AppController::update/$1');
+    $routes->post('lunch/delete/(:segment)', 'AppController::delete/$1');
 
     $routes->post('food/create', 'FoodController::create');
     $routes->post('food/delete/(:num)', 'FoodController::delete/$1');
     $routes->get('food/edit/(:num)', 'FoodController::edit/$1');
     $routes->post('food/update/(:num)', 'FoodController::update/$1');
-    
-
-
-    // $routes->get('lunch/create', 'LunchController::create');
-    // $routes->post('food/create', 'FoodController::create');
-
-    // // READ
-    // $routes->get('lunch/', 'AppController::readList');                     // vista por defecto
-    // $routes->get('lunch/read', 'AppController::readList');                     // vista por defecto
-    // $routes->get('lunch/read/list', 'AppController::readList');
-    // $routes->get('lunch/read/calendar', 'AppController::readCalendar');
-    // $routes->get('lunch/read/agenda', 'AppController::readAgenda');
-    // $routes->get('lunch/(:num)', 'AppController::getLunch/$1');
-
-    // // UPDATE
-    // $routes->get('lunch/update/(:num)', 'LunchController::update/$1');          // mostrar formulario
-    // $routes->post('lunch/update/(:num)', 'LunchController::update/$1');         // procesar actualización
-
-    // // DELETE
-    // $routes->get('lunch/delete/(:num)', 'LunchController::delete/$1');          // mostrar formulario
-    // $routes->post('lunch/delete/(:num)', 'LunchController::delete/$1');         // procesar actualización
-
-    // Otros
 
     $routes->get('dashboard', 'AppController::index');
     $routes->get('profile', 'UserController::profile');

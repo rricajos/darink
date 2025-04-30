@@ -20,6 +20,7 @@ class LunchModel extends Model
   protected $primaryKey = 'lunch_id';
 
   protected $allowedFields = [
+    'lunch_uuid',
     'lunch_tag',
     'lunch_location',
     'lunch_start_at',

@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\LunchModel;
+use Ramsey\Uuid\Uuid;
 
 
 
@@ -16,8 +17,19 @@ class AppController extends BaseController
         $this->lunchModel = new LunchModel();
     }
 
-    // GET /lunch
     public function index()
+    {
+        return view('dashboard');
+    }
+
+    public function reindex()
+    {
+        return redirect()->to('/');
+    }
+
+
+    // GET /lunch/all
+    public function all()
     {
         $user_id = $this->user->id();
         if ($user_id == null) {
@@ -39,6 +51,7 @@ class AppController extends BaseController
     {
         // Recoger solo los campos necesarios y confiar en nosotros, no en el usuario
         $data = [
+            'lunch_uuid' => Uuid::uuid4()->toString(),
             'lunch_tag' => $this->request->getPost('lunch_tag'),
             'lunch_location' => $this->request->getPost('lunch_location'),
             'lunch_start_at' => $this->request->getPost('lunch_start_at'),
@@ -60,11 +73,12 @@ class AppController extends BaseController
 
 
     // GET /lunch/{id}
-    public function edit($id = null)
+    public function edit($uuid = null)
     {
-        $lunch = $this->lunchModel->find($id);
+        $lunch = $this->lunchModel->where('lunch_uuid', $uuid)->first();
+
         if (!$lunch) {
-            return redirect()->back()->with('error', 'Lunch denegado');
+            return redirect()->back()->with('error', 'Lunch no encontrado');
         }
 
 
@@ -72,22 +86,22 @@ class AppController extends BaseController
         if ($lunch['user_id'] != $this->user->id()) {
             return redirect()->back()->with('error', 'Permiso/Acceso denegado');
 
-        } else {
-
-
-            $foodModel = new \App\Models\FoodModel();
-            $foods = $foodModel
-                ->select('foods.*, lights.light_color')
-                ->join('lights', 'lights.food_id = foods.food_id', 'left')
-                ->where('lunch_id', $id)
-                ->findAll();
-
-            return view('lunch_edit', [
-                'lunch' => $lunch,
-                'foods' => $foods
-            ]);
-
         }
+
+
+        $foodModel = new \App\Models\FoodModel();
+        $foods = $foodModel
+            ->select('foods.*, lights.light_color')
+            ->join('lights', 'lights.food_id = foods.food_id', 'left')
+            ->where('lunch_id', $lunch['lunch_id'])
+            ->findAll();
+
+        return view('lunch_edit', [
+            'lunch' => $lunch,
+            'foods' => $foods
+        ]);
+
+
 
     }
 

@@ -8,12 +8,13 @@ class FoodModel extends Model
     protected $primaryKey = 'food_id';
 
     protected $allowedFields = [
-
+        
         'food_title',
         'food_amount',
         'food_size',
         'food_created_at',
         'food_updated_at',
+        'lunch_uuid',
         'lunch_id'
     ];
 

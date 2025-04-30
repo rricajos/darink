@@ -15,36 +15,74 @@ class FoodController extends BaseController
     }
 
     // POST /food/create
+    // public function create()
+    // {
+
+    //     $data = $this->request->getPost();
+
+    //     // Insertar el Food
+    //     $foodData = [
+    //         'food_title'  => $data['food_title'],
+    //         'food_size'   => $data['food_size'],
+    //         'food_amount' => $data['food_amount'],
+    //         'lunch_id'    => $data['lunch_id'],
+    //     ];
+
+    //     $foodId = $this->foodModel->insert($foodData, true); // true = devolver el ID insertado
+
+    //     if (!$foodId) {
+    //         return redirect()->back()->withInput()->with('errors', $this->foodModel->errors());
+    //     }
+
+    //     // Insertar el Light asociado
+    //     $lightModel = new \App\Models\LightModel();
+    //     $lightData = [
+    //         'light_color'   => $data['light_color'],      // verde, amarillo o rojo
+    //         'light_message' => $data['light_message'],    // comentario breve
+    //         'food_id'       => $foodId,                   // ¡asociamos correctamente!
+    //     ];
+    //     $lightModel->insert($lightData);
+
+    //     return redirect()->back()->with('success', 'Food y Light creados correctamente');
+    // }
     public function create()
     {
         $data = $this->request->getPost();
-    
-        // Insertar el Food
+
+        // 🥗 1. Buscar el lunch_id a partir del UUID
+        $lunchModel = new \App\Models\LunchModel();
+        $lunch = $lunchModel->where('lunch_uuid', $data['lunch_uuid'])->first();
+
+        if (!$lunch) {
+            return redirect()->back()->withInput()->with('error', 'Lunch no encontrado.');
+        }
+
+        // 🥗 2. Preparar e insertar el Food
         $foodData = [
-            'food_title'  => $data['food_title'],
-            'food_size'   => $data['food_size'],
+            'food_title' => $data['food_title'],
+            'food_size' => $data['food_size'],
             'food_amount' => $data['food_amount'],
-            'lunch_id'    => $data['lunch_id'],
+            'lunch_id' => $lunch['lunch_id'], // usamos el ID numérico obtenido
         ];
-    
-        $foodId = $this->foodModel->insert($foodData, true); // true = devolver el ID insertado
-    
+
+        $foodId = $this->foodModel->insert($foodData, true);
+
         if (!$foodId) {
             return redirect()->back()->withInput()->with('errors', $this->foodModel->errors());
         }
-    
-        // Insertar el Light asociado
+
+        // 🟢 3. Insertar el Light asociado
         $lightModel = new \App\Models\LightModel();
         $lightData = [
-            'light_color'   => $data['light_color'],      // verde, amarillo o rojo
-            'light_message' => $data['light_message'],    // comentario breve
-            'food_id'       => $foodId,                   // ¡asociamos correctamente!
+            'light_color' => $data['light_color'],
+            'light_message' => $data['light_message'],
+            'food_id' => $foodId,
         ];
         $lightModel->insert($lightData);
-    
+
         return redirect()->back()->with('success', 'Food y Light creados correctamente');
     }
-    
+
 
 
 

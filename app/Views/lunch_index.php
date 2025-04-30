@@ -63,8 +63,8 @@
 
 
                 <td>
-                    <a class="btn" href="<?= site_url('lunch/' . $lunch['lunch_id']) ?>">Editar</a>
-                    <form action="<?= site_url('lunch/delete/' . $lunch['lunch_id']) ?>" method="POST"
+                    <a class="btn" href="<?= site_url('lunch/' . $lunch['lunch_uuid']) ?>">Editar</a>
+                    <form action="<?= site_url('lunch/delete/' . $lunch['lunch_uuid']) ?>" method="POST"
                         style="display:inline;">
                         <button type="submit" class="btn btn-danger"
                             onclick="return confirm('¿Estás seguro de eliminar este lunch?')">Eliminar</button>
