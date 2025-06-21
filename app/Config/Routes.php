@@ -5,14 +5,14 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 $routes->setDefaultNamespace('App\Controllers');
-$routes->setDefaultController('AuthController');
+$routes->setDefaultController('AppController');
 $routes->setDefaultMethod('index');
 $routes->setTranslateURIDashes(false);
 $routes->set404Override();
-$routes->setAutoRoute(true); // Puedes cambiar esto según tu preferencia
+$routes->setAutoRoute(false); // Puedes cambiar esto según tu preferencia
 
 $routes->get('/', 'AppController::index');
-
+$routes->get('/view', 'AppController::view');
 
 // 🔐 AUTENTICACIÓN
 $routes->group('auth', function ($routes) {
@@ -27,6 +27,7 @@ $routes->group('/', ['filter' => 'auth'], function ($routes) {
 
     // CREATE   
     $routes->get('lunch', 'AppController::all');
+
     $routes->get('lunch/new', 'AppController::new');
 
     // 🔄 Cambiar de (:num) a (:segment) para UUID

@@ -1,0 +1,41 @@
+:root {
+    /* Dimensiones */
+    --max-width: 720px;
+    --content-padding: 1rem;
+
+    /* Espaciados */
+    --spacing-xxs: 0.25rem;
+    --spacing-xs:  0.5rem;
+    --spacing-sm:  0.75rem;
+    --spacing-md:  1rem;
+    --spacing-lg:  1.5rem;
+    --spacing-xl:  2rem;
+    --spacing-xxl: 3rem;
+
+    /* Tipografía */
+    --font-size-sm: 0.875rem;
+    --font-size-md: 1rem;
+    --font-size-lg: 1.25rem;
+    --font-size-xl: 1.5rem;
+    --font-size-xxl: 2rem;
+
+    /* Colores */
+    --color-bg: #ffffff;
+    --color-bg-2: #f1f8ff;
+    --color-text: #111111;
+    --color-primary: #0077ff;
+    --color-secondary: #00c9a7;
+    --color-muted: #888888;
+
+    /* Bordes */
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 16px;
+
+    /* Grid utils */
+    --grid-size-sx: 64px;
+    --grid-size-sm: 128px;
+    --grid-size-md: 250px;
+    --grid-size-lg: 256px;
+    --grid-size-xl: 320px;
+}

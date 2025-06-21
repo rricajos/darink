@@ -3,18 +3,44 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
+use App\Controllers\LunchController;
+use App\Controllers\FoodController;
+use App\Controllers\LightController;
 use App\Models\LunchModel;
 use Ramsey\Uuid\Uuid;
-
+use App\Services\SeoService;
 
 
 class AppController extends BaseController
 {
+    protected $foodController;
+    protected $lunchController;
+    protected $lightController;
+
     protected $lunchModel;
+
+    public function view(string $page = 'AppView', array $data = [])
+    {
+
+        // Permite sobreescribir dinámicamente los valores SEO
+        $seo = $this->seo->set($data['seo'] ?? [])->get();
+
+        return $this->view('AppView', [
+            'seo' => [
+                'title' => 'Mi página de prueba',
+                'description' => 'Descripción para motores de búsqueda'
+            ],
+            'mensaje' => 'Hola mundo'
+        ]);
+
+    }
 
     public function __construct()
     {
         $this->lunchModel = new LunchModel();
+        $this->lunchController = new LunchController();
+        $this->foodController = new FoodController();
+        $this->lightController = new LightController();
     }
 
     public function index()
@@ -27,10 +53,10 @@ class AppController extends BaseController
         return redirect()->to('/');
     }
 
-    
+
     public function dashboard()
     {
-        return view('dashboard');
+        view('dashboard');
     }
 
 
@@ -42,14 +68,14 @@ class AppController extends BaseController
             return view('index');
         }
         $lunches = $this->lunchModel->where('user_id', $user_id)->findAll();
-        return view('lunch_index', ['lunches' => $lunches]);
+        view('lunch_index', ['lunches' => $lunches]);
 
     }
 
     // GET /lunch/new
     public function new()
     {
-        return view('lunch_form');
+        view('lunch_form');
     }
 
     // POST /lunch
@@ -102,7 +128,7 @@ class AppController extends BaseController
             ->where('lunch_id', $lunch['lunch_id'])
             ->findAll();
 
-        return view('lunch_edit', [
+        view('lunch_edit', [
             'lunch' => $lunch,
             'foods' => $foods
         ]);
@@ -118,7 +144,7 @@ class AppController extends BaseController
     public function update($uuid = null)
     {
         $lunch = $this->lunchModel->where('lunch_uuid', value: $uuid)->first();
- 
+
         if (!$lunch) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Lunch no encontrado');
         }

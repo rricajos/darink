@@ -5,7 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\FoodModel;
 
-class LunchController extends BaseController
+class LightController extends BaseController
 {
     protected $foodModel;
 
