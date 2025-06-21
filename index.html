@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Darink App</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+
+  <!-- (Aquí pondrás tu CSS algún día) -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Darink App</h1>
+
+  <form id="entry-form">
+    <label>Dónde:
+      <select name="where" required>
+        <option>Casa</option>
+        <option>Colegio/Trabajo</option>
+        <option>Otro lugar</option>
+      </select>
+    </label><br>
+
+    <label>Inicio:
+      <input type="datetime-local" name="start" required>
+    </label><br>
+
+    <label>Fin:
+      <input type="datetime-local" name="end">
+      <small>(si se deja vacío se usa la hora actual)</small>
+    </label><br>
+
+    <label>Qué se comió:<br>
+      <textarea name="what" rows="3" required></textarea>
+    </label><br>
+
+    <label>Cuánto:
+      <select name="howMuch" required>
+        <option>Poco</option>
+        <option>Normal</option>
+        <option>Mucho</option>
+      </select>
+    </label><br>
+
+    <label>Proporción del plato:
+      <select name="portion" required>
+        <option>⅓</option>
+        <option>⅔</option>
+        <option>3⁄3</option>
+      </select>
+    </label><br>
+
+    <label>Semáforo:
+      <select name="feeling" required>
+        <option value="verde">🟢 Verde</option>
+        <option value="ambar">🟠 Ámbar</option>
+        <option value="rojo">🔴 Rojo</option>
+      </select>
+    </label><br>
+
+    <label>Comentario:
+      <input type="text" name="comment" maxlength="140">
+    </label><br>
+
+    <button type="submit">Guardar entrada</button>
+  </form>
+
+  <hr>
+
+  <button id="export-btn">Exportar json.json</button>
+  <button id="import-btn">Importar json.json</button>
+  <input type="file" id="import-input" accept=".json" hidden>
+
+  <h2>Entradas</h2>
+  <pre id="entries-view">(sin registros)</pre>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
