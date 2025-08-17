@@ -1,82 +1,257 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Darink App</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ffffff">
 
-  <!-- (Aquí pondrás tu CSS algún día) -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/font-awesome.min.css">
+
 </head>
+
 <body>
-  <h1>Darink App</h1>
 
-  <form id="entry-form">
-    <label>Dónde:
-      <select name="where" required>
-        <option>Casa</option>
-        <option>Colegio/Trabajo</option>
-        <option>Otro lugar</option>
-      </select>
-    </label><br>
+  <header>
+    <h1>Darink App </h1>
+    <i id="appVersion"></i>
+  </header>
 
-    <label>Inicio:
-      <input type="datetime-local" name="start" required>
-    </label><br>
 
-    <label>Fin:
-      <input type="datetime-local" name="end">
-      <small>(si se deja vacío se usa la hora actual)</small>
-    </label><br>
+  <nav id="mainTabs">
 
-    <label>Qué se comió:<br>
-      <textarea name="what" rows="3" required></textarea>
-    </label><br>
+    <button data-go="add" class="active"><span style="font-size: 1.5rem;">
+        <i class="fa fa-rocket" aria-hidden="true"></i>
+      </span>
+      <br><i>Lunch</i>
+    </button>
 
-    <label>Cuánto:
-      <select name="howMuch" required>
-        <option>Poco</option>
-        <option>Normal</option>
-        <option>Mucho</option>
-      </select>
-    </label><br>
+    <button data-go="list"> <span style="font-size: 1.5rem;">
+        <i class="fa fa-book" aria-hidden="true"></i>
+      </span>
+      <br><i>LogBook</i>
+    </button>
 
-    <label>Proporción del plato:
-      <select name="portion" required>
-        <option>⅓</option>
-        <option>⅔</option>
-        <option>3⁄3</option>
-      </select>
-    </label><br>
+    <button data-go="settings">
+      <span style="font-size: 1.5rem;">
+        <i class="fa fa-cog" aria-hidden="true"></i>
+      </span>
+      <br><i>Settings</i>
+    </button>
 
-    <label>Semáforo:
-      <select name="feeling" required>
-        <option value="verde">🟢 Verde</option>
-        <option value="ambar">🟠 Ámbar</option>
-        <option value="rojo">🔴 Rojo</option>
-      </select>
-    </label><br>
+  </nav>
 
-    <label>Comentario:
-      <input type="text" name="comment" maxlength="140">
-    </label><br>
+  <!-- TAB: Añadir -->
+  <div data-tab="add">
+    <nav id="progressNav">
+      <button data-step="0">Paso&nbsp;1</button>
+      <button data-step="1">Paso&nbsp;2</button>
+      <button data-step="2">Paso&nbsp;3</button>
+    </nav>
+    <div id="progressContainer">
+      <div id="progressBar"></div>
+    </div>
 
-    <button type="submit">Guardar entrada</button>
-  </form>
+    <form id="entryForm">
+      <input type="hidden" id="editIndex">
+      <section data-step="0">
 
-  <hr>
+        <label>Lugar
+          <select name="location" required>
+            <option value="casa">Casa</option>
+            <option value="colegio">Colegio/Trabajo</option>
+            <option value="otro">Otro</option>
+          </select>
+        </label>
 
-  <button id="export-btn">Exportar json.json</button>
-  <button id="import-btn">Importar json.json</button>
-  <input type="file" id="import-input" accept=".json" hidden>
 
-  <h2>Entradas</h2>
-  <pre id="entries-view">(sin registros)</pre>
+        <div id="timeDash">
+          <button type="button" id="btnStartNow">Voy a empezar</button>
+          <button type="button" id="btnEndNow">He terminado</button>
+        </div>
+        <br>
 
-  <script src="app.js" defer></script>
+        <div id="startFields">
+          <label>
+            <span>Fecha de <strong>inicio</strong></span>
+            <input type="date" id="dateStart" name="dateStart" required>
+          </label><br>
+          <label>
+            <span>Hora de <strong>inicio</strong></span>
+            <input type="time" id="timeStart" name="timeStart" required>
+          </label><br>
+        </div>
+
+        <div id="endFields" hidden>
+          <label>
+            <span>Fecha de <strong>fin</strong></span>
+            <input type="date" id="dateEnd" name="dateEnd" required>
+          </label><br>
+          <label><span>Hora de <strong>fin</strong></span>
+            <input type="time" id="timeEnd" name="timeEnd" required>
+          </label><br>
+        </div>
+
+
+        <button type="button" id="swapDates" hidden>↔︎</button><br>
+
+        <button type="button" id="next0" class="focusable">Siguiente</button>
+
+      </section>
+
+
+      <section data-step="1" hidden>
+        <label>Qué:<br><textarea name="what" required autofocus></textarea></label><br>
+        <label>Cantidad:
+          <select name="amount">
+            <option value="poco">Poco</option>
+            <option value="normal">Normal</option>
+            <option value="mucho">Mucho</option>
+          </select>
+        </label><br>
+        <label>Proporción:
+          <select name="portion">
+            <option value="1/3">⅓</option>
+            <option value="2/3">⅔</option>
+            <option value="3/3">3⁄3</option>
+          </select>
+        </label><br>
+        <button type="button" id="back1">Atrás</button>
+        <button type="button" id="next1" class="focusable">Siguiente</button>
+      </section>
+
+      <section data-step="2" hidden>
+        <label>Cómo se sintió:
+          <select name="mood">
+            <option value="verde">🟢 Verde</option>
+            <option value="ambar">🟠 Ámbar</option>
+            <option value="rojo">🔴 Rojo</option>
+          </select>
+        </label><br>
+        <label>Comentario: <input type="text" name="comment"></label><br>
+        <button type="button" id="back2">Atrás</button>
+        <button type="submit" class="donnable">Guardar</button>
+      </section>
+      <button type="button" id="cancelEdit" hidden>Cancelar edición</button>
+    </form>
+  </div>
+
+  <!-- TAB: Lista / Estadística -->
+  <div data-tab="list">
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      <input type="search" id="searchTxt" placeholder="Buscar…" style="flex: 1;">
+      <button id="toggleFilters" title="Mostrar/ocultar filtros">
+        Filtros
+        <i id="toggleFiltersIcon" class="fa fa-filter" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div id="filterPanel" hidden style="padding: 1rem;">
+      <label>Desde <input type="date" id="fFrom"></label>
+      <label>Hasta <input type="date" id="fTo"></label>
+      <label>Estado
+        <select id="fMood">
+          <option value="">Todos</option>
+          <option value="verde">🟢</option>
+          <option value="ambar">🟠</option>
+          <option value="rojo">🔴</option>
+        </select>
+      </label><br>
+      <button id="applyFilter">Filtrar</button><br>
+      <button id="clearFilter">Limpiar</button>
+    </div>
+
+
+    <button id="delSelBtn" disabled>Eliminar seleccionados</button>
+    <ul id="entries"></ul>
+
+    <div id="statsBox" hidden>
+      <canvas id="statsCanvas" width="300" height="150"></canvas>
+      <button id="closeStats">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- TAB: Ajustes -->
+  <div data-tab="settings">
+    <h3><i class="fa fa-database" aria-hidden="true"></i> Base de Datos</h3>
+    <p>Tú alojas tu propia información en este dispositivo y eres el único responsable de su uso i difusión.</p>
+    <!-- <button id="exportBtn">Exportar base de datos acutal</button> -->
+    <div style="display: flex; gap: 1rem; align-items: flex-start; flex-direction: row;">
+
+      <button id="exportBtn">
+        <i class="fa fa-upload" aria-hidden="true"></i>
+
+        Exportar Base de Datos
+
+      </button>
+
+      <button style="position: relative;">
+
+        <i class="fa fa-download" aria-hidden="true"></i>
+        Importar Base de datos
+        <input type="file" id="importInput" accept=".json"
+          style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0;">
+      </button>
+
+      <button id="clearBtn">
+        <i class="fa fa-trash" aria-hidden="true"></i>
+
+        Borrar tu información</button>
+    </div>
+
+
+  </div>
+
+  <!-- TAB: Ajustes  -->
+  <div data-tab="settings">
+    <h3><i class="fa fa-plane" aria-hidden="true"></i> Modo Offline</h3>
+    <p>Así podrás usar nuestras funciones sin conexión y trabajar con tu información aunque no tengas internet.</p>
+
+    <button id="installBtn" hidden>
+      <i class="fa fa-play" aria-hidden="true"></i>
+      Instalar app
+    </button>
+
+    <button id="uninstallBtn" hidden>
+      <i class="fa fa-trash" aria-hidden="true"></i>
+      Desinstalar app
+    </button>
+
+  </div>
+
+  <!-- TAB: Ajustes // modo noche activado/desactivado manualmente con detección del tema del dispositivo -->
+  <div data-tab="settings">
+    <h3>
+      <i class="fa fa-moon-o" aria-hidden="true"></i>
+      Tema
+    </h3>
+    <label style="flex-direction: row; padding: 0.5rem 1rem  0 0;">
+      <input style="scale: 1.25;" type="checkbox" id="themeToggle"> Usar tema oscuro
+    </label>
+
+  </div>
+  <!-- 
+  <script type="module" src="ui.js"></script>
+  <script type="module" src="datepicker.js"></script> -->
+  <script type="module" src="./js/utils.js"></script>
+  <script type="module" src="./js/version.js"></script>
+  <script type="module" src="./js/sync-version.js"></script>
+  <script type="module" src="./js/controllers/InstallController.js"></script>
+  <script type="module" src="js/main.js"></script>
+  
+  <script type="module">
+    import { APP_VERSION } from "./js/version.js";
+    const m = document.querySelector('link[rel="manifest"]');
+    if (m) {
+      const u = new URL(m.getAttribute("href"), location.href);
+      u.searchParams.set("v", APP_VERSION);
+      m.setAttribute("href", u.pathname + "?" + u.searchParams.toString());
+    }
+  </script>
+
 </body>
+
 </html>

@@ -1,0 +1,598 @@
+/* ---------- variables ---------- */
+:root {
+  --c-bg: #f7f7f7;
+  --c-bg-card: #fff;
+  --c-text-button: #fff;
+  --c-text: #222;
+  --c-border: #ccc;
+  --c-cancel: #ff4a4a; /* alto contraste */
+  --c-accent: #4aa3ff; /* alto contraste */
+  --c-bg-sub-accent: #0080ff26;
+  --c-done: #2e8b57; /* verde accesible */
+  color-scheme: light dark;
+}
+
+.dark {
+  --c-bg: #1b1b1b;
+  --c-bg-card: #262626;
+  --c-text: #e8e8e8;
+  --c-border: #555;
+  --c-accent: #4aa3ff;
+
+  --c-bg-sub-accent: #005b9c31;
+  --c-done: #58b66a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-bg: #1b1b1b;
+    --c-bg-card: #262626;
+    --c-bg-button: #fff;
+    --c-text: #e8e8e8;
+    --c-border: #555;
+    --c-accent: #4aa3ff;
+    --c-done: #58b66a;
+  }
+}
+
+h1 {
+  margin: 0;
+}
+
+#progressNav button.done {
+  opacity: 0.6;
+}
+
+#progressContainer {
+  width: 100%;
+  height: 4px;
+
+  margin: 8px 0;
+}
+
+[data-tab] {
+  display: none;
+}
+
+body > * {
+  max-width: 720px;
+  width: 100%;
+  margin: 1rem auto !important;
+}
+
+/* ---------- base ---------- */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, Arial, sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
+  scroll-behavior: smooth;
+}
+body {
+  padding: 1rem;
+  line-height: 1.4;
+}
+#cancelEdit {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  color: white;
+  margin-top: 1rem;
+  display: block;
+}
+
+#timeDash {
+  margin-top: 2rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+button:disabled,
+button.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ---------- generic buttons ---------- */
+button,
+.fileBtn,
+input[type="button"],
+input[type="submit"] {
+  color: var(--c-text);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-sub-accent);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s background, 0.2s border-color, 0.2s color;
+  text-decoration: none;
+}
+.flip-vertical {
+  transform: scaleY(-1);
+}
+
+button:hover,
+.fileBtn:hover,
+.focusable {
+  background: var(--c-accent);
+  color: var(--c-text-button);
+  border-color: var(--c-text-button);
+}
+.donnable {
+  background: var(--c-done) !important;
+  color: #fff;
+  font-weight: bold;
+}
+
+button:focus,
+.fileBtn:focus {
+  outline: none;
+  /* box-shadow: 0 0 0 2px var(--c-text); */
+}
+
+.fileBtn {
+  display: inline-block;
+}
+input[type="file"][hidden] {
+  display: none;
+}
+
+#cancelEdit {
+  background-color: var(--c-cancel);
+}
+
+/* ---------- main tabs ---------- */
+#mainTabs {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 0.5rem;
+  z-index: 10;
+}
+#mainTabs button {
+  flex: 1;
+  cursor: pointer;
+  outline: var(--c-text-button);
+  border: 2px solid var(--c-button);
+}
+button.active {
+  background: var(--c-accent);
+  color: #fff;
+  border-color: var(--c-accent);
+
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* ---------- tab panels ---------- */
+[data-tab] {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+/* ---------- progress wizard ---------- */
+#progressNav {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+}
+#progressNav button {
+  flex: 1;
+  padding: 0.25rem 0;
+  border: none;
+  background: #0080ff26;
+  border-radius: 2px;
+  color: #000;
+}
+#progressNav button.active {
+  background: var(--c-done);
+  color: #fff;
+  font-weight: bold;
+}
+#progressNav button.done {
+  background: var(--c-done);
+  color: #fff;
+}
+#progressContainer {
+  background: var(--c-border);
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 0.5rem;
+}
+#progressBar {
+  background: var(--c-done);
+  height: 4px;
+  border-radius: 2px;
+  width: 0;
+  transition: width 0.3s;
+}
+
+/* ---------- forms ---------- */
+label {
+  display: block;
+}
+select,
+textarea,
+input[type="text"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="date"],
+input[type="search"] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  background: var(--c-bg-card);
+  color: var(--c-text);
+}
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* ---------- entries list ---------- */
+#entryForm {
+  position: relative;
+}
+
+ul#entries {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+/* ---------- layout de la entrada ---------- */
+ul#entries li {
+  display: grid;
+  /* esfera | fecha | hora-rango | botón */
+  grid-template-columns: 38px 1fr 150px auto;
+  grid-template-rows: auto auto; /* fila1: texto  fila2: fecha-hora */
+  gap: 4px;
+  position: relative;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* esfera */
+ul#entries li .ball {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  place-self: center;
+  width: 100%;
+
+  aspect-ratio: 1/1;
+  border-radius: 50%;
+}
+.ball.small {
+  transform: scale(0.6);
+}
+.ball.medium {
+  transform: scale(0.8);
+}
+.ball.large {
+  transform: scale(1);
+}
+.ball.verde {
+  background: #228b22;
+}
+.ball.ambar {
+  background: #ff8c00;
+}
+.ball.rojo {
+  background: #dc143c;
+}
+
+label {
+  display: flex;
+  flex-flow: column nowrap;
+
+  gap: 0.5rem;
+}
+
+/* fila 1 — texto + lápiz */
+ul#entries li .txt {
+  grid-column: 2 / 4;
+  grid-row: 1;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+ul#entries li .editBtn {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  border: none;
+  background: none;
+  color: var(--c-accent);
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* fila 2 — fecha y rango horario juntos */
+ul#entries li .date {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 0.85rem;
+}
+ul#entries li .timeFull {
+  grid-column: 3;
+  grid-row: 2;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+/* otros botones dentro de li */
+ul#entries li button {
+  border: none;
+  background: none;
+  color: #b00;
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* seleccionado / highlight */
+ul#entries li.selected {
+  background: rgba(0, 128, 255, 0.15);
+  border-color: var(--c-accent);
+}
+@keyframes flashBg {
+  0% {
+    background: #fffbcc;
+  }
+  100% {
+    background: transparent;
+  }
+}
+ul#entries li.highlight {
+  animation: flashBg 2s forwards;
+}
+
+/* ---------- swap fechas ---------- */
+#swapDates {
+  padding: 0.35rem 0.6rem;
+  font-size: 1rem;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-card);
+  margin-left: 0.25rem;
+}
+#swapDates:hover {
+  background: var(--c-accent);
+  color: #fff;
+  border-color: var(--c-accent);
+}
+
+/* ---------- confeti ---------- */
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+  }
+}
+.confetti-piece {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  top: -10px;
+  border-radius: 1px;
+  animation: confettiFall 1.2s ease-out forwards;
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* ---------- filter & search ---------- */
+#filterPanel {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+#filterPanel label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+input[type="search"] {
+  margin: 0.5rem 0;
+}
+
+/* ---------- boton de eliminar ---------- */
+#delSelBtn {
+  background-color: #ff0000be;
+  color: white;
+  font-weight: bold;
+}
+#delSelBtn:disabled {
+  background-color: #ff6d6d38;
+  font-weight: normal;
+}
+
+/* ---------- util ---------- */
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 600px) {
+  body {
+    margin-bottom: 100px;
+  }
+  #mainTabs {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 1rem;
+  }
+
+  ul#entries li {
+    margin-top: 0.5rem;
+    grid-template-columns: 32px 1fr auto;
+  }
+
+  ul#entries li .date {
+    grid-column: 2;
+    grid-row: 2;
+    margin-bottom: 0;
+  }
+  ul#entries li .time,
+  ul#entries li .dash,
+  ul#entries li .timeEnd {
+    grid-column: 2;
+  }
+  ul#entries li .editBtn {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+  }
+}
+
+/* ---------- date-picker (sin cambios salvo variables) ---------- */
+.datepicker {
+  position: absolute;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  padding: calc(0.5rem * var(--dp-scale));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+  font-size: calc(1rem * var(--dp-scale));
+  display: none;
+}
+
+.datepicker .calHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: calc(0.25rem * var(--dp-scale));
+}
+
+.datepicker .calHead button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: calc(1.1rem * var(--dp-scale));
+}
+.datepicker .calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, calc(3rem * var(--dp-scale)));
+  gap: calc(0.15rem * var(--dp-scale));
+}
+.datepicker .calGrid button {
+  border: none;
+  cursor: pointer;
+  background: var(--c-bg);
+  padding: calc(0.45rem * var(--dp-scale));
+  border-radius: 4px;
+}
+.datepicker .calGrid button.off {
+  opacity: 0.35;
+}
+.datepicker .calGrid button:hover {
+  background: var(--c-accent);
+  color: #fff;
+}
+.datepicker .calTime {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: calc(0.4rem * var(--dp-scale));
+}
+.datepicker .calTime input {
+  flex: 1;
+}
+.datepicker .calTime button {
+  padding: calc(0.25rem * var(--dp-scale)) calc(0.55rem * var(--dp-scale));
+}
+
+/* ---------- snackbar de actualización ---------- */
+#updateSnackbar {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  max-width: 600px;
+  margin: auto;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-accent);
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 999;
+}
+
+#updateSnackbar button {
+  background: var(--c-accent);
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#updateSnackbar button#btnDismissUpdate {
+  background: #ccc;
+  color: #000;
+}
+
+#updateSnackbar {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 9999;
+  background: #222;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  font-size: 0.95rem;
+}
+#updateSnackbar button {
+  border: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#btnUpdateNow {
+  background: #4caf50;
+  color: #fff;
+}
+#btnDismissUpdate {
+  background: #555;
+  color: #fff;
+}
+#install-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  border-radius: 8px;
+  background: #1976d2;
+  color: #fff;
+  cursor: pointer;
+}
