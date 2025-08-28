@@ -5,6 +5,7 @@ import { pad, roundHalfHour } from "../utils.js";
 import TabController from "./TabController.js";
 import ConfettiController from "./ConfettiController.js";
 import ThemeController from "./ThemeController.js";
+import { saveUI, loadUI } from "../../storage.js";
 
 let editIndex = null;
 
@@ -14,12 +15,7 @@ const EntryController = {
   navBtns: [],
   currentStep: 0,
   totalSteps: 3,
-  filter: {
-    from: "",
-    to: "",
-    mood: "",
-    query: "",
-  },
+  filter: { from: "", to: "", mood: "", query: "" },
 
   init() {
     ThemeController.init();
@@ -28,14 +24,15 @@ const EntryController = {
     this.setupStepNavigation();
     this.setupTimeControls();
 
-    this.setDefaultTimes();
+    this.restoreUI(); // ← restaura estado
     this.setupFilters();
     this.setupPWAInstall();
     this.setupExportImport();
 
     this.render();
     EntryView.bindEvents(this);
-    this.showStep(0);
+
+    window.addEventListener("beforeunload", () => this.persistUI());
   },
 
   render() {
@@ -45,7 +42,6 @@ const EntryController = {
 
   save(data) {
     let targetIdx;
-
     if (editIndex === null) {
       EntryModel.add(data);
       targetIdx = EntryModel.getAll().length - 1;
@@ -56,13 +52,10 @@ const EntryController = {
 
     this.resetForm();
     this.render();
-
     ConfettiController.fire();
 
-    // ← redirigir al tab "list"
     setTimeout(() => {
       TabController.showTab("list");
-
       setTimeout(() => {
         const li = document.querySelector(`li[data-dbidx='${targetIdx}']`);
         if (li) {
@@ -102,13 +95,13 @@ const EntryController = {
     this.timeDash.style.display = "none";
     this.cancelBtn.hidden = false;
 
-    TabController.showTab("add"); // ← esto faltaba
+    TabController.showTab("add");
     this.showStep(0);
+    this.persistUI();
   },
 
   cancelEdit() {
-    const targetIdx = editIndex; // <- guardamos antes de reset
-
+    const targetIdx = editIndex;
     this.resetForm();
     TabController.showTab("list");
     this.render();
@@ -135,6 +128,7 @@ const EntryController = {
     this.timeDash.style.display = "flex";
     this.cancelBtn.hidden = true;
     this.showStep(0);
+    this.persistUI();
   },
 
   setupPWAInstall() {
@@ -164,13 +158,13 @@ const EntryController = {
     const toggleBtn = document.getElementById("toggleFilters");
     const toggleIcon = document.getElementById("toggleFiltersIcon");
     const panel = document.getElementById("filterPanel");
-
     if (!toggleBtn || !panel || !toggleIcon) return;
 
     toggleBtn.onclick = () => {
       const visible = !panel.hidden;
       panel.hidden = visible;
       toggleIcon.classList.toggle("flip-vertical", !visible);
+      saveUI({ filtersOpen: !visible });
     };
   },
 
@@ -188,6 +182,11 @@ const EntryController = {
     this.endFields = document.getElementById("endFields");
     this.timeDash = document.getElementById("timeDash");
     this.cancelBtn = document.getElementById("cancelEdit");
+
+    // guarda cada cambio de formulario
+    const form = document.getElementById("entryForm");
+    form.addEventListener("input", () => this.persistUI());
+    form.addEventListener("change", () => this.persistUI());
   },
 
   setupStepNavigation() {
@@ -206,9 +205,18 @@ const EntryController = {
   },
 
   setupTimeControls() {
-    document.getElementById("btnStartNow").onclick = () => this.setStartNow();
-    document.getElementById("btnEndNow").onclick = () => this.setEndNow();
-    document.getElementById("swapDates").onclick = () => this.swapTimes();
+    document.getElementById("btnStartNow").onclick = () => {
+      this.setStartNow();
+      saveUI({ timeMode: "start" });
+    };
+    document.getElementById("btnEndNow").onclick = () => {
+      this.setEndNow();
+      saveUI({ timeMode: "end" });
+    };
+    document.getElementById("swapDates").onclick = () => {
+      this.swapTimes();
+      this.persistUI();
+    };
   },
 
   setDefaultTimes() {
@@ -235,6 +243,7 @@ const EntryController = {
     document.getElementById("btnEndNow").classList.remove("active");
     this.startFields.hidden = true;
     this.endFields.hidden = false;
+    this.persistUI();
   },
 
   setEndNow() {
@@ -245,6 +254,7 @@ const EntryController = {
     document.getElementById("btnEndNow").classList.add("active");
     this.startFields.hidden = false;
     this.endFields.hidden = true;
+    this.persistUI();
   },
 
   swapTimes() {
@@ -267,6 +277,7 @@ const EntryController = {
     });
     this.updateProgressBar(i);
     window.scrollTo({ top: 0 });
+    saveUI({ step: i }); // persiste paso actual
   },
 
   updateProgressBar(i) {
@@ -289,18 +300,22 @@ const EntryController = {
     fFrom.oninput = () => {
       this.filter.from = fFrom.value;
       this.render();
+      this.persistUI();
     };
     fTo.oninput = () => {
       this.filter.to = fTo.value;
       this.render();
+      this.persistUI();
     };
     fMood.onchange = () => {
       this.filter.mood = fMood.value;
       this.render();
+      this.persistUI();
     };
     searchTxt.oninput = () => {
       this.filter.query = searchTxt.value.toLowerCase();
       this.render();
+      this.persistUI();
     };
 
     document.getElementById("applyFilter").onclick = () => this.render();
@@ -308,6 +323,7 @@ const EntryController = {
       this.filter = { from: "", to: "", mood: "", query: "" };
       fFrom.value = fTo.value = fMood.value = searchTxt.value = "";
       this.render();
+      this.persistUI();
     };
   },
 
@@ -362,7 +378,6 @@ const EntryController = {
 
           TabController.showTab("list");
 
-          // resaltar todos los elementos
           setTimeout(() => {
             document.querySelectorAll("li[data-dbidx]").forEach((li) => {
               li.classList.add("highlight");
@@ -376,6 +391,67 @@ const EntryController = {
         alert("Error al leer el archivo.");
       }
     };
+  },
+
+  // ---- persistencia UI ----
+  persistUI() {
+    const form = document.getElementById("entryForm");
+    const data = Object.fromEntries(new FormData(form));
+    saveUI({
+      form: {
+        ...data,
+        dateStart: this.dateStart.value,
+        timeStart: this.timeStart.value,
+        dateEnd: this.dateEnd.value,
+        timeEnd: this.timeEnd.value,
+      },
+      flags: {
+        startHidden: this.startFields.hidden,
+        endHidden: this.endFields.hidden,
+        timeDash: this.timeDash.style.display,
+        cancelVisible: !this.cancelBtn.hidden,
+      },
+      filters: this.filter,
+      step: this.currentStep,
+    });
+  },
+
+  restoreUI() {
+    const ui = loadUI();
+
+    // filtros
+    if (ui.filters) {
+      this.filter = ui.filters;
+      const fFrom = document.getElementById("fFrom");
+      const fTo = document.getElementById("fTo");
+      const fMood = document.getElementById("fMood");
+      const searchTxt = document.getElementById("searchTxt");
+      if (fFrom) fFrom.value = this.filter.from || "";
+      if (fTo) fTo.value = this.filter.to || "";
+      if (fMood) fMood.value = this.filter.mood || "";
+      if (searchTxt) searchTxt.value = this.filter.query || "";
+    }
+
+    // formulario
+    if (ui.form) {
+      const form = document.getElementById("entryForm");
+      Object.entries(ui.form).forEach(([k, v]) => {
+        if (form.elements[k] !== undefined) form.elements[k].value = v;
+      });
+    } else {
+      this.setDefaultTimes();
+    }
+
+    // flags de visibilidad
+    if (ui.flags) {
+      this.startFields.hidden = !!ui.flags.startHidden;
+      this.endFields.hidden = !!ui.flags.endHidden;
+      this.timeDash.style.display = ui.flags.timeDash || "flex";
+      this.cancelBtn.hidden = !ui.flags.cancelVisible;
+    }
+
+    // paso actual
+    this.showStep(typeof ui.step === "number" ? ui.step : 0);
   },
 };
 

@@ -1,13 +1,7 @@
 // /main.js
 import EntryController from "./controllers/EntryController.js";
 import TabController from "./controllers/TabController.js";
-import { APP_VERSION } from "./version.js";
-import { printAppFlow } from "./app-flow.js";
-printAppFlow();
 
-// version de la aplicación dinámica
-const el = document.getElementById("appVersion");
-if (el) el.textContent = `versión ${APP_VERSION}`;
 document.addEventListener("DOMContentLoaded", () => {
   TabController.init();
   EntryController.init();
@@ -16,25 +10,14 @@ document.addEventListener("DOMContentLoaded", () => {
 // Registrar Service Worker y mostrar snackbar si hay una nueva versión
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
-    .register("/darink/service-worker.js", { scope: "/darink/" })
-    .then((reg) => {
-      console.log("✔️ SW registrado correctamente");
-
-      reg.onupdatefound = () => {
-        console.log("🆕 Nueva versión detectada");
-        const newWorker = reg.installing;
-
-        newWorker.onstatechange = () => {
-          console.log("🔄 Estado SW:", newWorker.state);
-          if (newWorker.state === "installed") {
-            console.log("🎉 Nuevo SW instalado");
-
-            showUpdateSnackbar(); // ← debe ejecutarse aquí
-          }
-        };
-      };
+    .register("/darink/service-worker.js", {
+      scope: "/darink/",
+      updateViaCache: "none",
     })
-    .catch((err) => console.error("❌ Error registrando SW:", err));
+    .then((reg) => {
+      reg.update();
+    })
+    .catch(console.error);
 }
 
 // Mostrar barra visual para actualizar

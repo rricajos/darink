@@ -1,4 +1,5 @@
 // /js/controllers/TabController.js
+import { saveTab, loadTab } from "../../storage.js";
 
 const TabController = {
   tabs: [],
@@ -12,7 +13,7 @@ const TabController = {
       b.onclick = () => this.showTab(b.dataset.go);
     });
 
-    this.showTab("add"); // inicial
+    this.showTab(loadTab()); // restaura última pestaña
   },
 
   showTab(name) {
@@ -22,6 +23,7 @@ const TabController = {
     this.tabs.forEach((b) =>
       b.classList.toggle("active", b.dataset.go === name)
     );
+    saveTab(name); // persiste pestaña activa
   },
 };
 

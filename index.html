@@ -233,24 +233,12 @@
     </label>
 
   </div>
-  <!-- 
-  <script type="module" src="ui.js"></script>
-  <script type="module" src="datepicker.js"></script> -->
+
   <script type="module" src="./js/utils.js"></script>
-  <script type="module" src="./js/version.js"></script>
-  <script type="module" src="./js/sync-version.js"></script>
+
   <script type="module" src="./js/controllers/InstallController.js"></script>
   <script type="module" src="js/main.js"></script>
-  
-  <script type="module">
-    import { APP_VERSION } from "./js/version.js";
-    const m = document.querySelector('link[rel="manifest"]');
-    if (m) {
-      const u = new URL(m.getAttribute("href"), location.href);
-      u.searchParams.set("v", APP_VERSION);
-      m.setAttribute("href", u.pathname + "?" + u.searchParams.toString());
-    }
-  </script>
+
 
 </body>
 
