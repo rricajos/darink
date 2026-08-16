@@ -11,6 +11,21 @@
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<script>
+			// Clear stale service workers and caches from pre-SvelteKit era (one-time)
+			if ('serviceWorker' in navigator && !localStorage.getItem('darink-sw-v2')) {
+				navigator.serviceWorker.getRegistrations().then(function(regs) {
+					Promise.all(regs.map(function(r) { return r.unregister(); })).then(function() {
+						caches.keys().then(function(keys) {
+							Promise.all(keys.map(function(k) { return caches.delete(k); })).then(function() {
+								localStorage.setItem('darink-sw-v2', '1');
+								location.reload();
+							});
+						});
+					});
+				});
+			}
+		</script>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
