@@ -1,6 +1,11 @@
-const CACHE = 'darink-v1';
+const CACHE = 'darink-v2';
 
 self.addEventListener('install', (e) => {
+	e.waitUntil(
+		caches.keys().then((keys) =>
+			Promise.all(keys.map((k) => caches.delete(k)))
+		)
+	);
 	self.skipWaiting();
 });
 
@@ -20,7 +25,13 @@ self.addEventListener('fetch', (e) => {
 
 	if (req.mode === 'navigate') {
 		e.respondWith(
-			fetch(req).catch(() => caches.match('/index.html'))
+			fetch(req)
+				.then((res) => {
+					const copy = res.clone();
+					caches.open(CACHE).then((c) => c.put(req, copy));
+					return res;
+				})
+				.catch(() => caches.match('/index.html'))
 		);
 		return;
 	}
