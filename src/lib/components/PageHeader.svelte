@@ -22,6 +22,11 @@
 		font-weight: 700;
 	}
 
+	@media (min-width: 900px) {
+		.page-header { padding: 1.5rem 1rem; }
+		h1 { font-size: 1.5rem; }
+	}
+
 	.back {
 		font-size: 1.25rem;
 		text-decoration: none;

@@ -16,24 +16,40 @@
 	});
 </script>
 
-<main>
-	{@render children()}
-</main>
+<div class="shell">
+	<BottomNav />
+	<main>
+		{@render children()}
+	</main>
+</div>
 
 <Toast />
-<BottomNav />
 
 <style>
+	.shell {
+		display: flex;
+		min-height: 100dvh;
+	}
+
 	main {
+		flex: 1;
 		max-width: 720px;
 		margin: 0 auto;
 		min-height: 100dvh;
-		padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
+		width: 100%;
 	}
 
-	@media (min-width: 768px) {
+	@media (min-width: 900px) {
 		main {
 			max-width: 960px;
+			margin-left: var(--sidebar-width, 200px);
+			padding: 0 2rem;
+		}
+	}
+
+	@media (min-width: 1400px) {
+		main {
+			max-width: 1100px;
 		}
 	}
 </style>

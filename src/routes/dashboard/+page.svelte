@@ -69,6 +69,12 @@
 		.value { font-size: 2rem; }
 	}
 
+	@media (min-width: 900px) {
+		.stats { grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+		.stat { padding: 1.25rem; }
+		.value { font-size: 2.25rem; }
+	}
+
 	@media (max-width: 359px) {
 		.stats { grid-template-columns: 1fr; }
 		.stat.highlight, .stat.total { grid-column: auto; }
