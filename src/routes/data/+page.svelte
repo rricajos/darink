@@ -10,6 +10,10 @@
 	let fileInput: HTMLInputElement;
 	let confirmClear = $state(false);
 
+	let exportType = $state('');
+	let exportFrom = $state('');
+	let exportTo = $state('');
+
 	const filtered = $derived.by(() => {
 		const all = store.items;
 		const q = search.trim().toLowerCase();
@@ -61,8 +65,33 @@
 		return iso.slice(0, 10);
 	}
 
+	const exportTypes = ['checkin', 'intake', 'training', 'habit', 'supplement', 'signal', 'experiment', 'journal', 'weight'] as const;
+
+	function getFilteredEntries(): Entry[] {
+		let all = db.getAll();
+		if (exportType) {
+			if (exportType === 'training' || exportType === 'signal') {
+				all = all.filter((e) => e.type.startsWith(exportType));
+			} else {
+				all = all.filter((e) => e.type === exportType);
+			}
+		}
+		if (exportFrom) {
+			all = all.filter((e) => e.createdAt.slice(0, 10) >= exportFrom);
+		}
+		if (exportTo) {
+			all = all.filter((e) => e.createdAt.slice(0, 10) <= exportTo);
+		}
+		return all;
+	}
+
 	function exportJSON() {
-		const json = db.exportJSON();
+		const data = getFilteredEntries();
+		if (data.length === 0) {
+			toast.show('No data to export');
+			return;
+		}
+		const json = JSON.stringify(data, null, 2);
 		const blob = new Blob([json], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
@@ -71,11 +100,11 @@
 		a.download = `darink-export-${date}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
-		toast.show('JSON exported');
+		toast.show(`${data.length} entries exported as JSON`);
 	}
 
 	function exportCSV() {
-		const all = db.getAll();
+		const all = getFilteredEntries();
 		if (all.length === 0) {
 			toast.show('No data to export');
 			return;
@@ -115,7 +144,7 @@
 		a.download = `darink-export-${date}.csv`;
 		a.click();
 		URL.revokeObjectURL(url);
-		toast.show('CSV exported');
+		toast.show(`${all.length} entries exported as CSV`);
 	}
 
 	function importData() {
@@ -219,6 +248,25 @@
 <!-- Export / Import -->
 <section class="io-section">
 	<h2>Export & Import</h2>
+	<div class="export-filters">
+		<label class="filter-field">
+			<span class="filter-label">Type</span>
+			<select bind:value={exportType}>
+				<option value="">All types</option>
+				{#each exportTypes as t}
+					<option value={t}>{t}{t === 'training' || t === 'signal' ? '.*' : ''}</option>
+				{/each}
+			</select>
+		</label>
+		<label class="filter-field">
+			<span class="filter-label">From</span>
+			<input type="date" bind:value={exportFrom} />
+		</label>
+		<label class="filter-field">
+			<span class="filter-label">To</span>
+			<input type="date" bind:value={exportTo} />
+		</label>
+	</div>
 	<div class="io-buttons">
 		<button onclick={exportJSON}>Export JSON</button>
 		<button onclick={exportCSV}>Export CSV</button>
@@ -380,6 +428,38 @@
 	/* Export / Import */
 	.io-section {
 		padding: 0 1rem 1rem;
+	}
+
+	.export-filters {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		margin-bottom: 0.75rem;
+	}
+
+	.filter-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		flex: 1;
+		min-width: 100px;
+	}
+
+	.filter-label {
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.filter-field select,
+	.filter-field input {
+		padding: 0.45rem 0.5rem;
+		font-size: 0.85rem;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		background: var(--c-bg-card);
+		color: var(--c-text);
 	}
 
 	.io-buttons {

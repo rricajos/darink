@@ -24,6 +24,10 @@ export const entries = {
 		db.add(type, data);
 		bump();
 	},
+	restore(entry: Entry) {
+		db.restore(entry);
+		bump();
+	},
 	update(id: string, data: Record<string, unknown>) {
 		db.update(id, data);
 		bump();

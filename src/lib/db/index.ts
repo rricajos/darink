@@ -80,6 +80,12 @@ export const db = {
 		saveAll(entries);
 	},
 
+	restore(entry: Entry): void {
+		const entries = loadAll();
+		entries.push(entry);
+		saveAll(entries);
+	},
+
 	remove(id: string): void {
 		saveAll(loadAll().filter((e) => e.id !== id));
 	},

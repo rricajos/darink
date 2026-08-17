@@ -1,13 +1,15 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
 
 	const store = useEntries('habit');
 
-	const habitTypes = [
+	const defaultHabits = [
 		{ id: 'cold', label: 'Cold exposure', unit: 'min' },
 		{ id: 'sun', label: 'Sun exposure', unit: 'min' },
 		{ id: 'fasting', label: 'Fasting', unit: 'hours' },
@@ -16,21 +18,35 @@
 		{ id: 'ejaculation', label: 'Ejaculation control', unit: 'days' }
 	];
 
+	let customHabits = $state<Array<{id: string, label: string, unit: string}>>([]);
+	const allHabitTypes = $derived([...defaultHabits, ...customHabits]);
+
+	onMount(() => {
+		const stored = ui.get().customHabits;
+		if (Array.isArray(stored)) {
+			customHabits = stored as Array<{id: string, label: string, unit: string}>;
+		}
+	});
+
 	let date = $state(new Date().toISOString().slice(0, 10));
 	let selectedHabit = $state('cold');
 	let duration = $state(0);
 	let notes = $state('');
+
+	let manageOpen = $state(false);
+	let newLabel = $state('');
+	let newUnit = $state('');
 
 	const todayItems = $derived.by(() => {
 		const today = new Date().toISOString().slice(0, 10);
 		return store.items.filter((e) => e.createdAt.startsWith(today));
 	});
 
-	const selectedUnit = $derived(habitTypes.find((h) => h.id === selectedHabit)?.unit ?? '');
+	const selectedUnit = $derived(allHabitTypes.find((h) => h.id === selectedHabit)?.unit ?? '');
 
 	const streaks = $derived.by(() => {
 		const result: Record<string, { current: number; best: number; total: number }> = {};
-		for (const h of habitTypes) {
+		for (const h of allHabitTypes) {
 			const dates = new Set(
 				store.items
 					.filter((e) => e.data.habit === h.id)
@@ -59,6 +75,8 @@
 		return result;
 	});
 
+	const defaultIds = new Set(defaultHabits.map((h) => h.id));
+
 	function submit() {
 		entries.add('habit', { date, habit: selectedHabit, duration, notes });
 		date = new Date().toISOString().slice(0, 10);
@@ -66,12 +84,38 @@
 		toast.show('Habit logged');
 	}
 
+	function addCustomHabit() {
+		const label = newLabel.trim();
+		const unit = newUnit.trim();
+		if (!label || !unit) {
+			toast.show('Label and unit are required');
+			return;
+		}
+		const id = label.toLowerCase().replace(/\s+/g, '');
+		if (allHabitTypes.some((h) => h.id === id)) {
+			toast.show('A habit with that name already exists');
+			return;
+		}
+		customHabits = [...customHabits, { id, label, unit }];
+		ui.patch({ customHabits });
+		newLabel = '';
+		newUnit = '';
+		toast.show('Habit type added');
+	}
+
+	function removeCustomHabit(id: string) {
+		customHabits = customHabits.filter((h) => h.id !== id);
+		ui.patch({ customHabits });
+		if (selectedHabit === id) selectedHabit = 'cold';
+		toast.show('Habit type removed');
+	}
+
 	function getLabel(id: string): string {
-		return habitTypes.find((h) => h.id === id)?.label ?? id;
+		return allHabitTypes.find((h) => h.id === id)?.label ?? id;
 	}
 
 	function getUnit(id: string): string {
-		return habitTypes.find((h) => h.id === id)?.unit ?? '';
+		return allHabitTypes.find((h) => h.id === id)?.unit ?? '';
 	}
 </script>
 
@@ -82,7 +126,7 @@
 	<label>
 		Habit
 		<select bind:value={selectedHabit}>
-			{#each habitTypes as h}
+			{#each allHabitTypes as h}
 				<option value={h.id}>{h.label}</option>
 			{/each}
 		</select>
@@ -90,6 +134,34 @@
 	<label>Duration ({selectedUnit}) <input type="number" min="0" step="1" bind:value={duration} /></label>
 	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
 	<button class="primary" onclick={submit}>Log habit</button>
+</section>
+
+<section class="manage-section">
+	<button class="manage-toggle" onclick={() => manageOpen = !manageOpen}>
+		<span>Manage habit types</span>
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:rotate={manageOpen}><path d="m6 9 6 6 6-6"/></svg>
+	</button>
+	{#if manageOpen}
+		<div class="manage-body">
+			<div class="manage-add">
+				<label>Label <input type="text" bind:value={newLabel} placeholder="e.g. Stretching" /></label>
+				<label>Unit <input type="text" bind:value={newUnit} placeholder="e.g. min" /></label>
+				<button class="primary" onclick={addCustomHabit}>Add habit type</button>
+			</div>
+			<ul class="habit-type-list">
+				{#each allHabitTypes as h}
+					<li class="habit-type-item">
+						<span><strong>{h.label}</strong> <span class="unit-tag">({h.unit})</span></span>
+						{#if !defaultIds.has(h.id)}
+							<button class="remove-btn" onclick={() => removeCustomHabit(h.id)} title="Remove">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+							</button>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 </section>
 
 {#if store.items.length === 0}
@@ -146,7 +218,7 @@
 		<label>
 			Habit
 			<select name="habit">
-				{#each habitTypes as h}
+				{#each allHabitTypes as h}
 					<option value={h.id} selected={data.habit === h.id}>{h.label}</option>
 				{/each}
 			</select>
@@ -214,6 +286,69 @@
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+
+	.manage-section { padding: 0 1rem; margin-top: 0.5rem; }
+	.manage-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.6rem 0.75rem;
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--c-text-muted);
+		cursor: pointer;
+	}
+	.manage-toggle svg { transition: transform 0.2s; }
+	.manage-toggle svg.rotate { transform: rotate(180deg); }
+	.manage-body {
+		border: 1px solid var(--c-border);
+		border-top: none;
+		border-radius: 0 0 var(--radius) var(--radius);
+		padding: 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+	.manage-add {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	.habit-type-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+	.habit-type-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.4rem 0.5rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		font-size: 0.85rem;
+	}
+	.unit-tag { color: var(--c-text-muted); font-size: 0.8rem; }
+	.remove-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: none;
+		border: none;
+		color: var(--c-text-muted);
+		cursor: pointer;
+		padding: 0.15rem;
+		border-radius: 4px;
+	}
+	.remove-btn:hover { color: var(--c-danger, #e53e3e); background: var(--c-accent-bg); }
 
 	@media (min-width: 600px) {
 		.streak-grid { grid-template-columns: repeat(3, 1fr); }

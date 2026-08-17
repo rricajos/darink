@@ -11,6 +11,7 @@
 	let what = $state('');
 	let amount = $state('normal');
 	let moodVal = $state('verde');
+	let meal = $state('other');
 	let timeStart = $state('');
 	let timeEnd = $state('');
 
@@ -26,7 +27,7 @@
 		if (!what.trim()) return;
 		const today = new Date().toISOString().slice(0, 10);
 		entries.add('intake', {
-			what: what.trim(), amount, mood: moodVal,
+			what: what.trim(), amount, mood: moodVal, meal,
 			whenStart: `${today} ${timeStart}`,
 			whenEnd: `${today} ${timeEnd}`
 		});
@@ -56,6 +57,16 @@
 				<option value="rojo">Bad</option>
 			</select>
 		</label>
+		<label>
+			Meal
+			<select bind:value={meal}>
+				<option value="breakfast">Breakfast</option>
+				<option value="lunch">Lunch</option>
+				<option value="dinner">Dinner</option>
+				<option value="snack">Snack</option>
+				<option value="other">Other</option>
+			</select>
+		</label>
 	</div>
 	<div class="row">
 		<label>Start <input type="time" bind:value={timeStart} /></label>
@@ -74,6 +85,7 @@
 			what: (fd.get('what') as string).trim(),
 			amount: fd.get('amount') as string,
 			mood: fd.get('mood') as string,
+			meal: fd.get('meal') as string,
 			whenStart: `${today} ${fd.get('timeStart')}`,
 			whenEnd: `${today} ${fd.get('timeEnd')}`
 		});
@@ -96,6 +108,16 @@
 					<option value="verde" selected={data.mood === 'verde'}>Good</option>
 					<option value="ambar" selected={data.mood === 'ambar'}>Neutral</option>
 					<option value="rojo" selected={data.mood === 'rojo'}>Bad</option>
+				</select>
+			</label>
+			<label>
+				Meal
+				<select name="meal">
+					<option value="breakfast" selected={data.meal === 'breakfast'}>Breakfast</option>
+					<option value="lunch" selected={data.meal === 'lunch'}>Lunch</option>
+					<option value="dinner" selected={data.meal === 'dinner'}>Dinner</option>
+					<option value="snack" selected={data.meal === 'snack'}>Snack</option>
+					<option value="other" selected={data.meal === 'other'}>Other</option>
 				</select>
 			</label>
 		</div>
@@ -123,6 +145,7 @@
 		<div class="intake-row">
 			<span class="ball {item.data.mood} {item.data.amount === 'poco' ? 'small' : item.data.amount === 'mucho' ? 'large' : ''}"></span>
 			<strong>{item.data.what}</strong>
+			<span class="meal-badge">{item.data.meal ?? 'other'}</span>
 			<span class="time">{(item.data.whenStart as string)?.split(' ')[1] ?? ''}</span>
 		</div>
 	{/snippet}
@@ -204,6 +227,32 @@
 	</section>
 {/if}
 
+<!-- Analytics: Meal distribution -->
+{#if store.items.length > 0}
+	{@const mealTotal = store.items.length}
+	{@const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'other'] as const}
+	{@const mealCounts = mealTypes.map(m => ({
+		name: m,
+		count: store.items.filter(e => (e.data.meal ?? 'other') === m).length
+	}))}
+	{@const mealMax = Math.max(1, ...mealCounts.map(m => m.count))}
+	<section class="metrics">
+		<h2>Meal distribution</h2>
+		<div class="mood-bars">
+			{#each mealCounts as mc}
+				{@const pct = Math.round((mc.count / mealTotal) * 100)}
+				<div class="mood-bar-row">
+					<span class="mood-bar-label meal-bar-label">{mc.name}</span>
+					<div class="mood-bar-track">
+						<div class="mood-bar-fill meal-fill" style="width: {(mc.count / mealMax) * 100}%"></div>
+					</div>
+					<span class="mood-bar-pct">{pct}%</span>
+				</div>
+			{/each}
+		</div>
+	</section>
+{/if}
+
 <!-- Analytics: Most logged items (top 10) -->
 {#if store.items.length > 0}
 	{@const whatCounts = store.items.reduce((acc, e) => {
@@ -276,6 +325,18 @@
 	.ball:global(.rojo) { background: #dc143c; }
 	.ball:global(.small) { transform: scale(0.7); }
 	.ball:global(.large) { transform: scale(1.3); }
+
+	.meal-badge {
+		font-size: 0.7rem;
+		padding: 0.1rem 0.4rem;
+		border-radius: 8px;
+		background: var(--c-accent-bg);
+		color: var(--c-accent);
+		text-transform: capitalize;
+	}
+
+	.meal-bar-label { text-transform: capitalize; }
+	.meal-fill { background: var(--c-accent); }
 
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }

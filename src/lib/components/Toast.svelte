@@ -4,7 +4,12 @@
 
 {#if toast.visible}
 	<div class="toast" role="status">
-		{toast.message}
+		<span>{toast.message}</span>
+		{#if toast.action}
+			<button class="toast-action" onclick={() => { toast.action?.fn(); toast.hide(); }}>
+				{toast.action.label}
+			</button>
+		{/if}
 	</div>
 {/if}
 
@@ -23,6 +28,25 @@
 		z-index: 200;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 		animation: slideUp 0.2s ease-out;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.toast-action {
+		background: none;
+		border: none;
+		color: #fff;
+		font-weight: 700;
+		font-size: 0.85rem;
+		text-decoration: underline;
+		cursor: pointer;
+		padding: 0;
+		white-space: nowrap;
+	}
+
+	.toast-action:hover {
+		opacity: 0.85;
 	}
 
 	@keyframes slideUp {

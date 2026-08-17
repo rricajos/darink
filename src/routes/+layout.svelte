@@ -3,9 +3,12 @@
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { onMount } from 'svelte';
-	import { theme } from '$lib/db';
+	import { theme, ui } from '$lib/db';
 
 	let { children } = $props();
+
+	let installEvent = $state<Event | null>(null);
+	let showInstallBanner = $state(false);
 
 	onMount(() => {
 		const saved = theme.get();
@@ -26,8 +29,39 @@
 				location.reload();
 			});
 		}
+
+		const dismissed = ui.get().installDismissed;
+		if (!dismissed) {
+			window.addEventListener('beforeinstallprompt', (e) => {
+				e.preventDefault();
+				installEvent = e;
+				showInstallBanner = true;
+			});
+		}
 	});
+
+	function installApp() {
+		if (installEvent && 'prompt' in installEvent) {
+			(installEvent as any).prompt();
+		}
+		showInstallBanner = false;
+	}
+
+	function dismissInstall() {
+		showInstallBanner = false;
+		ui.patch({ installDismissed: true });
+	}
 </script>
+
+{#if showInstallBanner}
+	<div class="install-banner">
+		<span style="flex:1">Install Darink for offline access</span>
+		<button onclick={installApp}>Install</button>
+		<button class="dismiss" onclick={dismissInstall} aria-label="Dismiss">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+		</button>
+	</div>
+{/if}
 
 <div class="shell">
 	<BottomNav />
@@ -39,6 +73,18 @@
 <Toast />
 
 <style>
+	.install-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		background: var(--c-accent-bg);
+		border-bottom: 1px solid var(--c-accent);
+		font-size: 0.85rem;
+	}
+	.install-banner button { flex-shrink: 0; }
+	.install-banner .dismiss { background: none; border: none; color: var(--c-text-muted); padding: 0.25rem; }
+
 	.shell {
 		display: flex;
 		min-height: 100dvh;
