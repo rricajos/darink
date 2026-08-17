@@ -19,6 +19,10 @@ export function useEntries(type?: string): { readonly items: Entry[] } {
 	};
 }
 
+export function bumpEntries() {
+	bump();
+}
+
 export const entries = {
 	add(type: string, data: Record<string, unknown>) {
 		db.add(type, data);

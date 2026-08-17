@@ -25,6 +25,16 @@
 		morningErection = false; notes = '';
 		toast.show('Check-in saved');
 	}
+
+	function repeatLast() {
+		const last = store.items.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+		if (!last) return;
+		mood = Number(last.data.mood) || 5;
+		energy = Number(last.data.energy) || 5;
+		stress = Number(last.data.stress) || 3;
+		sleep = Number(last.data.sleep) || 7;
+		toast.show('Fields pre-filled');
+	}
 </script>
 
 <PageHeader title="Check-in" />
@@ -37,7 +47,12 @@
 	<label>Stress ({stress}/10) <input type="range" min="1" max="10" bind:value={stress} /></label>
 	<label class="checkbox"><input type="checkbox" bind:checked={morningErection} /> Morning erection</label>
 	<label>Notes <textarea bind:value={notes} placeholder="How do you feel?" rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Save check-in</button>
+	<div class="form-actions">
+		<button class="primary" onclick={submit}>Save check-in</button>
+		{#if store.items.length > 0}
+			<button onclick={repeatLast}>Repeat last</button>
+		{/if}
+	</div>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -185,6 +200,8 @@
 	.edit-inline .checkbox input { width: auto; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+	.form-actions { display: flex; gap: 0.5rem; }
+	.form-actions button { flex: 1; }
 
 	h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 	.chart-section { padding: 1.5rem 1rem 0; }

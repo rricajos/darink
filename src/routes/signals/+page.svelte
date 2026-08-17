@@ -4,10 +4,10 @@
 	import type { Entry } from '$lib/db';
 
 	const types = [
-		{ href: '/signals/sleep', label: 'Sleep', desc: 'Hours, quality, dreams, wake time' },
-		{ href: '/signals/skin', label: 'Skin', desc: 'Acne zones, oiliness, elasticity' },
-		{ href: '/signals/hair', label: 'Hair', desc: 'Density, shedding, miniaturization' },
-		{ href: '/signals/genital', label: 'Genital', desc: 'Erections, libido, sensitivity' }
+		{ href: '/signals/sleep', label: 'Sleep', desc: 'Hours, quality, dreams, wake time', icon: 'moon' },
+		{ href: '/signals/skin', label: 'Skin', desc: 'Acne zones, oiliness, elasticity', icon: 'skin' },
+		{ href: '/signals/hair', label: 'Hair', desc: 'Density, shedding, miniaturization', icon: 'hair' },
+		{ href: '/signals/genital', label: 'Genital', desc: 'Erections, libido, sensitivity', icon: 'genital' }
 	];
 
 	const sleepStore = useEntries('signal.sleep');
@@ -59,7 +59,18 @@
 <section class="grid">
 	{#each types as t}
 		<a href={t.href} class="card">
-			<strong>{t.label}</strong>
+			<div class="card-header">
+				{#if t.icon === 'moon'}
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+				{:else if t.icon === 'skin'}
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+				{:else if t.icon === 'hair'}
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+				{:else if t.icon === 'genital'}
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+				{/if}
+				<strong>{t.label}</strong>
+			</div>
 			<span>{t.desc}</span>
 		</a>
 	{/each}
@@ -186,6 +197,7 @@
 	.card { display: flex; flex-direction: column; padding: 1rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); text-decoration: none; color: var(--c-text); transition: border-color 0.15s; }
 	.card:hover { border-color: var(--c-accent); }
 	.card span { font-size: 0.85rem; color: var(--c-text-muted); }
+	.card-header { display: flex; align-items: center; gap: 0.5rem; }
 
 	.overview { padding: 1.5rem 1rem 0; }
 	h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }

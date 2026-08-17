@@ -247,35 +247,60 @@
 		};
 	});
 
-	/* --- Correlation Insight --- */
+	/* --- Multi-Correlation System --- */
+	const corrMetrics = [
+		{ id: 'sleep_hours', label: 'Sleep hours', type: 'signal.sleep', field: 'hours' },
+		{ id: 'sleep_quality', label: 'Sleep quality', type: 'signal.sleep', field: 'quality' },
+		{ id: 'mood', label: 'Mood', type: 'checkin', field: 'mood' },
+		{ id: 'energy', label: 'Energy', type: 'checkin', field: 'energy' },
+		{ id: 'stress', label: 'Stress', type: 'checkin', field: 'stress' },
+		{ id: 'training_vol', label: 'Training sessions', type: 'training', field: '_count' },
+		{ id: 'supplement_count', label: 'Supplements taken', type: 'supplement', field: '_count' },
+		{ id: 'habit_count', label: 'Habits done', type: 'habit', field: '_count' },
+	] as const;
+
+	let metricA = $state('sleep_hours');
+	let metricB = $state('mood');
+
+	function extractMetricByDate(metricId: string): Map<string, number> {
+		const def = corrMetrics.find((m) => m.id === metricId);
+		if (!def) return new Map();
+
+		const result = new Map<string, number>();
+		const all = store.items;
+
+		if (def.field === '_count') {
+			const counts = new Map<string, number>();
+			for (const e of all) {
+				const matchType = def.type === 'training' ? e.type.startsWith('training.') : e.type === def.type;
+				if (!matchType) continue;
+				const date = e.createdAt.slice(0, 10);
+				counts.set(date, (counts.get(date) ?? 0) + 1);
+			}
+			return counts;
+		}
+
+		for (const e of all) {
+			if (e.type !== def.type) continue;
+			const date = e.createdAt.slice(0, 10);
+			const val = Number(e.data[def.field]);
+			if (!isNaN(val)) result.set(date, val);
+		}
+		return result;
+	}
+
 	const correlation = $derived.by(() => {
-		const checkins = store.items.filter((e) => e.type === 'checkin');
-		const sleeps = store.items.filter((e) => e.type === 'signal.sleep');
-		if (checkins.length === 0 || sleeps.length === 0) return null;
+		const mapA = extractMetricByDate(metricA);
+		const mapB = extractMetricByDate(metricB);
 
-		// Build maps by date
-		const sleepByDate = new Map<string, number>();
-		for (const s of sleeps) {
-			const date = (s.data.date as string) ?? s.createdAt.slice(0, 10);
-			sleepByDate.set(date, Number(s.data.hours));
-		}
-
-		const moodByDate = new Map<string, number>();
-		for (const c of checkins) {
-			const date = (c.data.date as string) ?? c.createdAt.slice(0, 10);
-			moodByDate.set(date, Number(c.data.mood));
-		}
-
-		// Find matching dates
 		const pairs: { x: number; y: number }[] = [];
-		for (const [date, sleepH] of sleepByDate) {
-			const m = moodByDate.get(date);
-			if (m !== undefined) pairs.push({ x: sleepH, y: m });
+		for (const [date, valA] of mapA) {
+			const valB = mapB.get(date);
+			if (valB !== undefined) pairs.push({ x: valA, y: valB });
 		}
 
-		if (pairs.length < 5) return { r: null, label: 'Not enough data', color: 'muted' };
+		if (pairs.length < 3) return { r: null, label: 'Not enough data', color: 'gray', pairs, n: pairs.length };
 
-		// Pearson correlation
 		const n = pairs.length;
 		let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
 		for (const p of pairs) {
@@ -285,17 +310,68 @@
 			sumY2 += p.y * p.y;
 		}
 		const denom = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-		if (denom === 0) return { r: 0, label: 'No variance', color: 'muted' };
+		if (denom === 0) return { r: 0, label: 'No variance', color: 'gray', pairs, n };
 
 		const r = +((n * sumXY - sumX * sumY) / denom).toFixed(2);
+
 		let label: string;
 		let color: string;
+		const absR = Math.abs(r);
+		if (absR > 0.5) {
+			color = 'green';
+			label = r > 0 ? 'Strong positive' : 'Strong negative';
+		} else if (absR > 0.3) {
+			color = 'amber';
+			label = r > 0 ? 'Moderate positive' : 'Moderate negative';
+		} else {
+			color = 'gray';
+			label = 'Weak';
+		}
 
-		if (r > 0.3) { label = 'positive correlation'; color = 'green'; }
-		else if (r < -0.3) { label = 'negative correlation'; color = 'red'; }
-		else { label = 'weak correlation'; color = 'amber'; }
+		return { r, label, color, pairs, n };
+	});
 
-		return { r, label, color };
+	const scatterData = $derived.by(() => {
+		const pairs = correlation?.pairs ?? [];
+		if (pairs.length === 0) return { dots: [], trendline: null };
+
+		const xs = pairs.map((p) => p.x);
+		const ys = pairs.map((p) => p.y);
+		const minX = Math.min(...xs), maxX = Math.max(...xs);
+		const minY = Math.min(...ys), maxY = Math.max(...ys);
+		const rangeX = maxX - minX || 1;
+		const rangeY = maxY - minY || 1;
+
+		const dots = pairs.map((p) => ({
+			cx: 15 + ((p.x - minX) / rangeX) * 170,
+			cy: 185 - ((p.y - minY) / rangeY) * 170
+		}));
+
+		// Linear regression for trendline
+		const n = pairs.length;
+		let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+		for (const p of pairs) {
+			sumX += p.x; sumY += p.y;
+			sumXY += p.x * p.y;
+			sumX2 += p.x * p.x;
+		}
+		const denomSlope = n * sumX2 - sumX * sumX;
+		if (denomSlope === 0) return { dots, trendline: null };
+
+		const slope = (n * sumXY - sumX * sumY) / denomSlope;
+		const intercept = (sumY - slope * sumX) / n;
+
+		const y1 = slope * minX + intercept;
+		const y2 = slope * maxX + intercept;
+
+		const trendline = {
+			x1: 15 + 0,
+			y1: 185 - ((y1 - minY) / rangeY) * 170,
+			x2: 15 + 170,
+			y2: 185 - ((y2 - minY) / rangeY) * 170
+		};
+
+		return { dots, trendline };
 	});
 </script>
 
@@ -505,22 +581,65 @@
 </section>
 {/if}
 
-{#if correlation}
 <section class="correlation-section">
-	<h2>Correlation insight</h2>
-	{#if correlation.r !== null}
-	<div class="corr-card corr-{correlation.color}">
-		<span class="corr-indicator"></span>
-		<span>Sleep ↔ Mood: {correlation.r > 0 ? '+' : ''}{correlation.r} ({correlation.label})</span>
+	<h2>Correlation explorer</h2>
+	<div class="corr-selects">
+		<select class="corr-select" bind:value={metricA}>
+			{#each corrMetrics as m}
+			<option value={m.id}>{m.label}</option>
+			{/each}
+		</select>
+		<span class="corr-vs">vs</span>
+		<select class="corr-select" bind:value={metricB}>
+			{#each corrMetrics as m}
+			<option value={m.id}>{m.label}</option>
+			{/each}
+		</select>
 	</div>
-	{:else}
-	<div class="corr-card corr-muted">
-		<span class="corr-indicator"></span>
-		<span>{correlation.label}</span>
-	</div>
+	{#if correlation}
+		{#if correlation.r !== null}
+		<div class="corr-card corr-{correlation.color}">
+			<span class="corr-indicator"></span>
+			<span class="corr-text">
+				r = {correlation.r > 0 ? '+' : ''}{correlation.r}
+				<span class="corr-label">({correlation.label})</span>
+			</span>
+			<span class="corr-n">N = {correlation.n} matching days</span>
+		</div>
+		{:else}
+		<div class="corr-card corr-gray">
+			<span class="corr-indicator"></span>
+			<span>{correlation.label} (need at least 3 matching days)</span>
+		</div>
+		{/if}
+		{#if scatterData.dots.length > 0}
+			{@const labelA = corrMetrics.find((m) => m.id === metricA)?.label ?? ''}
+			{@const labelB = corrMetrics.find((m) => m.id === metricB)?.label ?? ''}
+		<div class="scatter-wrap">
+			<svg class="scatter-plot" viewBox="0 0 200 200">
+				<!-- Axes -->
+				<line x1="15" y1="185" x2="185" y2="185" stroke="var(--c-border)" stroke-width="1" />
+				<line x1="15" y1="15" x2="15" y2="185" stroke="var(--c-border)" stroke-width="1" />
+				<!-- Axis labels -->
+				<text x="100" y="198" text-anchor="middle" font-size="8" fill="var(--c-text-muted)">{labelA}</text>
+				<text x="6" y="100" text-anchor="middle" font-size="8" fill="var(--c-text-muted)" transform="rotate(-90, 6, 100)">{labelB}</text>
+				<!-- Data points -->
+				{#each scatterData.dots as dot}
+				<circle cx={dot.cx} cy={dot.cy} r="3" fill="var(--c-accent)" opacity="0.7" />
+				{/each}
+				<!-- Trendline -->
+				{#if scatterData.trendline}
+				<line
+					x1={scatterData.trendline.x1} y1={scatterData.trendline.y1}
+					x2={scatterData.trendline.x2} y2={scatterData.trendline.y2}
+					stroke="var(--c-accent)" stroke-width="1.5" stroke-dasharray="4 2" opacity="0.6"
+				/>
+				{/if}
+			</svg>
+		</div>
+		{/if}
 	{/if}
 </section>
-{/if}
 
 <section class="stats">
 	<div class="stat highlight">
@@ -786,19 +905,55 @@
 		color: var(--c-text-muted);
 	}
 
-	/* Correlation */
+	/* Correlation Explorer */
 	.correlation-section {
 		padding: 0 1rem 1.5rem;
+	}
+	.corr-selects {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 0.75rem;
+	}
+	.corr-select {
+		flex: 1;
+		padding: 0.4rem 0.5rem;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		background: var(--c-bg-card);
+		color: var(--c-text);
+		font-size: 0.8rem;
+		font-family: inherit;
+	}
+	.corr-vs {
+		font-size: 0.75rem;
+		color: var(--c-text-muted);
+		font-weight: 600;
+		text-transform: uppercase;
+		flex-shrink: 0;
 	}
 	.corr-card {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		flex-wrap: wrap;
 		background: var(--c-bg-card);
 		border: 1px solid var(--c-border);
 		border-radius: var(--radius);
 		padding: 0.75rem 1rem;
 		font-size: 0.85rem;
+	}
+	.corr-text {
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+	.corr-label {
+		font-weight: 400;
+	}
+	.corr-n {
+		margin-left: auto;
+		font-size: 0.75rem;
+		color: var(--c-text-muted);
 	}
 	.corr-indicator {
 		display: inline-block;
@@ -809,8 +964,20 @@
 	}
 	.corr-green .corr-indicator { background: #22c55e; }
 	.corr-amber .corr-indicator { background: #f59e0b; }
-	.corr-red .corr-indicator { background: #ef4444; }
-	.corr-muted .corr-indicator { background: var(--c-text-muted); }
+	.corr-gray .corr-indicator { background: var(--c-text-muted); }
+	.scatter-wrap {
+		margin-top: 0.75rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.5rem;
+	}
+	.scatter-plot {
+		width: 100%;
+		max-width: 300px;
+		display: block;
+		margin: 0 auto;
+	}
 
 	.stats {
 		display: grid;

@@ -44,7 +44,18 @@
 	</section>
 {/each}
 
+<footer class="version">
+	Darink v1.0.0
+</footer>
+
 <style>
+	.version {
+		text-align: center;
+		padding: 2rem 1rem 1rem;
+		font-size: 0.75rem;
+		color: var(--c-text-muted);
+	}
+
 	h2 {
 		font-size: 0.9rem;
 		font-weight: 600;

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { db, type Entry } from '$lib/db';
-	import { useEntries } from '$lib/stores/entries.svelte';
+	import { useEntries, bumpEntries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 
 	const store = useEntries();
@@ -159,7 +159,7 @@
 			try {
 				const count = db.importJSON(reader.result as string);
 				toast.show(`${count} entries imported`);
-				location.reload();
+				bumpEntries();
 			} catch {
 				toast.show('Invalid file format');
 			}
@@ -175,7 +175,7 @@
 		}
 		db.clear();
 		toast.show('All data cleared');
-		location.reload();
+		bumpEntries();
 	}
 </script>
 

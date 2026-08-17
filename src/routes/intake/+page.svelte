@@ -34,9 +34,63 @@
 		what = '';
 		toast.show('Intake logged');
 	}
+
+	function repeatLast() {
+		const last = store.items.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+		if (!last) return;
+		what = String(last.data.what || '');
+		amount = String(last.data.amount || 'normal');
+		moodVal = String(last.data.mood || 'verde');
+		meal = String(last.data.meal || 'other');
+		toast.show('Fields pre-filled');
+	}
+
+	const quickItems = $derived.by(() => {
+		const counts = new Map<string, { count: number; last: Record<string, unknown>; lastDate: string }>();
+		for (const e of store.items) {
+			const key = (e.data.what as string)?.toLowerCase().trim();
+			if (!key) continue;
+			const existing = counts.get(key);
+			if (!existing) {
+				counts.set(key, { count: 1, last: e.data, lastDate: e.createdAt });
+			} else {
+				existing.count++;
+				if (e.createdAt > existing.lastDate) {
+					existing.last = e.data;
+					existing.lastDate = e.createdAt;
+				}
+			}
+		}
+		return [...counts.entries()]
+			.sort((a, b) => b[1].count - a[1].count)
+			.slice(0, 8)
+			.map(([, info]) => ({ name: info.last.what as string, count: info.count, last: info.last }));
+	});
+
+	function prefill(item: { name: string; count: number; last: Record<string, unknown> }) {
+		what = item.last.what as string;
+		amount = (item.last.amount as string) ?? 'normal';
+		moodVal = (item.last.mood as string) ?? 'verde';
+		meal = (item.last.meal as string) ?? 'other';
+		toast.show('Pre-filled');
+	}
 </script>
 
 <PageHeader title="Intake" />
+
+{#if quickItems.length > 0}
+<section class="quick-add">
+	<h2>Quick add</h2>
+	<div class="quick-chips">
+		{#each quickItems as item}
+			<button class="quick-chip" onclick={() => prefill(item)}>
+				{item.name}
+				<span class="quick-count">{item.count}</span>
+			</button>
+		{/each}
+	</div>
+</section>
+{/if}
 
 <section class="form">
 	<label>What <input type="text" bind:value={what} placeholder="Food, drink..." /></label>
@@ -72,7 +126,12 @@
 		<label>Start <input type="time" bind:value={timeStart} /></label>
 		<label>End <input type="time" bind:value={timeEnd} /></label>
 	</div>
-	<button class="primary" onclick={submit}>Add entry</button>
+	<div class="form-actions">
+		<button class="primary" onclick={submit}>Add entry</button>
+		{#if store.items.length > 0}
+			<button onclick={repeatLast}>Repeat last</button>
+		{/if}
+	</div>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -311,6 +370,23 @@
 {/if}
 
 <style>
+	.quick-add { padding: 0 1rem 0.5rem; }
+	.quick-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+	.quick-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.3rem 0.6rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: 16px;
+		font-size: 0.8rem;
+		cursor: pointer;
+		transition: border-color 0.15s;
+	}
+	.quick-chip:hover { border-color: var(--c-accent); background: var(--c-accent-bg); }
+	.quick-count { font-size: 0.65rem; color: var(--c-text-muted); }
+
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
 	.row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 	.row label { flex: 1; min-width: 120px; }
@@ -341,6 +417,8 @@
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+	.form-actions { display: flex; gap: 0.5rem; }
+	.form-actions button { flex: 1; }
 
 	h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 	.chart-section { padding: 1.5rem 1rem 0; }
