@@ -30,6 +30,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Mobility | Darink</title>
+</svelte:head>
+
 <PageHeader title="Mobility" back="/training" />
 
 <section class="form">

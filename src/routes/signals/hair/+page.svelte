@@ -25,6 +25,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Hair | Darink</title>
+</svelte:head>
+
 <PageHeader title="Hair" back="/signals" />
 
 <section class="form">

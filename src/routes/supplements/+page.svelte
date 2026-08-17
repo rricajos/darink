@@ -118,6 +118,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Supplements | Darink</title>
+</svelte:head>
+
 <PageHeader title="Supplements" />
 
 <!-- Planned Stack -->

@@ -54,6 +54,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Signals | Darink</title>
+</svelte:head>
+
 <PageHeader title="Body Signals" />
 
 <section class="grid">

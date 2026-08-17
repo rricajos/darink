@@ -24,6 +24,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Genital | Darink</title>
+</svelte:head>
+
 <PageHeader title="Genital Signals" back="/signals" />
 
 <section class="form">

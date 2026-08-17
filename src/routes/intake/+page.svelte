@@ -76,6 +76,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Intake | Darink</title>
+</svelte:head>
+
 <PageHeader title="Intake" />
 
 {#if quickItems.length > 0}

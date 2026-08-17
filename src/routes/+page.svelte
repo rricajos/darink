@@ -6,3 +6,7 @@
 		goto('/checkin');
 	});
 </script>
+
+<svelte:head>
+  <title>Darink</title>
+</svelte:head>

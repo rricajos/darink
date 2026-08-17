@@ -36,6 +36,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Rings | Darink</title>
+</svelte:head>
+
 <PageHeader title="Rings" back="/training" />
 
 <section class="form">

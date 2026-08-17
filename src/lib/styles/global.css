@@ -231,3 +231,27 @@ label {
 ::view-transition-new(root) {
 	animation: 210ms cubic-bezier(0, 0, 0.2, 1) both fade-in;
 }
+
+@media print {
+	/* Hide navigation and interactive elements */
+	nav, .bottom-nav, .sidebar, .skip-link, .install-banner,
+	.toast, button, .form, .form-actions, .edit-actions,
+	.quick-add, .del, .edit-btn, .theme-toggle { display: none !important; }
+
+	/* Reset layout */
+	body { padding: 0 !important; margin: 0 !important; }
+	main { margin-left: 0 !important; max-width: 100% !important; }
+
+	/* Clean backgrounds for printing */
+	:root { --c-bg: #fff !important; --c-text: #000 !important; --c-bg-card: #fff !important; }
+
+	/* Ensure charts and content are visible */
+	.chart-section, .metrics, .stats, .entry-list { break-inside: avoid; }
+	.metric-card { border: 1px solid #ccc; }
+
+	/* Page title visible */
+	.page-header { padding: 0.5rem 0; }
+
+	/* Remove shadows and transitions */
+	* { box-shadow: none !important; transition: none !important; }
+}

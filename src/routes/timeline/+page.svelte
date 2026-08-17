@@ -191,6 +191,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Timeline | Darink</title>
+</svelte:head>
+
 <PageHeader title="Timeline" back="/more" />
 
 <!-- Filter bar -->

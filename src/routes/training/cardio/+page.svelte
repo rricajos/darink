@@ -32,9 +32,57 @@
 		notes = (last.data.notes as string) || '';
 		toast.show('Fields pre-filled');
 	}
+
+	const quickActivities = $derived.by(() => {
+		const counts = new Map<string, { count: number; last: Record<string, unknown>; lastCreated: string }>();
+		for (const e of store.items) {
+			const key = (e.data.activity as string)?.toLowerCase().trim();
+			if (!key) continue;
+			const existing = counts.get(key);
+			if (!existing) {
+				counts.set(key, { count: 1, last: e.data, lastCreated: e.createdAt });
+			} else {
+				existing.count++;
+				if (e.createdAt > existing.lastCreated) {
+					existing.last = e.data;
+					existing.lastCreated = e.createdAt;
+				}
+			}
+		}
+		return [...counts.entries()]
+			.sort((a, b) => b[1].count - a[1].count)
+			.slice(0, 5)
+			.map(([, info]) => ({ name: info.last.activity as string, count: info.count, last: info.last }));
+	});
+
+	function prefillActivity(item: { name: string; last: Record<string, unknown> }) {
+		activity = item.last.activity as string;
+		distanceKm = item.last.distanceKm as number;
+		durationMin = item.last.durationMin as number;
+		zone = item.last.zone as number;
+		toast.show('Pre-filled');
+	}
 </script>
 
+<svelte:head>
+  <title>Cardio | Darink</title>
+</svelte:head>
+
 <PageHeader title="Cardio" back="/training" />
+
+{#if quickActivities.length > 0}
+<section class="quick-add">
+	<h2>Quick add</h2>
+	<div class="quick-chips">
+		{#each quickActivities as item}
+			<button class="quick-chip" onclick={() => prefillActivity(item)}>
+				{item.name}
+				<span class="quick-count">{item.count}</span>
+			</button>
+		{/each}
+	</div>
+</section>
+{/if}
 
 <section class="form">
 	<label>Date <input type="date" bind:value={date} /></label>
@@ -100,4 +148,15 @@
 	.edit-actions button { flex: 1; }
 	.form-actions { display: flex; gap: 0.5rem; }
 	.form-actions button { flex: 1; }
+	.quick-add { padding: 0 1rem 0.5rem; }
+	h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+	.quick-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+	.quick-chip {
+		display: inline-flex; align-items: center; gap: 0.25rem;
+		padding: 0.3rem 0.6rem; background: var(--c-bg-card);
+		border: 1px solid var(--c-border); border-radius: 16px;
+		font-size: 0.8rem; cursor: pointer; transition: border-color 0.15s;
+	}
+	.quick-chip:hover { border-color: var(--c-accent); background: var(--c-accent-bg); }
+	.quick-count { font-size: 0.65rem; color: var(--c-text-muted); }
 </style>

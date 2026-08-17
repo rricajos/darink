@@ -43,6 +43,10 @@
 	});
 </script>
 
+<svelte:head>
+  <title>Journal | Darink</title>
+</svelte:head>
+
 <PageHeader title="Journal" />
 
 <section class="form">

@@ -88,6 +88,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Experiments | Darink</title>
+</svelte:head>
+
 <PageHeader title="Experiments (n=1)" />
 
 <section class="form">
@@ -323,7 +327,6 @@
 	}
 	.timeline-card.border-active { border-left-color: var(--c-accent); }
 	.timeline-card.border-completed { border-left-color: var(--c-done); }
-	.timeline-card.border-abandoned { border-left-color: var(--c-text-muted); }
 	.timeline-card strong {
 		display: block;
 		margin-bottom: 0.25rem;

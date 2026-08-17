@@ -75,6 +75,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Profile | Darink</title>
+</svelte:head>
+
 <PageHeader title="Profile" />
 
 <section class="form">

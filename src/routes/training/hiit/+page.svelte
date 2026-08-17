@@ -36,6 +36,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>HIIT | Darink</title>
+</svelte:head>
+
 <PageHeader title="HIIT" back="/training" />
 
 <section class="form">

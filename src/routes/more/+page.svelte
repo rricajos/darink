@@ -16,7 +16,8 @@
 			items: [
 				{ href: '/timeline', label: 'Timeline', desc: 'Activity feed' },
 				{ href: '/goals', label: 'Goals', desc: 'Targets and progress' },
-				{ href: '/experiments', label: 'Experiments', desc: 'n=1 testing' }
+				{ href: '/experiments', label: 'Experiments', desc: 'n=1 testing' },
+				{ href: '/report', label: 'Report', desc: 'Weekly summary for review' }
 			]
 		},
 		{
@@ -29,6 +30,10 @@
 		}
 	];
 </script>
+
+<svelte:head>
+  <title>More | Darink</title>
+</svelte:head>
 
 <PageHeader title="More" />
 

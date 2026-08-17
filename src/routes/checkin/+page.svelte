@@ -37,6 +37,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Check-in | Darink</title>
+</svelte:head>
+
 <PageHeader title="Check-in" />
 
 <section class="form">

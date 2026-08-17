@@ -11,6 +11,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Reference | Darink</title>
+</svelte:head>
+
 <PageHeader title="Reference" />
 
 <section class="ref-list">

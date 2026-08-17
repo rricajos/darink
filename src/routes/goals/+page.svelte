@@ -235,6 +235,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Goals | Darink</title>
+</svelte:head>
+
 <PageHeader title="Goals" />
 
 <!-- Summary cards -->

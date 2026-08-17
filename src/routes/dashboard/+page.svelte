@@ -72,6 +72,65 @@
 		};
 	});
 
+	const yearAgoComparison = $derived.by(() => {
+		const all = store.items;
+		const now = new Date();
+		const days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
+
+		// Current period boundaries
+		const currentStart = new Date(now);
+		currentStart.setDate(currentStart.getDate() - days);
+		const currentStartStr = currentStart.toISOString();
+
+		// Same period one year ago
+		const yearAgoEnd = new Date(now);
+		yearAgoEnd.setFullYear(yearAgoEnd.getFullYear() - 1);
+		const yearAgoStart = new Date(yearAgoEnd);
+		yearAgoStart.setDate(yearAgoStart.getDate() - days);
+		const yearAgoStartStr = yearAgoStart.toISOString();
+		const yearAgoEndStr = yearAgoEnd.toISOString();
+
+		const currentItems = all.filter((e) => e.createdAt >= currentStartStr);
+		const yearAgoItems = all.filter((e) => e.createdAt >= yearAgoStartStr && e.createdAt <= yearAgoEndStr);
+
+		const avg = (arr: number[]) => arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : null;
+
+		const currentCheckins = currentItems.filter((e) => e.type === 'checkin');
+		const yearAgoCheckins = yearAgoItems.filter((e) => e.type === 'checkin');
+
+		const currentMood = avg(currentCheckins.map((e) => e.data.mood as number));
+		const yearAgoMood = avg(yearAgoCheckins.map((e) => e.data.mood as number));
+
+		const currentEnergy = avg(currentCheckins.map((e) => e.data.energy as number));
+		const yearAgoEnergy = avg(yearAgoCheckins.map((e) => e.data.energy as number));
+
+		// Weight: find the most recent weight entry in each period
+		const currentWeights = all
+			.filter((e) => e.type === 'weight' && e.createdAt >= currentStartStr)
+			.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
+		const yearAgoWeights = all
+			.filter((e) => e.type === 'weight' && e.createdAt >= yearAgoStartStr && e.createdAt <= yearAgoEndStr)
+			.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+		const currentWeight = currentWeights.length > 0 ? (currentWeights[0].data.weight as number) : null;
+		const yearAgoWeight = yearAgoWeights.length > 0 ? (yearAgoWeights[0].data.weight as number) : null;
+
+		const currentBodyFat = currentWeights.length > 0 ? (currentWeights[0].data.bodyFat as number | null) ?? null : null;
+		const yearAgoBodyFat = yearAgoWeights.length > 0 ? (yearAgoWeights[0].data.bodyFat as number | null) ?? null : null;
+
+		const yearLabel = yearAgoEnd.getFullYear();
+
+		return {
+			hasData: yearAgoItems.length > 0,
+			entries: { current: currentItems.length, yearAgo: yearAgoItems.length },
+			mood: { current: currentMood, yearAgo: yearAgoMood },
+			energy: { current: currentEnergy, yearAgo: yearAgoEnergy },
+			weight: { current: currentWeight, yearAgo: yearAgoWeight },
+			bodyFat: { current: currentBodyFat, yearAgo: yearAgoBodyFat },
+			yearLabel
+		};
+	});
+
 	const weeklyActivity = $derived.by(() => {
 		const all = store.items;
 		const days: { label: string; count: number }[] = [];
@@ -375,6 +434,10 @@
 	});
 </script>
 
+<svelte:head>
+  <title>Dashboard | Darink</title>
+</svelte:head>
+
 <PageHeader title="Dashboard" />
 
 <section class="period-selector">
@@ -493,6 +556,117 @@
 	</div>
 </section>
 {/if}
+
+<section class="year-ago-section">
+	<h2>vs. Last Year</h2>
+	{#if !yearAgoComparison.hasData}
+	<div class="year-ago-card year-ago-empty">
+		<p>No data from {yearAgoComparison.yearLabel}</p>
+	</div>
+	{:else}
+	<div class="year-ago-card">
+		<div class="year-ago-grid">
+			{#if true}
+				{@const eCur = yearAgoComparison.entries.current}
+				{@const eYa = yearAgoComparison.entries.yearAgo}
+				{@const ePct = eYa > 0 ? Math.round(((eCur - eYa) / eYa) * 100) : null}
+				<div class="ya-metric">
+					<span class="ya-label">Entries</span>
+					<span class="ya-values">
+						{eYa}
+						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						{eCur}
+					</span>
+					<span class="ya-delta {eCur > eYa ? 'positive' : eCur < eYa ? 'negative' : ''}">
+						{#if ePct !== null}
+							{ePct > 0 ? '+' : ''}{ePct}%
+							{#if eCur > eYa}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else if eCur < eYa}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+						{:else}
+							--
+						{/if}
+					</span>
+				</div>
+			{/if}
+
+			{#if yearAgoComparison.mood.current != null || yearAgoComparison.mood.yearAgo != null}
+				{@const mCur = yearAgoComparison.mood.current ?? 0}
+				{@const mYa = yearAgoComparison.mood.yearAgo ?? 0}
+				{@const mDelta = +(mCur - mYa).toFixed(1)}
+				<div class="ya-metric">
+					<span class="ya-label">Mood</span>
+					<span class="ya-values">
+						{yearAgoComparison.mood.yearAgo ?? '--'}
+						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						{yearAgoComparison.mood.current ?? '--'}
+					</span>
+					<span class="ya-delta {mDelta > 0 ? 'positive' : mDelta < 0 ? 'negative' : ''}">
+						{#if yearAgoComparison.mood.current != null && yearAgoComparison.mood.yearAgo != null}
+							{mDelta > 0 ? '+' : ''}{mDelta}
+							{#if mDelta > 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else if mDelta < 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+						{:else}
+							--
+						{/if}
+					</span>
+				</div>
+			{/if}
+
+			{#if yearAgoComparison.energy.current != null || yearAgoComparison.energy.yearAgo != null}
+				{@const eCur = yearAgoComparison.energy.current ?? 0}
+				{@const eYa = yearAgoComparison.energy.yearAgo ?? 0}
+				{@const enDelta = +(eCur - eYa).toFixed(1)}
+				<div class="ya-metric">
+					<span class="ya-label">Energy</span>
+					<span class="ya-values">
+						{yearAgoComparison.energy.yearAgo ?? '--'}
+						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						{yearAgoComparison.energy.current ?? '--'}
+					</span>
+					<span class="ya-delta {enDelta > 0 ? 'positive' : enDelta < 0 ? 'negative' : ''}">
+						{#if yearAgoComparison.energy.current != null && yearAgoComparison.energy.yearAgo != null}
+							{enDelta > 0 ? '+' : ''}{enDelta}
+							{#if enDelta > 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else if enDelta < 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+						{:else}
+							--
+						{/if}
+					</span>
+				</div>
+			{/if}
+
+			{#if yearAgoComparison.weight.current != null && yearAgoComparison.weight.yearAgo != null}
+				{@const wDelta = +(yearAgoComparison.weight.current - yearAgoComparison.weight.yearAgo).toFixed(1)}
+				<div class="ya-metric">
+					<span class="ya-label">Weight</span>
+					<span class="ya-values">
+						{yearAgoComparison.weight.yearAgo}kg
+						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						{yearAgoComparison.weight.current}kg
+					</span>
+					<span class="ya-delta {wDelta < 0 ? 'positive' : wDelta > 0 ? 'negative' : ''}">
+						{wDelta > 0 ? '+' : ''}{wDelta}kg
+						{#if wDelta < 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else if wDelta > 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+					</span>
+				</div>
+			{/if}
+
+			{#if yearAgoComparison.bodyFat.current != null && yearAgoComparison.bodyFat.yearAgo != null}
+				{@const bfDelta = +(yearAgoComparison.bodyFat.current - yearAgoComparison.bodyFat.yearAgo).toFixed(1)}
+				<div class="ya-metric">
+					<span class="ya-label">Body fat</span>
+					<span class="ya-values">
+						{yearAgoComparison.bodyFat.yearAgo}%
+						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						{yearAgoComparison.bodyFat.current}%
+					</span>
+					<span class="ya-delta {bfDelta < 0 ? 'positive' : bfDelta > 0 ? 'negative' : ''}">
+						{bfDelta > 0 ? '+' : ''}{bfDelta}%
+						{#if bfDelta < 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else if bfDelta > 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+					</span>
+				</div>
+			{/if}
+		</div>
+	</div>
+	{/if}
+</section>
 
 <section class="chart-section">
 	<h2>Activity (7 days)</h2>
@@ -747,6 +921,68 @@
 		width: 10px;
 		height: 10px;
 		flex-shrink: 0;
+	}
+
+	/* Year Ago Comparison */
+	.year-ago-section {
+		padding: 0 1rem 1.5rem;
+	}
+	.year-ago-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-left: 3px solid #d4a017;
+		border-radius: var(--radius);
+		padding: 0.75rem 1rem;
+	}
+	.year-ago-empty {
+		color: var(--c-text-muted);
+		font-size: 0.85rem;
+	}
+	.year-ago-empty p {
+		margin: 0;
+	}
+	.year-ago-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.75rem 1.5rem;
+	}
+	.ya-metric {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+	.ya-label {
+		font-size: 0.7rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		color: var(--c-text-muted);
+		letter-spacing: 0.03em;
+	}
+	.ya-values {
+		font-size: 0.9rem;
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+	}
+	.ya-arrow-sep {
+		color: var(--c-text-muted);
+		flex-shrink: 0;
+	}
+	.ya-delta {
+		font-size: 0.75rem;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		display: flex;
+		align-items: center;
+		gap: 0.2rem;
+	}
+	.ya-delta.positive {
+		color: #22c55e;
+	}
+	.ya-delta.negative {
+		color: #ef4444;
 	}
 
 	.summary {

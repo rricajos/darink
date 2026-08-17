@@ -119,6 +119,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Habits | Darink</title>
+</svelte:head>
+
 <PageHeader title="Habits" />
 
 <section class="form">

@@ -31,6 +31,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Sleep | Darink</title>
+</svelte:head>
+
 <PageHeader title="Sleep" back="/signals" />
 
 <section class="form">

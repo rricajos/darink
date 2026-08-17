@@ -179,6 +179,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Data | Darink</title>
+</svelte:head>
+
 <PageHeader title="Data" />
 
 <!-- Search -->

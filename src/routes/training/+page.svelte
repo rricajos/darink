@@ -197,6 +197,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>Training | Darink</title>
+</svelte:head>
+
 <PageHeader title="Training" />
 
 <section class="grid">
