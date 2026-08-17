@@ -6,6 +6,7 @@
 
 	const store = useEntries('checkin');
 
+	let date = $state(new Date().toISOString().slice(0, 10));
 	let mood = $state(5);
 	let energy = $state(5);
 	let sleep = $state(7);
@@ -15,9 +16,10 @@
 
 	function submit() {
 		entries.add('checkin', {
-			mood, energy, sleep, stress, morningErection, notes,
+			date, mood, energy, sleep, stress, morningErection, notes,
 			period: new Date().getHours() < 14 ? 'morning' : 'night'
 		});
+		date = new Date().toISOString().slice(0, 10);
 		mood = 5; energy = 5; sleep = 7; stress = 3;
 		morningErection = false; notes = '';
 		toast.show('Check-in saved');
@@ -27,6 +29,7 @@
 <PageHeader title="Check-in" />
 
 <section class="form">
+	<label>Date <input type="date" bind:value={date} /></label>
 	<label>Mood ({mood}/10) <input type="range" min="1" max="10" bind:value={mood} /></label>
 	<label>Energy ({energy}/10) <input type="range" min="1" max="10" bind:value={energy} /></label>
 	<label>Sleep hours ({sleep}) <input type="number" min="0" max="14" step="0.5" bind:value={sleep} /></label>

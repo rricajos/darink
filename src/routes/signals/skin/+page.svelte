@@ -1,7 +1,10 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { entries } from '$lib/stores/entries.svelte';
+	import EntryList from '$lib/components/EntryList.svelte';
+	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+
+	const store = useEntries('signal.skin');
 
 	let acneZone = $state('');
 	let oiliness = $state(3);
@@ -27,7 +30,15 @@
 	<button class="primary" onclick={submit}>Log skin</button>
 </section>
 
+<EntryList items={store.items} limit={10}>
+	{#snippet row(item)}
+		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">Oiliness: {item.data.oiliness}/5 · Elasticity: {item.data.elasticity}/10{item.data.acneZone ? ` · ${item.data.acneZone}` : ''}</span></div>
+	{/snippet}
+</EntryList>
+
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
 	input[type="range"] { padding: 0; }
+	.date { font-weight: 600; }
+	.meta { font-size: 0.85rem; color: var(--c-text-muted); }
 </style>

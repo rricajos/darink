@@ -6,6 +6,7 @@
 
 	const store = useEntries('signal.sleep');
 
+	let date = $state(new Date().toISOString().slice(0, 10));
 	let hours = $state(7);
 	let quality = $state(5);
 	let dreams = $state(false);
@@ -14,7 +15,8 @@
 	let notes = $state('');
 
 	function submit() {
-		entries.add('signal.sleep', { hours, quality, dreams, bedtime, wakeTime, notes });
+		entries.add('signal.sleep', { date, hours, quality, dreams, bedtime, wakeTime, notes });
+		date = new Date().toISOString().slice(0, 10);
 		notes = '';
 		toast.show('Sleep logged');
 	}
@@ -23,6 +25,7 @@
 <PageHeader title="Sleep" back="/signals" />
 
 <section class="form">
+	<label>Date <input type="date" bind:value={date} /></label>
 	<label>Hours ({hours}) <input type="number" min="0" max="14" step="0.5" bind:value={hours} /></label>
 	<label>Quality ({quality}/10) <input type="range" min="1" max="10" bind:value={quality} /></label>
 	<div class="row">

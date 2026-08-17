@@ -1,7 +1,10 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { entries } from '$lib/stores/entries.svelte';
+	import EntryList from '$lib/components/EntryList.svelte';
+	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+
+	const store = useEntries('signal.hair');
 
 	let zone = $state('');
 	let density = $state(5);
@@ -27,9 +30,17 @@
 	<button class="primary" onclick={submit}>Log hair</button>
 </section>
 
+<EntryList items={store.items} limit={10}>
+	{#snippet row(item)}
+		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">Zone: {item.data.zone || '—'} · Density: {item.data.density}/10 · Shedding: {item.data.shedding}/10</span></div>
+	{/snippet}
+</EntryList>
+
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
 	input[type="range"] { padding: 0; }
 	.checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
 	.checkbox input { width: auto; }
+	.date { font-weight: 600; }
+	.meta { font-size: 0.85rem; color: var(--c-text-muted); }
 </style>

@@ -6,6 +6,7 @@
 
 	const store = useEntries('supplement');
 
+	let date = $state(new Date().toISOString().slice(0, 10));
 	let name = $state('');
 	let dose = $state('');
 	let timing = $state('morning');
@@ -13,7 +14,8 @@
 
 	function submit() {
 		if (!name.trim()) return;
-		entries.add('supplement', { name: name.trim(), dose, timing, notes });
+		entries.add('supplement', { date, name: name.trim(), dose, timing, notes });
+		date = new Date().toISOString().slice(0, 10);
 		name = ''; dose = ''; notes = '';
 		toast.show('Supplement logged');
 	}
@@ -22,6 +24,7 @@
 <PageHeader title="Supplements" />
 
 <section class="form">
+	<label>Date <input type="date" bind:value={date} /></label>
 	<label>Name <input type="text" bind:value={name} placeholder="Zinc, Magnesium, Ashwagandha..." /></label>
 	<div class="row">
 		<label>Dose <input type="text" bind:value={dose} placeholder="30mg, 2 caps..." /></label>

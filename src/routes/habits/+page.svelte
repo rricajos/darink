@@ -14,6 +14,7 @@
 		{ id: 'ejaculation', label: 'Ejaculation control', unit: 'days' }
 	];
 
+	let date = $state(new Date().toISOString().slice(0, 10));
 	let selectedHabit = $state('cold');
 	let duration = $state(0);
 	let notes = $state('');
@@ -26,7 +27,8 @@
 	const selectedUnit = $derived(habitTypes.find((h) => h.id === selectedHabit)?.unit ?? '');
 
 	function submit() {
-		entries.add('habit', { habit: selectedHabit, duration, notes });
+		entries.add('habit', { date, habit: selectedHabit, duration, notes });
+		date = new Date().toISOString().slice(0, 10);
 		duration = 0; notes = '';
 		toast.show('Habit logged');
 	}
@@ -43,6 +45,7 @@
 <PageHeader title="Habits" />
 
 <section class="form">
+	<label>Date <input type="date" bind:value={date} /></label>
 	<label>
 		Habit
 		<select bind:value={selectedHabit}>
