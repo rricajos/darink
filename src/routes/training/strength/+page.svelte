@@ -3,6 +3,7 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import type { Entry } from '$lib/db';
 
 	const store = useEntries('training.strength');
 
@@ -35,7 +36,38 @@
 	<button class="primary" onclick={submit}>Log set</button>
 </section>
 
-<EntryList items={store.items}>
+{#snippet editForm(item: Entry, done: () => void)}
+	{@const data = item.data}
+	<form class="edit-inline" onsubmit={(e) => {
+		e.preventDefault();
+		const fd = new FormData(e.currentTarget);
+		entries.update(item.id, {
+			exercise: (fd.get('exercise') as string).trim(),
+			sets: Number(fd.get('sets')),
+			reps: Number(fd.get('reps')),
+			weight: Number(fd.get('weight')),
+			rir: Number(fd.get('rir')),
+			notes: (fd.get('notes') as string).trim()
+		});
+		toast.show('Updated');
+		done();
+	}}>
+		<label>Exercise <input type="text" name="exercise" value={data.exercise} /></label>
+		<div class="row">
+			<label>Sets <input type="number" name="sets" min="1" max="20" value={data.sets} /></label>
+			<label>Reps <input type="number" name="reps" min="1" max="100" value={data.reps} /></label>
+			<label>Weight (kg) <input type="number" name="weight" min="0" step="0.5" value={data.weight} /></label>
+			<label>RIR <input type="number" name="rir" min="0" max="10" value={data.rir} /></label>
+		</div>
+		<label>Notes <textarea name="notes" rows="2">{data.notes}</textarea></label>
+		<div class="edit-actions">
+			<button type="submit">Save</button>
+			<button type="button" onclick={done}>Cancel</button>
+		</div>
+	</form>
+{/snippet}
+
+<EntryList items={store.items} {editForm}>
 	{#snippet row(item)}
 		<div><strong>{item.data.exercise}</strong> <span class="meta">{item.data.sets}×{item.data.reps} @ {item.data.weight}kg RIR{item.data.rir}</span></div>
 	{/snippet}
@@ -46,4 +78,7 @@
 	.row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 	.row label { flex: 1; min-width: 120px; }
 	.meta { font-size: 0.85rem; color: var(--c-text-muted); }
+	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
+	.edit-actions { display: flex; gap: 0.5rem; }
+	.edit-actions button { flex: 1; }
 </style>

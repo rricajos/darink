@@ -8,7 +8,7 @@
 		{ href: '/experiments', label: 'Experiments', desc: 'n=1 diary' },
 		{ href: '/ref', label: 'Reference', desc: 'Batmanvault knowledge base' },
 		{ href: '/profile', label: 'Profile', desc: 'Height, weight, targets' },
-		{ href: '/data', label: 'Data', desc: 'Export, import, delete' }
+		{ href: '/data', label: 'Data', desc: 'Search, export, import, stats' }
 	];
 </script>
 
