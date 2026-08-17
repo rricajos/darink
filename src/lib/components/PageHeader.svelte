@@ -4,7 +4,7 @@
 
 <header class="page-header">
 	{#if back}
-		<a href={back} class="back">←</a>
+		<a href={back} class="back" aria-label="Go back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></a>
 	{/if}
 	<h1>{title}</h1>
 </header>
@@ -28,8 +28,9 @@
 	}
 
 	.back {
-		font-size: 1.25rem;
 		text-decoration: none;
 		color: var(--c-accent);
+		display: flex;
+		align-items: center;
 	}
 </style>

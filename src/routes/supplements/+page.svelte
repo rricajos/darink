@@ -134,7 +134,7 @@
 						{/if}
 						<span class="meta">{timingLabels[item.timing] ?? item.timing}</span>
 					</div>
-					<button class="stack-remove" onclick={() => removeFromStack(i)} aria-label="Remove">&times;</button>
+					<button class="stack-remove" onclick={() => removeFromStack(i)} aria-label="Remove"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
 				</div>
 			{/each}
 		</div>
@@ -163,7 +163,7 @@
 	<div class="adherence-list">
 		{#each adherence.items as ai}
 			<div class="adherence-item" class:taken={ai.taken}>
-				<span class="adherence-check">{ai.taken ? '✓' : '○'}</span>
+				<span class="adherence-check">{#if ai.taken}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>{:else}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>{/if}</span>
 				<span class="adherence-name">{ai.planned.name}</span>
 				{#if ai.planned.dose}
 					<span class="meta">{ai.planned.dose}</span>
@@ -326,10 +326,11 @@
 		background: none;
 		border: none;
 		color: var(--c-text-muted);
-		font-size: 1.2rem;
 		cursor: pointer;
 		padding: 0 0.25rem;
 		line-height: 1;
+		display: flex;
+		align-items: center;
 	}
 	.stack-remove:hover { color: var(--c-cancel); }
 	.stack-form {
@@ -374,10 +375,11 @@
 		background: color-mix(in srgb, var(--c-done) 8%, transparent);
 	}
 	.adherence-check {
-		font-size: 1rem;
 		width: 1.2rem;
-		text-align: center;
 		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 	.adherence-item.taken .adherence-check { color: var(--c-done); font-weight: 700; }
 	.adherence-item:not(.taken) .adherence-check { color: var(--c-text-muted); }

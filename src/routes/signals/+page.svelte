@@ -163,9 +163,9 @@
 		] as sig}
 			<span class="chip" class:chip-done={sig.count > 0}>
 				{#if sig.count > 0}
-					<span class="chip-icon done-icon">&#10003;</span>
+					<span class="chip-icon done-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
 				{:else}
-					<span class="chip-icon miss-icon">&#10007;</span>
+					<span class="chip-icon miss-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
 				{/if}
 				{sig.label} ({sig.count}/7)
 			</span>
@@ -200,7 +200,7 @@
 	.coverage-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 	.chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.65rem; border-radius: var(--radius); font-size: 0.8rem; font-weight: 500; background: var(--c-bg-card); border: 1px solid var(--c-border); color: var(--c-text-muted); }
 	.chip-done { border-color: var(--c-done); color: var(--c-text); }
-	.chip-icon { font-size: 0.85rem; line-height: 1; }
+	.chip-icon { display: inline-flex; align-items: center; line-height: 1; }
 	.done-icon { color: var(--c-done); }
 	.miss-icon { color: var(--c-text-muted); opacity: 0.5; }
 </style>
