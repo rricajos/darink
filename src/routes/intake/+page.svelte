@@ -4,6 +4,7 @@
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { onMount } from 'svelte';
+	import type { Entry } from '$lib/db';
 
 	const store = useEntries('intake');
 
@@ -63,7 +64,53 @@
 	<button class="primary" onclick={submit}>Add entry</button>
 </section>
 
-<EntryList items={store.items}>
+{#snippet editForm(item: Entry, done: () => void)}
+	{@const data = item.data}
+	<form class="edit-inline" onsubmit={(e) => {
+		e.preventDefault();
+		const fd = new FormData(e.currentTarget);
+		const today = new Date().toISOString().slice(0, 10);
+		entries.update(item.id, {
+			what: (fd.get('what') as string).trim(),
+			amount: fd.get('amount') as string,
+			mood: fd.get('mood') as string,
+			whenStart: `${today} ${fd.get('timeStart')}`,
+			whenEnd: `${today} ${fd.get('timeEnd')}`
+		});
+		toast.show('Updated');
+		done();
+	}}>
+		<label>What <input type="text" name="what" value={data.what} /></label>
+		<div class="row">
+			<label>
+				Amount
+				<select name="amount">
+					<option value="poco" selected={data.amount === 'poco'}>Small</option>
+					<option value="normal" selected={data.amount === 'normal'}>Normal</option>
+					<option value="mucho" selected={data.amount === 'mucho'}>Large</option>
+				</select>
+			</label>
+			<label>
+				Mood
+				<select name="mood">
+					<option value="verde" selected={data.mood === 'verde'}>Good</option>
+					<option value="ambar" selected={data.mood === 'ambar'}>Neutral</option>
+					<option value="rojo" selected={data.mood === 'rojo'}>Bad</option>
+				</select>
+			</label>
+		</div>
+		<div class="row">
+			<label>Start <input type="time" name="timeStart" value={(data.whenStart as string)?.split(' ')[1] ?? ''} /></label>
+			<label>End <input type="time" name="timeEnd" value={(data.whenEnd as string)?.split(' ')[1] ?? ''} /></label>
+		</div>
+		<div class="edit-actions">
+			<button type="submit">Save</button>
+			<button type="button" onclick={done}>Cancel</button>
+		</div>
+	</form>
+{/snippet}
+
+<EntryList items={store.items} {editForm}>
 	{#snippet row(item)}
 		<div class="intake-row">
 			<span class="ball {item.data.mood} {item.data.amount === 'poco' ? 'small' : item.data.amount === 'mucho' ? 'large' : ''}"></span>
@@ -88,4 +135,8 @@
 	.ball:global(.rojo) { background: #dc143c; }
 	.ball:global(.small) { transform: scale(0.7); }
 	.ball:global(.large) { transform: scale(1.3); }
+
+	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
+	.edit-actions { display: flex; gap: 0.5rem; }
+	.edit-actions button { flex: 1; }
 </style>

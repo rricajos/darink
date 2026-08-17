@@ -3,6 +3,7 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import type { Entry } from '$lib/db';
 
 	const store = useEntries('checkin');
 
@@ -39,7 +40,36 @@
 	<button class="primary" onclick={submit}>Save check-in</button>
 </section>
 
-<EntryList items={store.items} limit={7}>
+{#snippet editForm(item: Entry, done: () => void)}
+	{@const data = item.data}
+	<form class="edit-inline" onsubmit={(e) => {
+		e.preventDefault();
+		const fd = new FormData(e.currentTarget);
+		entries.update(item.id, {
+			mood: Number(fd.get('mood')),
+			energy: Number(fd.get('energy')),
+			sleep: Number(fd.get('sleep')),
+			stress: Number(fd.get('stress')),
+			morningErection: fd.has('morningErection'),
+			notes: fd.get('notes') ?? ''
+		});
+		toast.show('Updated');
+		done();
+	}}>
+		<label>Mood ({data.mood}/10) <input type="range" name="mood" min="1" max="10" value={data.mood} /></label>
+		<label>Energy ({data.energy}/10) <input type="range" name="energy" min="1" max="10" value={data.energy} /></label>
+		<label>Sleep hours <input type="number" name="sleep" min="0" max="14" step="0.5" value={data.sleep} /></label>
+		<label>Stress ({data.stress}/10) <input type="range" name="stress" min="1" max="10" value={data.stress} /></label>
+		<label class="checkbox"><input type="checkbox" name="morningErection" checked={!!data.morningErection} /> Morning erection</label>
+		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<div class="edit-actions">
+			<button type="submit">Save</button>
+			<button type="button" onclick={done}>Cancel</button>
+		</div>
+	</form>
+{/snippet}
+
+<EntryList items={store.items} limit={7} {editForm}>
 	{#snippet row(item)}
 		<span><strong>{item.data.period === 'morning' ? '☀' : '🌙'}</strong> M{item.data.mood} E{item.data.energy} S{item.data.stress} · {item.data.sleep}h</span>
 	{/snippet}
@@ -50,4 +80,10 @@
 	.checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
 	.checkbox input { width: auto; }
 	input[type="range"] { padding: 0; }
+	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
+	.edit-inline input[type="range"] { padding: 0; }
+	.edit-inline .checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
+	.edit-inline .checkbox input { width: auto; }
+	.edit-actions { display: flex; gap: 0.5rem; }
+	.edit-actions button { flex: 1; }
 </style>

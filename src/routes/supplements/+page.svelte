@@ -3,6 +3,7 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import type { Entry } from '$lib/db';
 
 	const store = useEntries('supplement');
 
@@ -43,7 +44,43 @@
 	<button class="primary" onclick={submit}>Log supplement</button>
 </section>
 
-<EntryList items={store.items}>
+{#snippet editForm(item: Entry, done: () => void)}
+	{@const data = item.data}
+	<form class="edit-inline" onsubmit={(e) => {
+		e.preventDefault();
+		const fd = new FormData(e.currentTarget);
+		entries.update(item.id, {
+			name: (fd.get('name') as string).trim(),
+			dose: fd.get('dose') as string,
+			timing: fd.get('timing') as string,
+			notes: fd.get('notes') as string
+		});
+		toast.show('Updated');
+		done();
+	}}>
+		<label>Name <input type="text" name="name" value={data.name} /></label>
+		<div class="row">
+			<label>Dose <input type="text" name="dose" value={data.dose} /></label>
+			<label>
+				Timing
+				<select name="timing">
+					<option value="morning" selected={data.timing === 'morning'}>Morning</option>
+					<option value="preworkout" selected={data.timing === 'preworkout'}>Pre-workout</option>
+					<option value="afternoon" selected={data.timing === 'afternoon'}>Afternoon</option>
+					<option value="night" selected={data.timing === 'night'}>Night</option>
+					<option value="withfood" selected={data.timing === 'withfood'}>With food</option>
+				</select>
+			</label>
+		</div>
+		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<div class="edit-actions">
+			<button type="submit">Save</button>
+			<button type="button" onclick={done}>Cancel</button>
+		</div>
+	</form>
+{/snippet}
+
+<EntryList items={store.items} {editForm}>
 	{#snippet row(item)}
 		<div><strong>{item.data.name}</strong> <span class="meta">{item.data.dose} · {item.data.timing}</span></div>
 	{/snippet}
@@ -54,4 +91,7 @@
 	.row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 	.row label { flex: 1; min-width: 120px; }
 	.meta { font-size: 0.85rem; color: var(--c-text-muted); }
+	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
+	.edit-actions { display: flex; gap: 0.5rem; }
+	.edit-actions button { flex: 1; }
 </style>

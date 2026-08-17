@@ -3,6 +3,7 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import type { Entry } from '$lib/db';
 
 	const store = useEntries('experiment');
 
@@ -45,7 +46,45 @@
 	<button class="primary" onclick={submit}>Log experiment</button>
 </section>
 
-<EntryList items={store.items}>
+{#snippet editForm(item: Entry, done: () => void)}
+	{@const data = item.data}
+	<form class="edit-inline" onsubmit={(e) => {
+		e.preventDefault();
+		const fd = new FormData(e.currentTarget);
+		entries.update(item.id, {
+			hypothesis: (fd.get('hypothesis') as string).trim(),
+			variable: (fd.get('variable') as string).trim(),
+			protocol: (fd.get('protocol') as string).trim(),
+			duration: fd.get('duration') as string,
+			result: (fd.get('result') as string).trim(),
+			status: fd.get('status') as string
+		});
+		toast.show('Updated');
+		done();
+	}}>
+		<label>Hypothesis <input type="text" name="hypothesis" value={data.hypothesis} /></label>
+		<label>Variable <input type="text" name="variable" value={data.variable} /></label>
+		<label>Protocol <textarea name="protocol" rows="2">{data.protocol ?? ''}</textarea></label>
+		<div class="row">
+			<label>Duration <input type="text" name="duration" value={data.duration} /></label>
+			<label>
+				Status
+				<select name="status">
+					<option value="active" selected={data.status === 'active'}>Active</option>
+					<option value="completed" selected={data.status === 'completed'}>Completed</option>
+					<option value="abandoned" selected={data.status === 'abandoned'}>Abandoned</option>
+				</select>
+			</label>
+		</div>
+		<label>Result <textarea name="result" rows="2">{data.result ?? ''}</textarea></label>
+		<div class="edit-actions">
+			<button type="submit">Save</button>
+			<button type="button" onclick={done}>Cancel</button>
+		</div>
+	</form>
+{/snippet}
+
+<EntryList items={store.items} {editForm}>
 	{#snippet row(item)}
 		<div class="exp">
 			<strong>{item.data.hypothesis}</strong>
@@ -66,4 +105,7 @@
 	.badge.completed { background: var(--c-done); }
 	.badge.abandoned { background: var(--c-cancel); }
 	.meta { font-size: 0.85rem; color: var(--c-text-muted); }
+	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
+	.edit-actions { display: flex; gap: 0.5rem; }
+	.edit-actions button { flex: 1; }
 </style>
