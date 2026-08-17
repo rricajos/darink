@@ -65,6 +65,14 @@
 	{/each}
 </section>
 
+{#if !hasAnyData}
+<div class="empty-state">
+	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h6"/><path d="M22 12h-6"/><path d="M12 2v6"/><path d="M12 22v-6"/><circle cx="12" cy="12" r="4"/></svg>
+	<p>No body signals tracked yet</p>
+	<p class="empty-hint">Track body signals to monitor your health over time.</p>
+</div>
+{/if}
+
 <!-- Latest Values Summary -->
 {#if hasAnyData}
 <section class="overview">

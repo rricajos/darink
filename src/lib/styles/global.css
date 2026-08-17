@@ -50,7 +50,13 @@ html, body {
 	background: var(--c-bg);
 	color: var(--c-text);
 	line-height: 1.5;
+	letter-spacing: -0.01em;
 	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+html {
+	scroll-behavior: smooth;
 }
 
 body {
@@ -78,16 +84,24 @@ button {
 	color: var(--c-text);
 	padding: 0.5rem 0.75rem;
 	border-radius: var(--radius);
-	transition: background 0.15s, color 0.15s;
+	transition: background 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 
 button:hover {
 	background: var(--c-accent);
 	color: var(--c-text-button);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+button:active {
+	transform: translateY(0);
+	box-shadow: none;
 }
 
 button:disabled {
-	opacity: 0.4;
+	opacity: 0.5;
+	cursor: not-allowed;
 	pointer-events: none;
 }
 
@@ -112,6 +126,21 @@ input, select, textarea {
 	border-radius: var(--radius);
 	background: var(--c-bg-card);
 	color: var(--c-text);
+	transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+	outline: none;
+	border-color: var(--c-accent);
+	box-shadow: 0 0 0 2px var(--c-accent-bg);
+}
+
+select {
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.5rem center;
+	padding-right: 1.75rem;
 }
 
 textarea {
@@ -125,4 +154,50 @@ label {
 	gap: 0.25rem;
 	font-size: 0.9rem;
 	font-weight: 500;
+}
+
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 3rem 1rem;
+	text-align: center;
+	color: var(--c-text-muted);
+}
+.empty-state svg {
+	opacity: 0.4;
+}
+.empty-state p {
+	margin: 0;
+	font-size: 0.95rem;
+}
+.empty-hint {
+	font-size: 0.8rem !important;
+	opacity: 0.7;
+}
+
+/* Selection */
+::selection {
+	background: var(--c-accent);
+	color: #fff;
+}
+
+/* Scrollbar (webkit) */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--c-border);
+	border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--c-text-muted);
 }

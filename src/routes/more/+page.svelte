@@ -2,6 +2,7 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 
 	const sections = [
+		{ href: '/timeline', label: 'Timeline', desc: 'Activity feed across all data' },
 		{ href: '/signals', label: 'Body Signals', desc: 'Sleep, skin, hair, genital' },
 		{ href: '/habits', label: 'Habits', desc: 'Cold, sun, fasting, meditation' },
 		{ href: '/supplements', label: 'Supplements', desc: 'Stack, doses, timing' },

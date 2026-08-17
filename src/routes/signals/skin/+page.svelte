@@ -63,6 +63,14 @@
 	</form>
 {/snippet}
 
+{#if store.items.length === 0}
+<div class="empty-state">
+	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+	<p>No skin entries yet</p>
+	<p class="empty-hint">Track skin health to spot patterns in oiliness and elasticity.</p>
+</div>
+{/if}
+
 <EntryList items={store.items} {editForm} limit={10}>
 	{#snippet row(item)}
 		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">Oiliness: {item.data.oiliness}/5 · Elasticity: {item.data.elasticity}/10{item.data.acneZone ? ` · ${item.data.acneZone}` : ''}</span></div>

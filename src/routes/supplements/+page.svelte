@@ -227,6 +227,14 @@
 </section>
 {/if}
 
+{#if store.items.length === 0 && stack.length === 0}
+<div class="empty-state">
+	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+	<p>No supplements tracked yet</p>
+	<p class="empty-hint">Define your supplement stack and start tracking adherence.</p>
+</div>
+{/if}
+
 <!-- Log Form -->
 <section class="form">
 	<label>Date <input type="date" bind:value={date} /></label>

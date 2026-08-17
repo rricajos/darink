@@ -208,6 +208,14 @@
 	{/each}
 </section>
 
+{#if trainingEntries.length === 0}
+<div class="empty-state">
+	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767-1.768a2 2 0 1 1-2.829-2.829l-1.767-1.767a2 2 0 1 1-2.829-2.829L8.404 7.696a2 2 0 1 1 2.829 2.829l1.767 1.767a2 2 0 1 1 2.829 2.829l1.767 1.767a2 2 0 1 1 2.829 2.829z"/></svg>
+	<p>No training entries yet</p>
+	<p class="empty-hint">Start logging your workouts to see training analytics.</p>
+</div>
+{/if}
+
 {#if trainingEntries.length > 0}
 	<!-- 5. Total training stats -->
 	<section class="analytics">

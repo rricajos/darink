@@ -110,6 +110,14 @@
 	</form>
 {/snippet}
 
+{#if store.items.length === 0}
+<div class="empty-state">
+	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+	<p>No intake entries yet</p>
+	<p class="empty-hint">Log what you eat and drink to discover your nutrition patterns.</p>
+</div>
+{/if}
+
 <EntryList items={store.items} {editForm}>
 	{#snippet row(item)}
 		<div class="intake-row">
@@ -119,6 +127,139 @@
 		</div>
 	{/snippet}
 </EntryList>
+
+<!-- Analytics: Meal timing chart (intakes per hour of day) -->
+{#if store.items.length > 0}
+	{@const hourCounts = Array.from({ length: 18 }, (_, i) => ({ hour: i + 6, count: 0 }))}
+	{@const _fill = store.items.forEach(e => {
+		const ws = String(e.data.whenStart || '');
+		const timePart = ws.split(' ')[1] ?? '';
+		const hh = parseInt(timePart.split(':')[0], 10);
+		if (!isNaN(hh) && hh >= 6 && hh <= 23) {
+			const slot = hourCounts.find(h => h.hour === hh);
+			if (slot) slot.count++;
+		}
+	})}
+	{@const maxCount = Math.max(1, ...hourCounts.map(h => h.count))}
+	{@const barW = 280 / 18 - 1.5}
+	<section class="chart-section">
+		<h2>Meal timing</h2>
+		<svg class="line-chart" viewBox="0 0 280 100" preserveAspectRatio="none">
+			{#each hourCounts as slot, i}
+				{@const barH = (slot.count / maxCount) * 80}
+				<rect
+					x={i * (280 / 18) + 0.75}
+					y={90 - barH}
+					width={barW}
+					height={barH}
+					rx="1.5"
+					fill="var(--c-accent)"
+					opacity="0.75"
+				/>
+			{/each}
+		</svg>
+		<div class="chart-range">
+			<span>6h</span>
+			<span>12h</span>
+			<span>18h</span>
+			<span>23h</span>
+		</div>
+	</section>
+{/if}
+
+<!-- Analytics: Intake mood distribution -->
+{#if store.items.length > 0}
+	{@const total = store.items.length}
+	{@const verde = store.items.filter(e => e.data.mood === 'verde').length}
+	{@const ambar = store.items.filter(e => e.data.mood === 'ambar').length}
+	{@const rojo = store.items.filter(e => e.data.mood === 'rojo').length}
+	{@const pctVerde = Math.round((verde / total) * 100)}
+	{@const pctAmbar = Math.round((ambar / total) * 100)}
+	{@const pctRojo = Math.round((rojo / total) * 100)}
+	<section class="metrics">
+		<h2>Intake mood</h2>
+		<div class="mood-bars">
+			<div class="mood-bar-row">
+				<span class="mood-bar-label">Good</span>
+				<div class="mood-bar-track">
+					<div class="mood-bar-fill verde" style="width: {pctVerde}%"></div>
+				</div>
+				<span class="mood-bar-pct">{pctVerde}%</span>
+			</div>
+			<div class="mood-bar-row">
+				<span class="mood-bar-label">Neutral</span>
+				<div class="mood-bar-track">
+					<div class="mood-bar-fill ambar" style="width: {pctAmbar}%"></div>
+				</div>
+				<span class="mood-bar-pct">{pctAmbar}%</span>
+			</div>
+			<div class="mood-bar-row">
+				<span class="mood-bar-label">Bad</span>
+				<div class="mood-bar-track">
+					<div class="mood-bar-fill rojo" style="width: {pctRojo}%"></div>
+				</div>
+				<span class="mood-bar-pct">{pctRojo}%</span>
+			</div>
+		</div>
+	</section>
+{/if}
+
+<!-- Analytics: Most logged items (top 10) -->
+{#if store.items.length > 0}
+	{@const whatCounts = store.items.reduce((acc, e) => {
+		const w = String(e.data.what || '').trim().toLowerCase();
+		if (w) acc.set(w, (acc.get(w) || 0) + 1);
+		return acc;
+	}, new Map())}
+	{@const top10 = [...whatCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)}
+	{#if top10.length > 0}
+		<section class="metrics">
+			<h2>Most logged items</h2>
+			<ol class="ranked-list">
+				{#each top10 as [name, count], i}
+					<li>
+						<span class="rank">#{i + 1}</span>
+						<span class="ranked-name">{name}</span>
+						<span class="ranked-count">{count}</span>
+					</li>
+				{/each}
+			</ol>
+		</section>
+	{/if}
+{/if}
+
+<!-- Analytics: Weekly intake count -->
+{#if store.items.length > 0}
+	{@const now = new Date()}
+	{@const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)}
+	{@const weekItems = store.items.filter(e => new Date(e.createdAt) >= weekAgo)}
+	{@const totalWeek = weekItems.length}
+	{@const avgPerDay = totalWeek > 0 ? (totalWeek / 7).toFixed(1) : '0'}
+	{@const weekMoodCounts = weekItems.reduce((acc, e) => {
+		const m = String(e.data.mood || '');
+		if (m) acc.set(m, (acc.get(m) || 0) + 1);
+		return acc;
+	}, new Map())}
+	{@const commonMood = [...weekMoodCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '-'}
+	{@const moodLabel = commonMood === 'verde' ? 'Good' : commonMood === 'ambar' ? 'Neutral' : commonMood === 'rojo' ? 'Bad' : '-'}
+	<section class="metrics">
+		<h2>This week</h2>
+		<div class="metrics-row">
+			<div class="metric-card">
+				<span class="metric-value">{totalWeek}</span>
+				<span class="metric-label">Intakes</span>
+			</div>
+			<div class="metric-card">
+				<span class="metric-value">{avgPerDay}</span>
+				<span class="metric-label">Avg / day</span>
+			</div>
+			<div class="metric-card">
+				<span class="metric-value">{moodLabel}</span>
+				<span class="metric-label">Top mood</span>
+			</div>
+		</div>
+	</section>
+{/if}
 
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
@@ -139,4 +280,30 @@
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+
+	h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+	.chart-section { padding: 1.5rem 1rem 0; }
+	.line-chart { width: 100%; height: 100px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.5rem; }
+	.chart-range { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--c-text-muted); margin-top: 0.2rem; padding: 0 0.25rem; }
+	.metrics { padding: 1.5rem 1rem 0; }
+	.metrics-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+	.metric-card { flex: 1; min-width: 80px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
+	.metric-value { font-size: 1.4rem; font-weight: 700; }
+	.metric-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; }
+
+	.mood-bars { display: flex; flex-direction: column; gap: 0.5rem; }
+	.mood-bar-row { display: flex; align-items: center; gap: 0.5rem; }
+	.mood-bar-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); width: 50px; text-align: right; }
+	.mood-bar-track { flex: 1; height: 18px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); overflow: hidden; }
+	.mood-bar-fill { height: 100%; border-radius: var(--radius); transition: width 0.3s; }
+	.mood-bar-fill.verde { background: #228b22; }
+	.mood-bar-fill.ambar { background: #ff8c00; }
+	.mood-bar-fill.rojo { background: #dc143c; }
+	.mood-bar-pct { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); width: 35px; }
+
+	.ranked-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+	.ranked-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); }
+	.rank { font-size: 0.7rem; font-weight: 700; color: var(--c-text-muted); width: 24px; }
+	.ranked-name { flex: 1; font-size: 0.85rem; text-transform: capitalize; }
+	.ranked-count { font-size: 0.85rem; font-weight: 700; color: var(--c-accent); }
 </style>

@@ -63,6 +63,14 @@
 	</form>
 {/snippet}
 
+{#if store.items.length === 0}
+<div class="empty-state">
+	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.97 0-9-2.24-9-5v-4c0-2.76 4.03-5 9-5s9 2.24 9 5v4c0 2.76-4.03 5-9 5z"/><path d="M12 8V2"/><path d="M8 8V4"/><path d="M16 8V4"/><path d="M6 9V6"/><path d="M18 9V6"/></svg>
+	<p>No hair entries yet</p>
+	<p class="empty-hint">Monitor hair health to detect changes in density and shedding.</p>
+</div>
+{/if}
+
 <EntryList items={store.items} {editForm} limit={10}>
 	{#snippet row(item)}
 		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">Zone: {item.data.zone || '—'} · Density: {item.data.density}/10 · Shedding: {item.data.shedding}/10</span></div>

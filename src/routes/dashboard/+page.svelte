@@ -248,6 +248,14 @@
 
 <PageHeader title="Dashboard" />
 
+{#if stats.total === 0}
+<div class="empty-state">
+	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+	<p>Welcome to Darink!</p>
+	<p class="empty-hint">Start logging to see your dashboard come alive.</p>
+</div>
+{:else}
+
 {#if weekSummary.entries > 0}
 <section class="summary">
 	<h2>This week</h2>
@@ -377,6 +385,8 @@
 	<div class="stat"><span class="value">{stats.experiments}</span><span class="label">Experiments</span></div>
 	<div class="stat total"><span class="value">{stats.total}</span><span class="label">Total entries</span></div>
 </section>
+
+{/if}
 
 <style>
 	h2 {

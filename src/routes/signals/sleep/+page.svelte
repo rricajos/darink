@@ -77,6 +77,14 @@
 	</form>
 {/snippet}
 
+{#if store.items.length === 0}
+<div class="empty-state">
+	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+	<p>No sleep entries yet</p>
+	<p class="empty-hint">Log your sleep to see quality and duration trends.</p>
+</div>
+{/if}
+
 <EntryList items={store.items} {editForm} limit={7}>
 	{#snippet row(item)}
 		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">{item.data.hours}h · Q{item.data.quality}/10</span></div>

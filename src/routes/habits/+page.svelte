@@ -92,6 +92,14 @@
 	<button class="primary" onclick={submit}>Log habit</button>
 </section>
 
+{#if store.items.length === 0}
+<div class="empty-state">
+	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+	<p>No habits logged yet</p>
+	<p class="empty-hint">Log your first habit to start building streaks.</p>
+</div>
+{/if}
+
 {#if todayItems.length > 0}
 	<section class="today">
 		<h2>Today</h2>
