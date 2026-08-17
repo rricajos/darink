@@ -7,6 +7,7 @@
 
 	const store = useEntries('training.hiit');
 
+	let date = $state(new Date().toISOString().slice(0, 10));
 	let name = $state('');
 	let rounds = $state(8);
 	let workSec = $state(20);
@@ -16,15 +17,29 @@
 
 	function submit() {
 		if (!name.trim()) return;
-		entries.add('training.hiit', { name: name.trim(), rounds, workSec, restSec, maxHr, notes });
+		entries.add('training.hiit', { date, name: name.trim(), rounds, workSec, restSec, maxHr, notes });
 		name = ''; notes = '';
+		date = new Date().toISOString().slice(0, 10);
 		toast.show('HIIT logged');
+	}
+
+	function repeatLast() {
+		const last = store.items.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+		if (!last) return;
+		name = last.data.name as string;
+		rounds = last.data.rounds as number;
+		workSec = last.data.workSec as number;
+		restSec = last.data.restSec as number;
+		maxHr = last.data.maxHr as number;
+		notes = (last.data.notes as string) || '';
+		toast.show('Fields pre-filled');
 	}
 </script>
 
 <PageHeader title="HIIT" back="/training" />
 
 <section class="form">
+	<label>Date <input type="date" bind:value={date} /></label>
 	<label>Name <input type="text" bind:value={name} placeholder="Tabata, Sprint..." /></label>
 	<div class="row">
 		<label>Rounds <input type="number" min="1" max="50" bind:value={rounds} /></label>
@@ -33,7 +48,12 @@
 	</div>
 	<label>Max HR <input type="number" min="0" max="250" bind:value={maxHr} /></label>
 	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log session</button>
+	<div class="form-actions">
+		<button class="primary" onclick={submit}>Log session</button>
+		{#if store.items.length > 0}
+			<button onclick={repeatLast}>Repeat last</button>
+		{/if}
+	</div>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -42,6 +62,7 @@
 		e.preventDefault();
 		const fd = new FormData(e.currentTarget);
 		entries.update(item.id, {
+			date: fd.get('date') as string,
 			name: (fd.get('name') as string).trim(),
 			rounds: Number(fd.get('rounds')),
 			workSec: Number(fd.get('workSec')),
@@ -52,6 +73,7 @@
 		toast.show('Updated');
 		done();
 	}}>
+		<label>Date <input type="date" name="date" value={data.date || ''} /></label>
 		<label>Name <input type="text" name="name" value={data.name} /></label>
 		<div class="row">
 			<label>Rounds <input type="number" name="rounds" min="1" max="50" value={data.rounds} /></label>
@@ -81,4 +103,6 @@
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+	.form-actions { display: flex; gap: 0.5rem; }
+	.form-actions button { flex: 1; }
 </style>

@@ -1,32 +1,65 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
 
-	const sections = [
-		{ href: '/timeline', label: 'Timeline', desc: 'Activity feed across all data' },
-		{ href: '/journal', label: 'Journal', desc: 'Freeform notes and reflections' },
-		{ href: '/goals', label: 'Goals', desc: 'Set targets and track progress' },
-		{ href: '/signals', label: 'Body Signals', desc: 'Sleep, skin, hair, genital' },
-		{ href: '/habits', label: 'Habits', desc: 'Cold, sun, fasting, meditation' },
-		{ href: '/supplements', label: 'Supplements', desc: 'Stack, doses, timing' },
-		{ href: '/experiments', label: 'Experiments', desc: 'n=1 diary' },
-		{ href: '/ref', label: 'Reference', desc: 'Batmanvault knowledge base' },
-		{ href: '/profile', label: 'Profile', desc: 'Height, weight, targets' },
-		{ href: '/data', label: 'Data', desc: 'Search, export, import, stats' }
+	const groups = [
+		{
+			title: 'Health Tracking',
+			items: [
+				{ href: '/signals', label: 'Signals', desc: 'Body signal monitoring' },
+				{ href: '/habits', label: 'Habits', desc: 'Daily habits and streaks' },
+				{ href: '/supplements', label: 'Supplements', desc: 'Stack and adherence' },
+				{ href: '/journal', label: 'Journal', desc: 'Freeform notes' }
+			]
+		},
+		{
+			title: 'Insights',
+			items: [
+				{ href: '/timeline', label: 'Timeline', desc: 'Activity feed' },
+				{ href: '/goals', label: 'Goals', desc: 'Targets and progress' },
+				{ href: '/experiments', label: 'Experiments', desc: 'n=1 testing' }
+			]
+		},
+		{
+			title: 'Settings',
+			items: [
+				{ href: '/profile', label: 'Profile', desc: 'Body metrics and targets' },
+				{ href: '/data', label: 'Data', desc: 'Search, export, import' },
+				{ href: '/ref', label: 'Reference', desc: 'Health knowledge base' }
+			]
+		}
 	];
 </script>
 
 <PageHeader title="More" />
 
-<section class="grid">
-	{#each sections as s}
-		<a href={s.href} class="card">
-			<strong>{s.label}</strong>
-			<span>{s.desc}</span>
-		</a>
-	{/each}
-</section>
+{#each groups as group}
+	<h2>{group.title}</h2>
+	<section class="grid">
+		{#each group.items as s}
+			<a href={s.href} class="card">
+				<strong>{s.label}</strong>
+				<span>{s.desc}</span>
+			</a>
+		{/each}
+	</section>
+{/each}
 
 <style>
+	h2 {
+		font-size: 0.9rem;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0 1rem;
+		margin-top: 1.5rem;
+	}
+
+	h2:first-of-type {
+		margin-top: 0.5rem;
+	}
+
 	.grid {
 		display: grid;
 		grid-template-columns: 1fr;

@@ -7,6 +7,7 @@
 
 	const store = useEntries('training.cardio');
 
+	let date = $state(new Date().toISOString().slice(0, 10));
 	let activity = $state('');
 	let distanceKm = $state(0);
 	let durationMin = $state(0);
@@ -15,15 +16,28 @@
 
 	function submit() {
 		if (!activity.trim()) return;
-		entries.add('training.cardio', { activity: activity.trim(), distanceKm, durationMin, zone, notes });
+		entries.add('training.cardio', { date, activity: activity.trim(), distanceKm, durationMin, zone, notes });
 		activity = ''; notes = '';
+		date = new Date().toISOString().slice(0, 10);
 		toast.show('Cardio logged');
+	}
+
+	function repeatLast() {
+		const last = store.items.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+		if (!last) return;
+		activity = last.data.activity as string;
+		distanceKm = last.data.distanceKm as number;
+		durationMin = last.data.durationMin as number;
+		zone = last.data.zone as number;
+		notes = (last.data.notes as string) || '';
+		toast.show('Fields pre-filled');
 	}
 </script>
 
 <PageHeader title="Cardio" back="/training" />
 
 <section class="form">
+	<label>Date <input type="date" bind:value={date} /></label>
 	<label>Activity <input type="text" bind:value={activity} placeholder="Run, Bike, Swim..." /></label>
 	<div class="row">
 		<label>Distance (km) <input type="number" min="0" step="0.1" bind:value={distanceKm} /></label>
@@ -31,7 +45,12 @@
 		<label>Zone (1-5) <input type="number" min="1" max="5" bind:value={zone} /></label>
 	</div>
 	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log cardio</button>
+	<div class="form-actions">
+		<button class="primary" onclick={submit}>Log cardio</button>
+		{#if store.items.length > 0}
+			<button onclick={repeatLast}>Repeat last</button>
+		{/if}
+	</div>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -40,6 +59,7 @@
 		e.preventDefault();
 		const fd = new FormData(e.currentTarget);
 		entries.update(item.id, {
+			date: fd.get('date') as string,
 			activity: (fd.get('activity') as string).trim(),
 			distanceKm: Number(fd.get('distanceKm')),
 			durationMin: Number(fd.get('durationMin')),
@@ -49,6 +69,7 @@
 		toast.show('Updated');
 		done();
 	}}>
+		<label>Date <input type="date" name="date" value={data.date || ''} /></label>
 		<label>Activity <input type="text" name="activity" value={data.activity} /></label>
 		<div class="row">
 			<label>Distance (km) <input type="number" name="distanceKm" min="0" step="0.1" value={data.distanceKm} /></label>
@@ -77,4 +98,6 @@
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+	.form-actions { display: flex; gap: 0.5rem; }
+	.form-actions button { flex: 1; }
 </style>

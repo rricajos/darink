@@ -201,3 +201,33 @@ label {
 ::-webkit-scrollbar-thumb:hover {
 	background: var(--c-text-muted);
 }
+
+/* Skip to content */
+.skip-link {
+	position: absolute;
+	top: -40px;
+	left: 0;
+	background: var(--c-accent);
+	color: #fff;
+	padding: 0.5rem 1rem;
+	z-index: 100;
+	transition: top 0.2s;
+}
+.skip-link:focus {
+	top: 0;
+}
+
+/* View transitions */
+@keyframes fade-in {
+	from { opacity: 0; }
+}
+@keyframes fade-out {
+	to { opacity: 0; }
+}
+
+::view-transition-old(root) {
+	animation: 90ms cubic-bezier(0.4, 0, 1, 1) both fade-out;
+}
+::view-transition-new(root) {
+	animation: 210ms cubic-bezier(0, 0, 0.2, 1) both fade-in;
+}

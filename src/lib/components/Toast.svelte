@@ -3,7 +3,7 @@
 </script>
 
 {#if toast.visible}
-	<div class="toast" role="status">
+	<div class="toast" role="status" aria-live="polite">
 		<span>{toast.message}</span>
 		{#if toast.action}
 			<button class="toast-action" onclick={() => { toast.action?.fn(); toast.hide(); }}>

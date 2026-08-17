@@ -4,6 +4,59 @@
 
 	const store = useEntries();
 
+	let period = $state<'week' | 'month' | '3month'>('week');
+
+	const periodDays = $derived(period === 'week' ? 7 : period === 'month' ? 30 : 90);
+
+	const periodComparison = $derived.by(() => {
+		const all = store.items;
+		const now = Date.now();
+		const msPerDay = 86400000;
+		const currentStart = new Date(now - periodDays * msPerDay).toISOString();
+		const prevStart = new Date(now - periodDays * 2 * msPerDay).toISOString();
+		const prevEnd = currentStart;
+
+		const current = all.filter((e) => e.createdAt >= currentStart);
+		const previous = all.filter((e) => e.createdAt >= prevStart && e.createdAt < prevEnd);
+
+		const avg = (arr: number[]) => arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : null;
+
+		const currentCheckins = current.filter((e) => e.type === 'checkin');
+		const previousCheckins = previous.filter((e) => e.type === 'checkin');
+
+		const currentTrainings = current.filter((e) => e.type.startsWith('training.')).length;
+		const previousTrainings = previous.filter((e) => e.type.startsWith('training.')).length;
+
+		// Habit completion: count unique days with at least one habit entry
+		const habitDays = (entries: typeof all) => {
+			const days = new Set(
+				entries
+					.filter((e) => e.type === 'habit')
+					.map((e) => (e.data.date as string) ?? e.createdAt.slice(0, 10))
+			);
+			return days.size;
+		};
+
+		return {
+			entries: { current: current.length, previous: previous.length },
+			mood: {
+				current: avg(currentCheckins.map((e) => e.data.mood as number)),
+				previous: avg(previousCheckins.map((e) => e.data.mood as number))
+			},
+			energy: {
+				current: avg(currentCheckins.map((e) => e.data.energy as number)),
+				previous: avg(previousCheckins.map((e) => e.data.energy as number))
+			},
+			training: { current: currentTrainings, previous: previousTrainings },
+			habitDays: { current: habitDays(current), previous: habitDays(previous) }
+		};
+	});
+
+	const periodLabels = $derived({
+		current: period === 'week' ? 'This week' : period === 'month' ? 'This month' : 'This quarter',
+		previous: period === 'week' ? 'Last week' : period === 'month' ? 'Last month' : 'Last quarter'
+	});
+
 	const stats = $derived.by(() => {
 		const all = store.items;
 		const today = new Date().toISOString().slice(0, 10);
@@ -248,6 +301,12 @@
 
 <PageHeader title="Dashboard" />
 
+<section class="period-selector">
+	<button class="period-chip" class:active={period === 'week'} onclick={() => period = 'week'}>Week</button>
+	<button class="period-chip" class:active={period === 'month'} onclick={() => period = 'month'}>Month</button>
+	<button class="period-chip" class:active={period === '3month'} onclick={() => period = '3month'}>3 Months</button>
+</section>
+
 {#if stats.total === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
@@ -264,6 +323,97 @@
 		{#if weekSummary.avgMood}<div class="chip">Mood {weekSummary.avgMood}</div>{/if}
 		{#if weekSummary.avgEnergy}<div class="chip">Energy {weekSummary.avgEnergy}</div>{/if}
 		{#if weekSummary.avgSleep}<div class="chip">Sleep {weekSummary.avgSleep}h</div>{/if}
+	</div>
+</section>
+{/if}
+
+{#if periodComparison.entries.current > 0 || periodComparison.entries.previous > 0}
+<section class="comparison-section">
+	<h2>Period comparison</h2>
+	<div class="comparison-grid">
+		<div class="cmp-header">Metric</div>
+		<div class="cmp-header">{periodLabels.current}</div>
+		<div class="cmp-header">{periodLabels.previous}</div>
+		<div class="cmp-header">Delta</div>
+
+		{#if true}
+			{@const eDelta = periodComparison.entries.current - periodComparison.entries.previous}
+			<div class="cmp-metric">Entries</div>
+			<div class="cmp-val">{periodComparison.entries.current}</div>
+			<div class="cmp-val">{periodComparison.entries.previous}</div>
+			<div class="cmp-delta {eDelta > 0 ? 'positive' : eDelta < 0 ? 'negative' : ''}">
+				{#if eDelta !== 0}
+					{eDelta > 0 ? '+' : ''}{eDelta}
+					{#if eDelta > 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+				{:else}
+					--
+				{/if}
+			</div>
+		{/if}
+
+		{#if periodComparison.mood.current != null || periodComparison.mood.previous != null}
+			{@const mC = periodComparison.mood.current ?? 0}
+			{@const mP = periodComparison.mood.previous ?? 0}
+			{@const mDelta = +(mC - mP).toFixed(1)}
+			<div class="cmp-metric">Mood</div>
+			<div class="cmp-val">{periodComparison.mood.current ?? '--'}</div>
+			<div class="cmp-val">{periodComparison.mood.previous ?? '--'}</div>
+			<div class="cmp-delta {mDelta > 0 ? 'positive' : mDelta < 0 ? 'negative' : ''}">
+				{#if periodComparison.mood.current != null && periodComparison.mood.previous != null}
+					{mDelta > 0 ? '+' : ''}{mDelta}
+					{#if mDelta > 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else if mDelta < 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+				{:else}
+					--
+				{/if}
+			</div>
+		{/if}
+
+		{#if periodComparison.energy.current != null || periodComparison.energy.previous != null}
+			{@const eC = periodComparison.energy.current ?? 0}
+			{@const eP = periodComparison.energy.previous ?? 0}
+			{@const enDelta = +(eC - eP).toFixed(1)}
+			<div class="cmp-metric">Energy</div>
+			<div class="cmp-val">{periodComparison.energy.current ?? '--'}</div>
+			<div class="cmp-val">{periodComparison.energy.previous ?? '--'}</div>
+			<div class="cmp-delta {enDelta > 0 ? 'positive' : enDelta < 0 ? 'negative' : ''}">
+				{#if periodComparison.energy.current != null && periodComparison.energy.previous != null}
+					{enDelta > 0 ? '+' : ''}{enDelta}
+					{#if enDelta > 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else if enDelta < 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+				{:else}
+					--
+				{/if}
+			</div>
+		{/if}
+
+		{#if true}
+			{@const tDelta = periodComparison.training.current - periodComparison.training.previous}
+			<div class="cmp-metric">Training</div>
+			<div class="cmp-val">{periodComparison.training.current}</div>
+			<div class="cmp-val">{periodComparison.training.previous}</div>
+			<div class="cmp-delta {tDelta > 0 ? 'positive' : tDelta < 0 ? 'negative' : ''}">
+				{#if tDelta !== 0}
+					{tDelta > 0 ? '+' : ''}{tDelta}
+					{#if tDelta > 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+				{:else}
+					--
+				{/if}
+			</div>
+		{/if}
+
+		{#if true}
+			{@const hDelta = periodComparison.habitDays.current - periodComparison.habitDays.previous}
+			<div class="cmp-metric">Habit days</div>
+			<div class="cmp-val">{periodComparison.habitDays.current}</div>
+			<div class="cmp-val">{periodComparison.habitDays.previous}</div>
+			<div class="cmp-delta {hDelta > 0 ? 'positive' : hDelta < 0 ? 'negative' : ''}">
+				{#if hDelta !== 0}
+					{hDelta > 0 ? '+' : ''}{hDelta}
+					{#if hDelta > 0}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 2L10 7H2Z" fill="currentColor"/></svg>{:else}<svg class="arrow-icon" viewBox="0 0 12 12"><path d="M6 10L2 5H10Z" fill="currentColor"/></svg>{/if}
+				{:else}
+					--
+				{/if}
+			</div>
+		{/if}
 	</div>
 </section>
 {/if}
@@ -396,6 +546,88 @@
 		color: var(--c-text-muted);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+	}
+
+	/* Period Selector */
+	.period-selector {
+		display: flex;
+		gap: 0.5rem;
+		padding: 0 1rem 1rem;
+	}
+	.period-chip {
+		flex: 1;
+		padding: 0.4rem 0.75rem;
+		border: 1px solid var(--c-border);
+		border-radius: 20px;
+		background: var(--c-bg-card);
+		color: var(--c-text-muted);
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		text-align: center;
+		transition: all 0.15s;
+	}
+	.period-chip.active {
+		background: var(--c-accent);
+		color: #fff;
+		border-color: var(--c-accent);
+	}
+
+	/* Comparison Grid */
+	.comparison-section {
+		padding: 0 1rem 1.5rem;
+	}
+	.comparison-grid {
+		display: grid;
+		grid-template-columns: 1.2fr 1fr 1fr 1fr;
+		gap: 0;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+	.comparison-grid > div {
+		padding: 0.5rem 0.6rem;
+		font-size: 0.8rem;
+		border-bottom: 1px solid var(--c-border);
+	}
+	.comparison-grid > div:nth-last-child(-n+4) {
+		border-bottom: none;
+	}
+	.cmp-header {
+		font-weight: 600;
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		color: var(--c-text-muted);
+		letter-spacing: 0.03em;
+		background: var(--c-bg);
+	}
+	.cmp-metric {
+		font-weight: 500;
+	}
+	.cmp-val {
+		text-align: center;
+		font-variant-numeric: tabular-nums;
+	}
+	.cmp-delta {
+		text-align: center;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.2rem;
+	}
+	.cmp-delta.positive {
+		color: #22c55e;
+	}
+	.cmp-delta.negative {
+		color: #ef4444;
+	}
+	.arrow-icon {
+		width: 10px;
+		height: 10px;
+		flex-shrink: 0;
 	}
 
 	.summary {

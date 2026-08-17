@@ -3,12 +3,24 @@
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { onMount } from 'svelte';
+	import { onNavigate } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { theme, ui } from '$lib/db';
 
 	let { children } = $props();
 
 	let installEvent = $state<Event | null>(null);
 	let showInstallBanner = $state(false);
+
+	onNavigate((navigation) => {
+		if (!document.startViewTransition) return;
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 
 	onMount(() => {
 		const saved = theme.get();
@@ -38,6 +50,19 @@
 				showInstallBanner = true;
 			});
 		}
+
+		function handleKeydown(e: KeyboardEvent) {
+			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
+			switch(e.key) {
+				case '1': goto('/checkin'); break;
+				case '2': goto('/intake'); break;
+				case '3': goto('/training'); break;
+				case '4': goto('/dashboard'); break;
+				case '5': goto('/more'); break;
+			}
+		}
+		window.addEventListener('keydown', handleKeydown);
+		return () => window.removeEventListener('keydown', handleKeydown);
 	});
 
 	function installApp() {
@@ -53,6 +78,8 @@
 	}
 </script>
 
+<a href="#main-content" class="skip-link">Skip to content</a>
+
 {#if showInstallBanner}
 	<div class="install-banner">
 		<span style="flex:1">Install Darink for offline access</span>
@@ -65,7 +92,7 @@
 
 <div class="shell">
 	<BottomNav />
-	<main>
+	<main id="main-content">
 		{@render children()}
 	</main>
 </div>

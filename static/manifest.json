@@ -20,5 +20,31 @@
 			"type": "image/png",
 			"purpose": "any maskable"
 		}
+	],
+	"shortcuts": [
+		{
+			"name": "Check-in",
+			"short_name": "Check-in",
+			"url": "/checkin",
+			"icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+		},
+		{
+			"name": "Dashboard",
+			"short_name": "Dashboard",
+			"url": "/dashboard",
+			"icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+		},
+		{
+			"name": "Training",
+			"short_name": "Training",
+			"url": "/training",
+			"icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+		},
+		{
+			"name": "Timeline",
+			"short_name": "Timeline",
+			"url": "/timeline",
+			"icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+		}
 	]
 }

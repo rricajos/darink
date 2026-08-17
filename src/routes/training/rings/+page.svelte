@@ -7,6 +7,7 @@
 
 	const store = useEntries('training.rings');
 
+	let date = $state(new Date().toISOString().slice(0, 10));
 	let progression = $state('');
 	let holdTime = $state(0);
 	let reps = $state(1);
@@ -16,15 +17,29 @@
 
 	function submit() {
 		if (!progression.trim()) return;
-		entries.add('training.rings', { progression: progression.trim(), holdTime, reps, assistance, level, notes });
+		entries.add('training.rings', { date, progression: progression.trim(), holdTime, reps, assistance, level, notes });
 		progression = ''; notes = '';
+		date = new Date().toISOString().slice(0, 10);
 		toast.show('Progression logged');
+	}
+
+	function repeatLast() {
+		const last = store.items.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+		if (!last) return;
+		progression = last.data.progression as string;
+		holdTime = last.data.holdTime as number;
+		reps = last.data.reps as number;
+		assistance = (last.data.assistance as string) || 'none';
+		level = last.data.level as number;
+		notes = (last.data.notes as string) || '';
+		toast.show('Fields pre-filled');
 	}
 </script>
 
 <PageHeader title="Rings" back="/training" />
 
 <section class="form">
+	<label>Date <input type="date" bind:value={date} /></label>
 	<label>Progression <input type="text" bind:value={progression} placeholder="Front lever, Muscle-up..." /></label>
 	<div class="row">
 		<label>Hold (s) <input type="number" min="0" bind:value={holdTime} /></label>
@@ -40,7 +55,12 @@
 		</select>
 	</label>
 	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log progression</button>
+	<div class="form-actions">
+		<button class="primary" onclick={submit}>Log progression</button>
+		{#if store.items.length > 0}
+			<button onclick={repeatLast}>Repeat last</button>
+		{/if}
+	</div>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -49,6 +69,7 @@
 		e.preventDefault();
 		const fd = new FormData(e.currentTarget);
 		entries.update(item.id, {
+			date: fd.get('date') as string,
 			progression: (fd.get('progression') as string).trim(),
 			holdTime: Number(fd.get('holdTime')),
 			reps: Number(fd.get('reps')),
@@ -59,6 +80,7 @@
 		toast.show('Updated');
 		done();
 	}}>
+		<label>Date <input type="date" name="date" value={data.date || ''} /></label>
 		<label>Progression <input type="text" name="progression" value={data.progression} /></label>
 		<div class="row">
 			<label>Hold (s) <input type="number" name="holdTime" min="0" value={data.holdTime} /></label>
@@ -95,4 +117,6 @@
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+	.form-actions { display: flex; gap: 0.5rem; }
+	.form-actions button { flex: 1; }
 </style>

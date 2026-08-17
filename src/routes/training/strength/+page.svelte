@@ -7,6 +7,7 @@
 
 	const store = useEntries('training.strength');
 
+	let date = $state(new Date().toISOString().slice(0, 10));
 	let exercise = $state('');
 	let sets = $state(3);
 	let reps = $state(10);
@@ -16,15 +17,29 @@
 
 	function submit() {
 		if (!exercise.trim()) return;
-		entries.add('training.strength', { exercise: exercise.trim(), sets, reps, weight, rir, notes });
+		entries.add('training.strength', { date, exercise: exercise.trim(), sets, reps, weight, rir, notes });
 		exercise = ''; notes = '';
+		date = new Date().toISOString().slice(0, 10);
 		toast.show('Set logged');
+	}
+
+	function repeatLast() {
+		const last = store.items.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+		if (!last) return;
+		exercise = last.data.exercise as string;
+		sets = last.data.sets as number;
+		reps = last.data.reps as number;
+		weight = last.data.weight as number;
+		rir = last.data.rir as number;
+		notes = (last.data.notes as string) || '';
+		toast.show('Fields pre-filled');
 	}
 </script>
 
 <PageHeader title="Strength" back="/training" />
 
 <section class="form">
+	<label>Date <input type="date" bind:value={date} /></label>
 	<label>Exercise <input type="text" bind:value={exercise} placeholder="Squat, Bench..." /></label>
 	<div class="row">
 		<label>Sets <input type="number" min="1" max="20" bind:value={sets} /></label>
@@ -33,7 +48,12 @@
 		<label>RIR <input type="number" min="0" max="10" bind:value={rir} /></label>
 	</div>
 	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log set</button>
+	<div class="form-actions">
+		<button class="primary" onclick={submit}>Log set</button>
+		{#if store.items.length > 0}
+			<button onclick={repeatLast}>Repeat last</button>
+		{/if}
+	</div>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -42,6 +62,7 @@
 		e.preventDefault();
 		const fd = new FormData(e.currentTarget);
 		entries.update(item.id, {
+			date: fd.get('date') as string,
 			exercise: (fd.get('exercise') as string).trim(),
 			sets: Number(fd.get('sets')),
 			reps: Number(fd.get('reps')),
@@ -52,6 +73,7 @@
 		toast.show('Updated');
 		done();
 	}}>
+		<label>Date <input type="date" name="date" value={data.date || ''} /></label>
 		<label>Exercise <input type="text" name="exercise" value={data.exercise} /></label>
 		<div class="row">
 			<label>Sets <input type="number" name="sets" min="1" max="20" value={data.sets} /></label>
@@ -81,4 +103,6 @@
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+	.form-actions { display: flex; gap: 0.5rem; }
+	.form-actions button { flex: 1; }
 </style>

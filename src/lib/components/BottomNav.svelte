@@ -55,7 +55,7 @@
 <nav>
 	<div class="brand">Darink</div>
 	{#each tabs as tab}
-		<a href={tab.href} class:active={isActive(tab.href)}>
+		<a href={tab.href} class:active={isActive(tab.href)} aria-label={tab.label}>
 			<span class="icon">{@html tab.icon}</span>
 			<span class="label">{tab.label}</span>
 		</a>

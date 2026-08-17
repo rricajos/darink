@@ -13,6 +13,15 @@
 	let sleepTarget = $state('22:00');
 	let wakeTarget = $state('06:00');
 	let notes = $state('');
+	let activityLevel = $state(1.55);
+
+	const activityOptions = [
+		{ value: 1.2, label: 'Sedentary', desc: 'Desk job, little exercise' },
+		{ value: 1.375, label: 'Light', desc: 'Light exercise 1-3 days/week' },
+		{ value: 1.55, label: 'Moderate', desc: 'Moderate exercise 3-5 days/week' },
+		{ value: 1.725, label: 'Active', desc: 'Hard exercise 6-7 days/week' },
+		{ value: 1.9, label: 'Very Active', desc: 'Very hard exercise, physical job' }
+	] as const;
 
 	const weightStore = useEntries('weight');
 
@@ -27,6 +36,7 @@
 			sleepTarget = profile.sleepTarget ?? sleepTarget;
 			wakeTarget = profile.wakeTarget ?? wakeTarget;
 			notes = profile.notes ?? notes;
+			activityLevel = profile.activityLevel ?? activityLevel;
 		}
 	});
 
@@ -41,7 +51,8 @@
 	const bmr = $derived(weight > 0 && height > 0 && age > 0
 		? Math.round(10 * weight + 6.25 * height - 5 * age + 5)
 		: 0);
-	const tdee = $derived(bmr > 0 ? Math.round(bmr * 1.55) : 0);
+	const tdee = $derived(bmr > 0 ? Math.round(bmr * activityLevel) : 0);
+	const activityLabel = $derived(activityOptions.find((o) => o.value === activityLevel)?.label ?? 'Moderate');
 
 	// Weight history (last 30 entries)
 	const weightHistory = $derived.by(() => {
@@ -57,7 +68,7 @@
 
 	function save() {
 		ui.patch({
-			profile: { height, weight, age, bodyFat, stressBaseline, sleepTarget, wakeTarget, notes }
+			profile: { height, weight, age, bodyFat, stressBaseline, sleepTarget, wakeTarget, notes, activityLevel }
 		});
 		entries.add('weight', { weight, bodyFat, date: new Date().toISOString().slice(0, 10) });
 		toast.show('Profile saved');
@@ -80,6 +91,13 @@
 		<label>Sleep target <input type="time" bind:value={sleepTarget} /></label>
 		<label>Wake target <input type="time" bind:value={wakeTarget} /></label>
 	</div>
+	<label>Activity level
+		<select bind:value={activityLevel}>
+			{#each activityOptions as opt}
+				<option value={opt.value}>{opt.label} -- {opt.desc}</option>
+			{/each}
+		</select>
+	</label>
 	<label>Notes <textarea bind:value={notes} rows="3" placeholder="Conditions, medications, genetic notes..."></textarea></label>
 	<button class="primary" onclick={save}>Save profile</button>
 </section>
@@ -102,6 +120,7 @@
 			<span class="metric-value">{tdee}</span>
 			<span class="metric-label">TDEE</span>
 			<span class="metric-sub">kcal/day</span>
+			<span class="metric-sub activity-tag">{activityLabel}</span>
 		</div>
 	</div>
 </section>
@@ -211,6 +230,11 @@
 	.metric-sub {
 		font-size: 0.7rem;
 		color: var(--c-text-muted);
+	}
+	.metric-sub.activity-tag {
+		font-size: 0.65rem;
+		color: var(--c-accent);
+		font-weight: 500;
 	}
 	.metric-sub.normal { color: var(--c-done); }
 	.metric-sub.underweight { color: var(--c-accent); }
