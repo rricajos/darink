@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 
@@ -25,6 +26,37 @@
 	});
 
 	const selectedUnit = $derived(habitTypes.find((h) => h.id === selectedHabit)?.unit ?? '');
+
+	const streaks = $derived.by(() => {
+		const result: Record<string, { current: number; best: number; total: number }> = {};
+		for (const h of habitTypes) {
+			const dates = new Set(
+				store.items
+					.filter((e) => e.data.habit === h.id)
+					.map((e) => (e.data.date as string) ?? e.createdAt.slice(0, 10))
+			);
+			const total = dates.size;
+			let current = 0;
+			let best = 0;
+			let streak = 0;
+			const today = new Date();
+			for (let i = 0; i < 365; i++) {
+				const d = new Date(today);
+				d.setDate(d.getDate() - i);
+				const key = d.toISOString().slice(0, 10);
+				if (dates.has(key)) {
+					streak++;
+					if (i === current) current = streak;
+					if (streak > best) best = streak;
+				} else {
+					streak = 0;
+					if (i === 0) current = 0;
+				}
+			}
+			if (total > 0) result[h.id] = { current, best, total };
+		}
+		return result;
+	});
 
 	function submit() {
 		entries.add('habit', { date, habit: selectedHabit, duration, notes });
@@ -70,10 +102,37 @@
 	</section>
 {/if}
 
+{#if Object.keys(streaks).length > 0}
+	<section class="streaks">
+		<h2>Streaks</h2>
+		<div class="streak-grid">
+			{#each Object.entries(streaks) as [id, s]}
+				<div class="streak-card" class:active={s.current > 0}>
+					<strong>{getLabel(id)}</strong>
+					<div class="streak-nums">
+						<span class="streak-current">{s.current}d</span>
+						<span class="streak-meta">Best {s.best}d · {s.total} total</span>
+					</div>
+				</div>
+			{/each}
+		</div>
+	</section>
+{/if}
+
+<EntryList items={store.items} limit={20}>
+	{#snippet row(item)}
+		<span>
+			<strong>{getLabel(item.data.habit as string)}</strong>
+			{item.data.duration}{getUnit(item.data.habit as string)}
+			<span class="date">{(item.data.date as string) ?? item.createdAt.slice(0, 10)}</span>
+		</span>
+	{/snippet}
+</EntryList>
+
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
 	.today { padding: 1rem; }
-	h2 { font-size: 1rem; margin-bottom: 0.5rem; }
+	h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 	.chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 	.chip {
 		display: inline-block;
@@ -82,5 +141,36 @@
 		border: 1px solid var(--c-accent);
 		border-radius: 20px;
 		font-size: 0.85rem;
+	}
+
+	.streaks { padding: 1rem; }
+	.streak-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.5rem;
+	}
+	.streak-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem;
+	}
+	.streak-card.active {
+		border-color: var(--c-accent);
+		background: var(--c-accent-bg);
+	}
+	.streak-card strong {
+		display: block;
+		font-size: 0.8rem;
+		margin-bottom: 0.25rem;
+	}
+	.streak-nums { display: flex; align-items: baseline; gap: 0.5rem; }
+	.streak-current { font-size: 1.5rem; font-weight: 700; color: var(--c-accent); }
+	.streak-meta { font-size: 0.75rem; color: var(--c-text-muted); }
+
+	.date { font-size: 0.8rem; color: var(--c-text-muted); margin-left: 0.25rem; }
+
+	@media (min-width: 600px) {
+		.streak-grid { grid-template-columns: repeat(3, 1fr); }
 	}
 </style>
