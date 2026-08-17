@@ -3,10 +3,23 @@
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { onMount } from 'svelte';
+	import { theme } from '$lib/db';
 
 	let { children } = $props();
 
 	onMount(() => {
+		const saved = theme.get();
+		const root = document.documentElement;
+		if (saved === 'dark') {
+			root.classList.add('dark');
+			root.classList.remove('light');
+		} else if (saved === 'light') {
+			root.classList.add('light');
+			root.classList.remove('dark');
+		} else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+			root.classList.add('dark');
+		}
+
 		if ('serviceWorker' in navigator) {
 			navigator.serviceWorker.register('/service-worker.js');
 			navigator.serviceWorker.addEventListener('controllerchange', () => {

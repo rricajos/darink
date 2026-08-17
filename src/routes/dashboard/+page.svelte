@@ -60,6 +60,190 @@
 			avgSleep: avg(sleeps.map((e) => e.data.hours as number))
 		};
 	});
+
+	/* --- Today's Log Overview --- */
+	const todayLog = $derived.by(() => {
+		const today = new Date().toISOString().slice(0, 10);
+		const todayEntries = store.items.filter((e) => e.createdAt.startsWith(today));
+		const groups: { key: string; label: string; items: string[] }[] = [];
+
+		const checkins = todayEntries.filter((e) => e.type === 'checkin');
+		if (checkins.length > 0) {
+			groups.push({
+				key: 'checkins',
+				label: 'Check-ins',
+				items: checkins.map((e) => `Mood ${e.data.mood} · Energy ${e.data.energy}`)
+			});
+		}
+
+		const intakes = todayEntries.filter((e) => e.type === 'intake');
+		if (intakes.length > 0) {
+			groups.push({
+				key: 'intakes',
+				label: 'Intakes',
+				items: intakes.map((e) => e.data.what as string)
+			});
+		}
+
+		const trainings = todayEntries.filter((e) => e.type.startsWith('training.'));
+		if (trainings.length > 0) {
+			groups.push({
+				key: 'training',
+				label: 'Training',
+				items: trainings.map((e) => {
+					const sub = e.type.replace('training.', '');
+					const name = (e.data.exercise ?? e.data.activity ?? e.data.routine ?? e.data.progression ?? e.data.name ?? sub) as string;
+					return `${sub}: ${name}`;
+				})
+			});
+		}
+
+		const habits = todayEntries.filter((e) => e.type === 'habit');
+		if (habits.length > 0) {
+			const habitLabels: Record<string, string> = {
+				cold: 'Cold', sun: 'Sun', fasting: 'Fasting',
+				meditation: 'Meditation', wimhof: 'Wim Hof', ejaculation: 'Ejac. control'
+			};
+			groups.push({
+				key: 'habits',
+				label: 'Habits',
+				items: habits.map((e) => habitLabels[e.data.habit as string] ?? (e.data.habit as string))
+			});
+		}
+
+		const supps = todayEntries.filter((e) => e.type === 'supplement');
+		if (supps.length > 0) {
+			groups.push({
+				key: 'supplements',
+				label: 'Supplements',
+				items: supps.map((e) => `${e.data.name}${e.data.dose ? ' ' + e.data.dose : ''}`)
+			});
+		}
+
+		const signals = todayEntries.filter((e) => e.type.startsWith('signal.'));
+		if (signals.length > 0) {
+			groups.push({
+				key: 'signals',
+				label: 'Signals',
+				items: signals.map((e) => e.type.replace('signal.', ''))
+			});
+		}
+
+		return groups;
+	});
+
+	/* --- Habit Streaks Summary --- */
+	const habitStreaks = $derived.by(() => {
+		const habitEntries = store.items.filter((e) => e.type === 'habit');
+		if (habitEntries.length === 0) return [];
+
+		const habitTypes: { id: string; label: string }[] = [
+			{ id: 'cold', label: 'Cold' },
+			{ id: 'sun', label: 'Sun' },
+			{ id: 'fasting', label: 'Fasting' },
+			{ id: 'meditation', label: 'Meditation' },
+			{ id: 'wimhof', label: 'Wim Hof' },
+			{ id: 'ejaculation', label: 'Ejac. control' }
+		];
+
+		const result: { label: string; streak: number }[] = [];
+		const today = new Date();
+
+		for (const h of habitTypes) {
+			const dates = new Set(
+				habitEntries
+					.filter((e) => e.data.habit === h.id)
+					.map((e) => (e.data.date as string) ?? e.createdAt.slice(0, 10))
+			);
+			if (dates.size === 0) continue;
+
+			let current = 0;
+			for (let i = 0; i < 365; i++) {
+				const d = new Date(today);
+				d.setDate(d.getDate() - i);
+				const key = d.toISOString().slice(0, 10);
+				if (dates.has(key)) {
+					current++;
+				} else {
+					break;
+				}
+			}
+			if (current > 0) result.push({ label: h.label, streak: current });
+		}
+
+		return result;
+	});
+
+	/* --- Sleep Quality Card --- */
+	const sleepCard = $derived.by(() => {
+		const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+		const sleeps = store.items
+			.filter((e) => e.type === 'signal.sleep' && e.createdAt >= weekAgo)
+			.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
+		if (sleeps.length === 0) return null;
+
+		const hours = sleeps.map((e) => Number(e.data.hours));
+		const quals = sleeps.map((e) => Number(e.data.quality));
+		const avg = (arr: number[]) => +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1);
+
+		return {
+			avgHours: avg(hours),
+			avgQuality: avg(quals),
+			lastHours: hours[0],
+			lastQuality: quals[0]
+		};
+	});
+
+	/* --- Correlation Insight --- */
+	const correlation = $derived.by(() => {
+		const checkins = store.items.filter((e) => e.type === 'checkin');
+		const sleeps = store.items.filter((e) => e.type === 'signal.sleep');
+		if (checkins.length === 0 || sleeps.length === 0) return null;
+
+		// Build maps by date
+		const sleepByDate = new Map<string, number>();
+		for (const s of sleeps) {
+			const date = (s.data.date as string) ?? s.createdAt.slice(0, 10);
+			sleepByDate.set(date, Number(s.data.hours));
+		}
+
+		const moodByDate = new Map<string, number>();
+		for (const c of checkins) {
+			const date = (c.data.date as string) ?? c.createdAt.slice(0, 10);
+			moodByDate.set(date, Number(c.data.mood));
+		}
+
+		// Find matching dates
+		const pairs: { x: number; y: number }[] = [];
+		for (const [date, sleepH] of sleepByDate) {
+			const m = moodByDate.get(date);
+			if (m !== undefined) pairs.push({ x: sleepH, y: m });
+		}
+
+		if (pairs.length < 5) return { r: null, label: 'Not enough data', color: 'muted' };
+
+		// Pearson correlation
+		const n = pairs.length;
+		let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+		for (const p of pairs) {
+			sumX += p.x; sumY += p.y;
+			sumXY += p.x * p.y;
+			sumX2 += p.x * p.x;
+			sumY2 += p.y * p.y;
+		}
+		const denom = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+		if (denom === 0) return { r: 0, label: 'No variance', color: 'muted' };
+
+		const r = +((n * sumXY - sumX * sumY) / denom).toFixed(2);
+		let label: string;
+		let color: string;
+
+		if (r > 0.3) { label = 'positive correlation'; color = 'green'; }
+		else if (r < -0.3) { label = 'negative correlation'; color = 'red'; }
+		else { label = 'weak correlation'; color = 'amber'; }
+
+		return { r, label, color };
+	});
 </script>
 
 <PageHeader title="Dashboard" />
@@ -109,6 +293,74 @@
 		<span class="dot mood"></span> Mood
 		<span class="dot energy"></span> Energy
 	</div>
+</section>
+{/if}
+
+{#if todayLog.length > 0}
+<section class="today-log">
+	<h2>Today's log</h2>
+	{#each todayLog as group}
+	<div class="log-group">
+		<h3>{group.label}</h3>
+		<div class="log-chips">
+			{#each group.items as item}
+			<span class="log-chip">{item}</span>
+			{/each}
+		</div>
+	</div>
+	{/each}
+</section>
+{/if}
+
+{#if habitStreaks.length > 0}
+<section class="streaks-summary">
+	<h2>Habit streaks</h2>
+	<div class="streaks-row">
+		{#each habitStreaks as hs}
+		<span class="streak-item">🔥 {hs.label} {hs.streak}d</span>
+		{/each}
+	</div>
+</section>
+{/if}
+
+{#if sleepCard}
+<section class="sleep-card-section">
+	<h2>Sleep (7 days)</h2>
+	<div class="sleep-card">
+		<div class="sleep-stat">
+			<span class="sleep-val">{sleepCard.avgHours}h</span>
+			<span class="sleep-lbl">Avg hours</span>
+		</div>
+		<div class="sleep-stat">
+			<span class="sleep-val">{sleepCard.avgQuality}/10</span>
+			<span class="sleep-lbl">Avg quality</span>
+		</div>
+		<div class="sleep-stat">
+			<span class="sleep-val">{sleepCard.lastHours}h</span>
+			<span class="sleep-lbl">Last night</span>
+		</div>
+		<div class="sleep-stat">
+			<span class="sleep-val">{sleepCard.lastQuality}/10</span>
+			<span class="sleep-lbl">Last quality</span>
+		</div>
+	</div>
+</section>
+{/if}
+
+{#if correlation}
+<section class="correlation-section">
+	<h2>Correlation insight</h2>
+	{#if correlation.r !== null}
+	<div class="corr-card corr-{correlation.color}">
+		<span class="corr-indicator"></span>
+		<span>Sleep ↔ Mood: {correlation.r > 0 ? '+' : ''}{correlation.r} ({correlation.label})</span>
+	</div>
+	{:else}
+	<div class="corr-card corr-muted">
+		<span class="corr-indicator"></span>
+		<span>{correlation.label}</span>
+	</div>
+	{/if}
 </section>
 {/if}
 
@@ -222,6 +474,101 @@
 	}
 	.dot.mood { background: var(--c-accent); }
 	.dot.energy { background: var(--c-done); }
+
+	/* Today's Log */
+	.today-log {
+		padding: 0 1rem 1rem;
+	}
+	.log-group {
+		margin-bottom: 0.75rem;
+	}
+	.log-group h3 {
+		font-size: 0.8rem;
+		color: var(--c-text-muted);
+		margin-bottom: 0.25rem;
+		font-weight: 500;
+	}
+	.log-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+	}
+	.log-chip {
+		display: inline-block;
+		padding: 0.25rem 0.6rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: 16px;
+		font-size: 0.8rem;
+	}
+
+	/* Habit Streaks */
+	.streaks-summary {
+		padding: 0 1rem 1.5rem;
+	}
+	.streaks-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		align-items: center;
+	}
+	.streak-item {
+		font-size: 0.85rem;
+		font-weight: 500;
+		white-space: nowrap;
+	}
+
+	/* Sleep Card */
+	.sleep-card-section {
+		padding: 0 1rem 1.5rem;
+	}
+	.sleep-card {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 0.5rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem;
+	}
+	.sleep-stat {
+		text-align: center;
+	}
+	.sleep-val {
+		display: block;
+		font-size: 1.15rem;
+		font-weight: 700;
+	}
+	.sleep-lbl {
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+	}
+
+	/* Correlation */
+	.correlation-section {
+		padding: 0 1rem 1.5rem;
+	}
+	.corr-card {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem 1rem;
+		font-size: 0.85rem;
+	}
+	.corr-indicator {
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+	.corr-green .corr-indicator { background: #22c55e; }
+	.corr-amber .corr-indicator { background: #f59e0b; }
+	.corr-red .corr-indicator { background: #ef4444; }
+	.corr-muted .corr-indicator { background: var(--c-text-muted); }
 
 	.stats {
 		display: grid;

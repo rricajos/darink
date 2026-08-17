@@ -3,6 +3,7 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import type { Entry } from '$lib/db';
 
 	const store = useEntries('habit');
 
@@ -119,7 +120,39 @@
 	</section>
 {/if}
 
-<EntryList items={store.items} limit={20}>
+{#snippet editForm(item: Entry, done: () => void)}
+	{@const data = item.data}
+	<form class="edit-inline" onsubmit={(e) => {
+		e.preventDefault();
+		const fd = new FormData(e.currentTarget);
+		entries.update(item.id, {
+			date: (fd.get('date') as string),
+			habit: fd.get('habit') as string,
+			duration: Number(fd.get('duration')),
+			notes: (fd.get('notes') as string).trim()
+		});
+		toast.show('Updated');
+		done();
+	}}>
+		<label>Date <input type="date" name="date" value={data.date as string ?? ''} /></label>
+		<label>
+			Habit
+			<select name="habit">
+				{#each habitTypes as h}
+					<option value={h.id} selected={data.habit === h.id}>{h.label}</option>
+				{/each}
+			</select>
+		</label>
+		<label>Duration <input type="number" name="duration" min="0" step="1" value={data.duration} /></label>
+		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<div class="edit-actions">
+			<button type="submit">Save</button>
+			<button type="button" onclick={done}>Cancel</button>
+		</div>
+	</form>
+{/snippet}
+
+<EntryList items={store.items} {editForm} limit={20}>
 	{#snippet row(item)}
 		<span>
 			<strong>{getLabel(item.data.habit as string)}</strong>
@@ -169,6 +202,10 @@
 	.streak-meta { font-size: 0.75rem; color: var(--c-text-muted); }
 
 	.date { font-size: 0.8rem; color: var(--c-text-muted); margin-left: 0.25rem; }
+
+	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
+	.edit-actions { display: flex; gap: 0.5rem; }
+	.edit-actions button { flex: 1; }
 
 	@media (min-width: 600px) {
 		.streak-grid { grid-template-columns: repeat(3, 1fr); }
