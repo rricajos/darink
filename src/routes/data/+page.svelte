@@ -59,4 +59,12 @@
 		gap: 0.75rem;
 		padding: 0 1rem;
 	}
+
+	@media (min-width: 600px) {
+		.actions {
+			flex-direction: row;
+			flex-wrap: wrap;
+		}
+		.actions button { flex: 1; min-width: 150px; }
+	}
 </style>

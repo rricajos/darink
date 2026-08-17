@@ -61,4 +61,16 @@
 	.stat.total { grid-column: 1 / -1; }
 	.value { display: block; font-size: 1.5rem; font-weight: 700; }
 	.label { font-size: 0.8rem; color: var(--c-text-muted); }
+
+	@media (min-width: 600px) {
+		.stats { grid-template-columns: repeat(3, 1fr); }
+		.stat.highlight { grid-column: 1 / -1; }
+		.stat.total { grid-column: 1 / -1; }
+		.value { font-size: 2rem; }
+	}
+
+	@media (max-width: 359px) {
+		.stats { grid-template-columns: 1fr; }
+		.stat.highlight, .stat.total { grid-column: auto; }
+	}
 </style>

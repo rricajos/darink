@@ -57,8 +57,8 @@
 
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
-	.row { display: flex; gap: 0.5rem; }
-	.row label { flex: 1; }
+	.row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+	.row label { flex: 1; min-width: 120px; }
 	.exp { display: flex; align-items: center; gap: 0.5rem; }
 	.exp strong { flex: 1; }
 	.badge { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 12px; color: #fff; }

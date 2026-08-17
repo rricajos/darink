@@ -34,7 +34,8 @@
 		bottom: 0;
 		left: 0;
 		right: 0;
-		height: var(--nav-height);
+		height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+		padding-bottom: env(safe-area-inset-bottom, 0px);
 		background: var(--c-bg-card);
 		border-top: 1px solid var(--c-border);
 		display: flex;

@@ -75,8 +75,8 @@
 
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
-	.row { display: flex; gap: 0.75rem; }
-	.row label { flex: 1; }
+	.row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+	.row label { flex: 1; min-width: 120px; }
 
 	.intake-row { display: flex; align-items: center; gap: 0.5rem; }
 	.intake-row strong { flex: 1; }

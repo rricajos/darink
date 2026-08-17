@@ -55,7 +55,7 @@
 
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
-	.row { display: flex; gap: 0.5rem; }
-	.row label { flex: 1; }
+	.row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+	.row label { flex: 1; min-width: 120px; }
 	input[type="range"] { padding: 0; }
 </style>

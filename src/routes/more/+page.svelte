@@ -25,10 +25,14 @@
 
 <style>
 	.grid {
-		display: flex;
-		flex-direction: column;
+		display: grid;
+		grid-template-columns: 1fr;
 		gap: 0.5rem;
 		padding: 0 1rem;
+	}
+
+	@media (min-width: 600px) {
+		.grid { grid-template-columns: repeat(2, 1fr); }
 	}
 
 	.card {

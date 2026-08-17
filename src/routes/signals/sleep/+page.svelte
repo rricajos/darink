@@ -42,8 +42,8 @@
 
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
-	.row { display: flex; gap: 0.5rem; }
-	.row label { flex: 1; }
+	.row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+	.row label { flex: 1; min-width: 120px; }
 	.checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
 	.checkbox input { width: auto; }
 	input[type="range"] { padding: 0; }
