@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '$lib/styles/global.css';
 	import BottomNav from '$lib/components/BottomNav.svelte';
+	import QuickLog from '$lib/components/QuickLog.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { onMount } from 'svelte';
 	import { onNavigate } from '$app/navigation';
@@ -97,6 +98,7 @@
 	</main>
 </div>
 
+<QuickLog />
 <Toast />
 
 <style>

@@ -1,10 +1,18 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import HeatmapCalendar from '$lib/components/HeatmapCalendar.svelte';
 	import { useEntries } from '$lib/stores/entries.svelte';
 
 	const store = useEntries();
 
 	let period = $state<'week' | 'month' | '3month'>('week');
+	let heatmapFilter = $state<string | null>(null);
+
+	const heatmapTypes = ['checkin', 'intake', 'training', 'habit', 'supplement', 'journal'] as const;
+
+	const filteredHeatmapItems = $derived(
+		heatmapFilter ? store.items.filter((e) => e.type === heatmapFilter || e.type.startsWith(heatmapFilter + '.')) : store.items
+	);
 
 	const periodDays = $derived(period === 'week' ? 7 : period === 'month' ? 30 : 90);
 
@@ -815,6 +823,19 @@
 	{/if}
 </section>
 
+<section class="heatmap-section">
+	<h2>Activity</h2>
+	<div class="heatmap-filter">
+		<select class="heatmap-select" bind:value={heatmapFilter}>
+			<option value={null}>All</option>
+			{#each heatmapTypes as t}
+				<option value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+			{/each}
+		</select>
+	</div>
+	<HeatmapCalendar items={filteredHeatmapItems} typeFilter={heatmapFilter} />
+</section>
+
 <section class="stats">
 	<div class="stat highlight">
 		<span class="value">{stats.today}</span>
@@ -1213,6 +1234,23 @@
 		max-width: 300px;
 		display: block;
 		margin: 0 auto;
+	}
+
+	/* Heatmap Section */
+	.heatmap-section {
+		padding: 0 1rem 1.5rem;
+	}
+	.heatmap-filter {
+		margin-bottom: 0.5rem;
+	}
+	.heatmap-select {
+		padding: 0.4rem 0.5rem;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		background: var(--c-bg-card);
+		color: var(--c-text);
+		font-size: 0.8rem;
+		font-family: inherit;
 	}
 
 	.stats {

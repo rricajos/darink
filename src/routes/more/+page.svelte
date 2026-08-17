@@ -17,6 +17,7 @@
 				{ href: '/timeline', label: 'Timeline', desc: 'Activity feed' },
 				{ href: '/goals', label: 'Goals', desc: 'Targets and progress' },
 				{ href: '/experiments', label: 'Experiments', desc: 'n=1 testing' },
+				{ href: '/records', label: 'Records', desc: 'Personal bests and milestones' },
 				{ href: '/report', label: 'Report', desc: 'Weekly summary for review' }
 			]
 		},
@@ -24,6 +25,7 @@
 			title: 'Settings',
 			items: [
 				{ href: '/profile', label: 'Profile', desc: 'Body metrics and targets' },
+				{ href: '/reminders', label: 'Reminders', desc: 'Notification reminders' },
 				{ href: '/data', label: 'Data', desc: 'Search, export, import' },
 				{ href: '/ref', label: 'Reference', desc: 'Health knowledge base' }
 			]

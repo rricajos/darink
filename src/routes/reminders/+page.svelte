@@ -1,0 +1,494 @@
+<script lang="ts">
+	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { ui } from '$lib/db';
+	import { toast } from '$lib/stores/toast.svelte';
+	import { onMount } from 'svelte';
+
+	interface Reminder {
+		id: string;
+		type: string;
+		time: string;
+		days: number[];
+		label: string;
+		enabled: boolean;
+	}
+
+	const TYPES = ['checkin', 'habit', 'supplement', 'training', 'journal', 'custom'] as const;
+	const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+
+	let reminders = $state<Reminder[]>([]);
+	let permission = $state<NotificationPermission>('default');
+	let lastFired = $state<Record<string, string>>({});
+
+	// Form state
+	let formType = $state<string>('checkin');
+	let formTime = $state('08:00');
+	let formDays = $state<boolean[]>([true, true, true, true, true, true, true]);
+	let formLabel = $state('');
+
+	let intervalId: ReturnType<typeof setInterval> | undefined;
+
+	function generateId(): string {
+		return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+	}
+
+	function saveReminders(): void {
+		ui.patch({ reminders });
+	}
+
+	function addReminder(): void {
+		const selectedDays = formDays
+			.map((checked, i) => (checked ? i : -1))
+			.filter((d) => d >= 0);
+
+		if (selectedDays.length === 0) {
+			toast.show('Select at least one day');
+			return;
+		}
+
+		const reminder: Reminder = {
+			id: generateId(),
+			type: formType,
+			time: formTime,
+			days: selectedDays,
+			label: formLabel.trim(),
+			enabled: true
+		};
+
+		reminders = [...reminders, reminder];
+		saveReminders();
+		toast.show('Reminder added');
+
+		// Reset form
+		formLabel = '';
+		formDays = [true, true, true, true, true, true, true];
+	}
+
+	function toggleReminder(id: string): void {
+		reminders = reminders.map((r) =>
+			r.id === id ? { ...r, enabled: !r.enabled } : r
+		);
+		saveReminders();
+	}
+
+	function deleteReminder(id: string): void {
+		reminders = reminders.filter((r) => r.id !== id);
+		saveReminders();
+		toast.show('Reminder deleted');
+	}
+
+	async function requestPermission(): Promise<void> {
+		if (!('Notification' in window)) {
+			toast.show('Notifications not supported');
+			return;
+		}
+		const result = await Notification.requestPermission();
+		permission = result;
+		if (result === 'granted') {
+			toast.show('Notifications enabled');
+		} else if (result === 'denied') {
+			toast.show('Notifications blocked');
+		}
+	}
+
+	function checkReminders(): void {
+		if (permission !== 'granted') return;
+		const now = new Date();
+		const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+		// JS getDay(): 0=Sun, but our days array: 0=Mon..6=Sun
+		const jsDay = now.getDay();
+		const currentDay = jsDay === 0 ? 6 : jsDay - 1;
+		const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${currentTime}`;
+
+		for (const r of reminders) {
+			if (!r.enabled) continue;
+			if (r.time !== currentTime) continue;
+			if (!r.days.includes(currentDay)) continue;
+
+			const fireKey = `${r.id}-${minuteKey}`;
+			if (lastFired[fireKey]) continue;
+
+			lastFired = { ...lastFired, [fireKey]: minuteKey };
+
+			const title = r.label || `${r.type.charAt(0).toUpperCase() + r.type.slice(1)} reminder`;
+			new Notification(title, {
+				body: `Time for your ${r.type} at ${r.time}`,
+				icon: '/favicon.png'
+			});
+		}
+	}
+
+	function daysDisplay(days: number[]): string {
+		if (days.length === 7) return 'Every day';
+		if (days.length === 5 && !days.includes(5) && !days.includes(6)) return 'Weekdays';
+		if (days.length === 2 && days.includes(5) && days.includes(6)) return 'Weekends';
+		return days.map((d) => DAY_LABELS[d]).join(', ');
+	}
+
+	onMount(() => {
+		const stored = ui.get().reminders as Reminder[] | undefined;
+		if (stored && Array.isArray(stored)) {
+			reminders = stored;
+		}
+
+		if ('Notification' in window) {
+			permission = Notification.permission;
+		}
+
+		checkReminders();
+		intervalId = setInterval(checkReminders, 60_000);
+
+		return () => {
+			if (intervalId) clearInterval(intervalId);
+		};
+	});
+</script>
+
+<svelte:head>
+	<title>Reminders | Darink</title>
+</svelte:head>
+
+<PageHeader title="Reminders" />
+
+<!-- Notification permission -->
+<section class="perm">
+	{#if permission === 'granted'}
+		<div class="perm-status granted">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+			Notifications enabled
+		</div>
+	{:else if permission === 'denied'}
+		<div class="perm-status denied">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+			Notifications blocked (update browser settings)
+		</div>
+	{:else}
+		<button class="perm-btn" onclick={requestPermission}>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+			Enable notifications
+		</button>
+	{/if}
+</section>
+
+<!-- Add reminder form -->
+<section class="form">
+	<h2>New Reminder</h2>
+	<div class="row">
+		<label>Type
+			<select bind:value={formType}>
+				{#each TYPES as t}
+					<option value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+				{/each}
+			</select>
+		</label>
+		<label>Time
+			<input type="time" bind:value={formTime} />
+		</label>
+	</div>
+	<div class="days-row">
+		<span class="days-label">Days</span>
+		<div class="days-grid">
+			{#each DAY_LABELS as day, i}
+				<label class="day-check" class:checked={formDays[i]}>
+					<input type="checkbox" bind:checked={formDays[i]} />
+					{day}
+				</label>
+			{/each}
+		</div>
+	</div>
+	<label>Label (optional)
+		<input type="text" bind:value={formLabel} placeholder="e.g. Morning vitamins" />
+	</label>
+	<button class="primary" onclick={addReminder}>Add reminder</button>
+</section>
+
+<!-- Reminder list -->
+<section class="list">
+	<h2>Active Reminders</h2>
+	{#if reminders.length === 0}
+		<div class="empty">
+			<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+			<p>No reminders yet</p>
+			<span>Create one above to get started</span>
+		</div>
+	{:else}
+		{#each reminders as r (r.id)}
+			<div class="reminder-card" class:disabled={!r.enabled}>
+				<button class="toggle" class:on={r.enabled} onclick={() => toggleReminder(r.id)} aria-label={r.enabled ? 'Disable' : 'Enable'}>
+					<span class="toggle-knob"></span>
+				</button>
+				<div class="reminder-info">
+					<div class="reminder-top">
+						<span class="badge">{r.type}</span>
+						<span class="time">{r.time}</span>
+					</div>
+					{#if r.label}
+						<span class="label">{r.label}</span>
+					{/if}
+					<span class="days">{daysDisplay(r.days)}</span>
+				</div>
+				<button class="delete" onclick={() => deleteReminder(r.id)} aria-label="Delete reminder">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+				</button>
+			</div>
+		{/each}
+	{/if}
+</section>
+
+<style>
+	h2 {
+		font-size: 0.9rem;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	/* Permission section */
+	.perm {
+		padding: 0 1rem 1rem;
+	}
+
+	.perm-status {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1rem;
+		border-radius: var(--radius);
+		font-size: 0.85rem;
+		font-weight: 500;
+	}
+
+	.perm-status.granted {
+		background: color-mix(in srgb, var(--c-done) 15%, transparent);
+		color: var(--c-done);
+	}
+
+	.perm-status.denied {
+		background: color-mix(in srgb, var(--c-cancel) 15%, transparent);
+		color: var(--c-cancel);
+	}
+
+	.perm-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1rem;
+		background: var(--c-accent-bg);
+		color: var(--c-accent);
+		border: 1px solid var(--c-accent);
+		border-radius: var(--radius);
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		width: 100%;
+		justify-content: center;
+	}
+
+	.perm-btn:hover {
+		background: var(--c-accent);
+		color: var(--c-bg);
+	}
+
+	/* Form */
+	.form {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		padding: 0 1rem 1.5rem;
+	}
+
+	.row {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.row label {
+		flex: 1;
+		min-width: 120px;
+	}
+
+	.days-row {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.days-label {
+		font-size: 0.85rem;
+		font-weight: 500;
+	}
+
+	.days-grid {
+		display: flex;
+		gap: 0.25rem;
+		flex-wrap: wrap;
+	}
+
+	.day-check {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 2.75rem;
+		padding: 0.4rem 0.5rem;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		font-size: 0.8rem;
+		cursor: pointer;
+		user-select: none;
+		transition: background 0.15s, border-color 0.15s, color 0.15s;
+		background: var(--c-bg-card);
+		color: var(--c-text-muted);
+	}
+
+	.day-check input {
+		position: absolute;
+		opacity: 0;
+		pointer-events: none;
+		width: 0;
+		height: 0;
+	}
+
+	.day-check.checked {
+		background: var(--c-accent);
+		border-color: var(--c-accent);
+		color: var(--c-bg);
+		font-weight: 600;
+	}
+
+	/* Reminder list */
+	.list {
+		padding: 0 1rem 2rem;
+	}
+
+	.empty {
+		text-align: center;
+		padding: 2.5rem 1rem;
+		color: var(--c-text-muted);
+	}
+
+	.empty svg {
+		opacity: 0.3;
+		margin-bottom: 0.75rem;
+	}
+
+	.empty p {
+		font-weight: 600;
+		margin-bottom: 0.25rem;
+	}
+
+	.empty span {
+		font-size: 0.85rem;
+	}
+
+	.reminder-card {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		margin-bottom: 0.5rem;
+		transition: opacity 0.15s;
+	}
+
+	.reminder-card.disabled {
+		opacity: 0.5;
+	}
+
+	.reminder-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-width: 0;
+	}
+
+	.reminder-top {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.badge {
+		font-size: 0.7rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		padding: 0.15rem 0.5rem;
+		border-radius: var(--radius);
+		background: var(--c-accent-bg);
+		color: var(--c-accent);
+	}
+
+	.time {
+		font-size: 1rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.label {
+		font-size: 0.85rem;
+		color: var(--c-text);
+	}
+
+	.days {
+		font-size: 0.75rem;
+		color: var(--c-text-muted);
+	}
+
+	/* Toggle switch */
+	.toggle {
+		position: relative;
+		width: 40px;
+		height: 22px;
+		border-radius: 11px;
+		background: var(--c-border);
+		border: none;
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: background 0.2s;
+		padding: 0;
+	}
+
+	.toggle.on {
+		background: var(--c-accent);
+	}
+
+	.toggle-knob {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: white;
+		transition: transform 0.2s;
+	}
+
+	.toggle.on .toggle-knob {
+		transform: translateX(18px);
+	}
+
+	/* Delete button */
+	.delete {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: var(--c-text-muted);
+		padding: 0.25rem;
+		border-radius: var(--radius);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		transition: color 0.15s;
+	}
+
+	.delete:hover {
+		color: var(--c-cancel);
+	}
+</style>
