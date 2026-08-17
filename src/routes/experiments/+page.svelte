@@ -14,6 +14,69 @@
 	let result = $state('');
 	let status = $state<'active' | 'completed' | 'abandoned'>('active');
 
+	/* --- Status Overview --- */
+	const statusCounts = $derived.by(() => {
+		const items = store.items;
+		return {
+			active: items.filter((e) => e.data.status === 'active').length,
+			completed: items.filter((e) => e.data.status === 'completed').length,
+			abandoned: items.filter((e) => e.data.status === 'abandoned').length,
+			total: items.length
+		};
+	});
+
+	/* --- Active Experiments Timeline --- */
+	const activeExperiments = $derived.by(() => {
+		const now = Date.now();
+		return store.items
+			.filter((e) => e.data.status === 'active')
+			.map((e) => {
+				const elapsed = Math.floor((now - new Date(e.createdAt).getTime()) / 86400000);
+				const durStr = (e.data.duration as string) ?? '';
+				const durMatch = durStr.match(/(\d+)/);
+				const durDays = durMatch ? parseInt(durMatch[1], 10) : null;
+				const pct = durDays && durDays > 0 ? Math.min(100, Math.round((elapsed / durDays) * 100)) : null;
+				return {
+					id: e.id,
+					hypothesis: (e.data.hypothesis as string) ?? '',
+					variable: (e.data.variable as string) ?? '',
+					duration: durStr,
+					elapsed,
+					durDays,
+					pct
+				};
+			});
+	});
+
+	/* --- Completed Results --- */
+	const completedExperiments = $derived.by(() => {
+		return store.items
+			.filter((e) => e.data.status === 'completed')
+			.map((e) => {
+				const created = new Date(e.createdAt).getTime();
+				const updated = new Date(e.updatedAt).getTime();
+				const diffDays = Math.max(0, Math.floor((updated - created) / 86400000));
+				return {
+					id: e.id,
+					hypothesis: (e.data.hypothesis as string) ?? '',
+					result: (e.data.result as string) ?? '',
+					durationDays: diffDays
+				};
+			});
+	});
+
+	/* --- Success Rate --- */
+	const successRate = $derived.by(() => {
+		const completed = store.items.filter((e) => e.data.status === 'completed');
+		if (completed.length === 0) return null;
+		const withResult = completed.filter((e) => ((e.data.result as string) ?? '').trim().length > 0).length;
+		return {
+			pct: Math.round((withResult / completed.length) * 100),
+			withResult,
+			total: completed.length
+		};
+	});
+
 	function submit() {
 		if (!hypothesis.trim()) return;
 		entries.add('experiment', {
@@ -45,6 +108,94 @@
 	<label>Result <textarea bind:value={result} rows="2" placeholder="Observations, outcome..."></textarea></label>
 	<button class="primary" onclick={submit}>Log experiment</button>
 </section>
+
+<!-- Status Overview Cards -->
+{#if store.items.length > 0}
+<section class="overview-cards">
+	<div class="metric-card accent">
+		<span class="metric-val">{statusCounts.active}</span>
+		<span class="metric-lbl">Active</span>
+	</div>
+	<div class="metric-card done">
+		<span class="metric-val">{statusCounts.completed}</span>
+		<span class="metric-lbl">Completed</span>
+	</div>
+	<div class="metric-card muted">
+		<span class="metric-val">{statusCounts.abandoned}</span>
+		<span class="metric-lbl">Abandoned</span>
+	</div>
+	<div class="metric-card">
+		<span class="metric-val">{statusCounts.total}</span>
+		<span class="metric-lbl">Total</span>
+	</div>
+</section>
+{/if}
+
+<!-- Active Experiments Timeline -->
+{#if store.items.length > 0 && activeExperiments.length > 0}
+<section class="timeline-section">
+	<h2>Active experiments</h2>
+	<div class="timeline-list">
+		{#each activeExperiments as exp}
+		<div class="timeline-card border-active">
+			<strong>{exp.hypothesis}</strong>
+			<div class="timeline-meta">
+				<span>Variable: {exp.variable}</span>
+				<span>Duration: {exp.duration}</span>
+				<span>{exp.elapsed} day{exp.elapsed !== 1 ? 's' : ''} elapsed</span>
+			</div>
+			{#if exp.pct !== null}
+			{@const clamped = Math.min(exp.pct, 100)}
+			<div class="progress-track">
+				<div class="progress-fill" style="width: {clamped}%"></div>
+			</div>
+			<span class="progress-label">{clamped}% of {exp.durDays} days</span>
+			{/if}
+		</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+<!-- Completed Results Summary -->
+{#if store.items.length > 0 && completedExperiments.length > 0}
+<section class="results-section">
+	<h2>Completed results</h2>
+	<div class="results-list">
+		{#each completedExperiments as exp}
+		<div class="timeline-card border-completed">
+			<strong>{exp.hypothesis}</strong>
+			{#if exp.result}
+			<div class="result-text">{exp.result}</div>
+			{:else}
+			<div class="result-text empty">No result recorded</div>
+			{/if}
+			<div class="timeline-meta">
+				<span>{exp.durationDays} day{exp.durationDays !== 1 ? 's' : ''} from start to completion</span>
+			</div>
+		</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+<!-- Success Rate -->
+{#if store.items.length > 0 && successRate !== null}
+<section class="success-section">
+	<h2>Success rate</h2>
+	<div class="success-card">
+		{#if successRate.pct >= 75}
+		<span class="success-indicator high"></span>
+		{:else if successRate.pct >= 40}
+		<span class="success-indicator mid"></span>
+		{:else}
+		<span class="success-indicator low"></span>
+		{/if}
+		<span class="success-pct">{successRate.pct}%</span>
+		<span class="success-detail">{successRate.withResult} of {successRate.total} completed experiments have recorded results</span>
+	</div>
+</section>
+{/if}
 
 {#snippet editForm(item: Entry, done: () => void)}
 	{@const data = item.data}
@@ -108,4 +259,142 @@
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+
+	/* Status Overview Cards */
+	.overview-cards {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 0.5rem;
+		padding: 1rem;
+	}
+	.metric-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem;
+		text-align: center;
+	}
+	.metric-card.accent { border-color: var(--c-accent); }
+	.metric-card.done { border-color: var(--c-done); }
+	.metric-card.muted { border-color: var(--c-text-muted); }
+	.metric-val {
+		display: block;
+		font-size: 1.4rem;
+		font-weight: 700;
+	}
+	.metric-lbl {
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	/* Timeline Section */
+	.timeline-section, .results-section, .success-section {
+		padding: 0 1rem 1rem;
+	}
+	.timeline-section h2, .results-section h2, .success-section h2 {
+		font-size: 0.9rem;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+	.timeline-list, .results-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	.timeline-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem 1rem;
+		border-left: 4px solid var(--c-border);
+	}
+	.timeline-card.border-active { border-left-color: var(--c-accent); }
+	.timeline-card.border-completed { border-left-color: var(--c-done); }
+	.timeline-card.border-abandoned { border-left-color: var(--c-text-muted); }
+	.timeline-card strong {
+		display: block;
+		margin-bottom: 0.25rem;
+	}
+	.timeline-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		font-size: 0.8rem;
+		color: var(--c-text-muted);
+	}
+	.timeline-meta span:not(:last-child)::after {
+		content: '·';
+		margin-left: 0.5rem;
+	}
+
+	/* Progress bar */
+	.progress-track {
+		height: 6px;
+		background: var(--c-border);
+		border-radius: 3px;
+		margin-top: 0.5rem;
+		overflow: hidden;
+	}
+	.progress-fill {
+		height: 100%;
+		background: var(--c-accent);
+		border-radius: 3px;
+		transition: width 0.3s;
+	}
+	.progress-label {
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+		margin-top: 0.15rem;
+		display: block;
+	}
+
+	/* Results */
+	.result-text {
+		font-size: 0.85rem;
+		margin: 0.25rem 0;
+	}
+	.result-text.empty {
+		color: var(--c-text-muted);
+		font-style: italic;
+	}
+
+	/* Success Rate */
+	.success-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+	.success-indicator {
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+	.success-indicator.high { background: var(--c-done); }
+	.success-indicator.mid { background: #f59e0b; }
+	.success-indicator.low { background: var(--c-cancel); }
+	.success-pct {
+		font-size: 1.25rem;
+		font-weight: 700;
+		flex-shrink: 0;
+	}
+	.success-detail {
+		font-size: 0.8rem;
+		color: var(--c-text-muted);
+	}
+
+	@media (max-width: 400px) {
+		.overview-cards {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
 </style>
