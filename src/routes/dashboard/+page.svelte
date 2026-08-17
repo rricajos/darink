@@ -1,6 +1,6 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { useEntries } from '$lib/stores/entries';
+	import { useEntries } from '$lib/stores/entries.svelte';
 
 	const store = useEntries();
 

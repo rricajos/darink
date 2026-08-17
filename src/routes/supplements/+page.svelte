@@ -1,8 +1,8 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import EntryList from '$lib/components/EntryList.svelte';
-	import { useEntries, entries } from '$lib/stores/entries';
-	import { toast } from '$lib/stores/toast';
+	import { useEntries, entries } from '$lib/stores/entries.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	const store = useEntries('supplement');
 

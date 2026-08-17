@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Entry } from '$lib/db';
 	import type { Snippet } from 'svelte';
-	import { entries } from '$lib/stores/entries';
-	import { toast } from '$lib/stores/toast';
+	import { entries } from '$lib/stores/entries.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	let { items, row, limit = 50 }: {
 		items: Entry[];

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { entries } from '$lib/stores/entries';
-	import { toast } from '$lib/stores/toast';
+	import { entries } from '$lib/stores/entries.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	let zone = $state('');
 	let density = $state(5);

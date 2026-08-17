@@ -1,7 +1,7 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { useEntries, entries } from '$lib/stores/entries';
-	import { toast } from '$lib/stores/toast';
+	import { useEntries, entries } from '$lib/stores/entries.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	const store = useEntries('habit');
 
