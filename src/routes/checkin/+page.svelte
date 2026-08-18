@@ -14,8 +14,32 @@
 	let stress = $state(3);
 	let morningErection = $state(false);
 	let notes = $state('');
+	let errors = $state<Record<string, string>>({});
+
+	function validate(): boolean {
+		const e: Record<string, string> = {};
+		const m = Number(mood);
+		const en = Number(energy);
+		const st = Number(stress);
+		const sl = Number(sleep);
+		if (!Number.isInteger(m) || m < 1 || m > 10) e.mood = 'Mood must be between 1 and 10';
+		if (!Number.isInteger(en) || en < 1 || en > 10) e.energy = 'Energy must be between 1 and 10';
+		if (!Number.isInteger(st) || st < 1 || st > 10) e.stress = 'Stress must be between 1 and 10';
+		if (isNaN(sl) || sl < 0 || sl > 24) e.sleep = 'Sleep must be between 0 and 24 hours';
+		errors = e;
+		return Object.keys(e).length === 0;
+	}
+
+	function clearError(field: string) {
+		if (errors[field]) {
+			const next = { ...errors };
+			delete next[field];
+			errors = next;
+		}
+	}
 
 	function submit() {
+		if (!validate()) return;
 		entries.add('checkin', {
 			date, mood, energy, sleep, stress, morningErection, notes,
 			period: new Date().getHours() < 14 ? 'morning' : 'night'
@@ -23,6 +47,7 @@
 		date = new Date().toISOString().slice(0, 10);
 		mood = 5; energy = 5; sleep = 7; stress = 3;
 		morningErection = false; notes = '';
+		errors = {};
 		toast.show('Check-in saved');
 	}
 
@@ -45,10 +70,14 @@
 
 <section class="form">
 	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Mood ({mood}/10) <input type="range" min="1" max="10" bind:value={mood} /></label>
-	<label>Energy ({energy}/10) <input type="range" min="1" max="10" bind:value={energy} /></label>
-	<label>Sleep hours ({sleep}) <input type="number" min="0" max="14" step="0.5" bind:value={sleep} /></label>
-	<label>Stress ({stress}/10) <input type="range" min="1" max="10" bind:value={stress} /></label>
+	<label class:field-has-error={!!errors.mood}>Mood ({mood}/10) <input type="range" min="1" max="10" bind:value={mood} oninput={() => clearError('mood')} /></label>
+	{#if errors.mood}<span class="field-error">{errors.mood}</span>{/if}
+	<label class:field-has-error={!!errors.energy}>Energy ({energy}/10) <input type="range" min="1" max="10" bind:value={energy} oninput={() => clearError('energy')} /></label>
+	{#if errors.energy}<span class="field-error">{errors.energy}</span>{/if}
+	<label class:field-has-error={!!errors.sleep}>Sleep hours ({sleep}) <input type="number" min="0" max="14" step="0.5" bind:value={sleep} oninput={() => clearError('sleep')} /></label>
+	{#if errors.sleep}<span class="field-error">{errors.sleep}</span>{/if}
+	<label class:field-has-error={!!errors.stress}>Stress ({stress}/10) <input type="range" min="1" max="10" bind:value={stress} oninput={() => clearError('stress')} /></label>
+	{#if errors.stress}<span class="field-error">{errors.stress}</span>{/if}
 	<label class="checkbox"><input type="checkbox" bind:checked={morningErection} /> Morning erection</label>
 	<label>Notes <textarea bind:value={notes} placeholder="How do you feel?" rows="2"></textarea></label>
 	<div class="form-actions">
@@ -194,6 +223,9 @@
 {/if}
 
 <style>
+	.field-error { font-size: 0.75rem; color: var(--c-cancel); margin-top: 0.15rem; display: block; }
+	.field-has-error { color: var(--c-cancel); }
+	.field-has-error input { border-color: var(--c-cancel); }
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem 1rem; }
 	.checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
 	.checkbox input { width: auto; }

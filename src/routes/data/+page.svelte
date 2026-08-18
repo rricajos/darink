@@ -2,7 +2,7 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import TagInput from '$lib/components/TagInput.svelte';
 	import { db, type Entry } from '$lib/db';
-	import { useEntries, bumpEntries } from '$lib/stores/entries.svelte';
+	import { useEntries, bumpEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 
 	const store = useEntries();
@@ -231,6 +231,66 @@
 		toast.show('All data cleared');
 		bumpEntries();
 	}
+
+	/* --- Storage Health --- */
+	const MAX_BYTES = 5 * 1024 * 1024;
+
+	const storageHealth = $derived.by(() => {
+		const _ = store.items; // reactivity trigger
+		const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('darinkDB') ?? '' : '';
+		const usedBytes = new Blob([raw]).size;
+		const pct = (usedBytes / MAX_BYTES) * 100;
+		const usedMB = (usedBytes / (1024 * 1024)).toFixed(2);
+		const maxMB = (MAX_BYTES / (1024 * 1024)).toFixed(0);
+		const level: 'ok' | 'warn' | 'critical' = pct > 80 ? 'critical' : pct > 50 ? 'warn' : 'ok';
+		return { usedBytes, pct, usedMB, maxMB, level };
+	});
+
+	const duplicates = $derived.by(() => {
+		const all = store.items;
+		const seen = new Map<string, Entry>();
+		const dupeIds: string[] = [];
+		const sorted = all.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+		for (const e of sorted) {
+			const key = e.type + '|' + e.createdAt + '|' + JSON.stringify(e.data);
+			if (seen.has(key)) {
+				dupeIds.push(e.id);
+			} else {
+				seen.set(key, e);
+			}
+		}
+		return dupeIds;
+	});
+
+	function cleanDuplicates() {
+		if (duplicates.length === 0) return;
+		const count = duplicates.length;
+		entries.removeMany(duplicates);
+		toast.show(`Removed ${count} duplicates`);
+	}
+
+	const dataQuality = $derived.by(() => {
+		const all = store.items;
+		let missing = 0;
+		for (const e of all) {
+			if (e.type === 'checkin') {
+				if (e.data.mood == null) { missing++; continue; }
+			} else if (e.type === 'intake') {
+				if (!e.data.what) { missing++; continue; }
+			} else if (e.type === 'training.strength') {
+				if (!e.data.exercise) { missing++; continue; }
+			} else if (e.type === 'training.cardio') {
+				if (!e.data.activity) { missing++; continue; }
+			} else if (e.type === 'training.hiit') {
+				if (!e.data.name) { missing++; continue; }
+			} else if (e.type === 'training.mobility') {
+				if (!e.data.routine) { missing++; continue; }
+			} else if (e.type === 'training.rings') {
+				if (!e.data.progression) { missing++; continue; }
+			}
+		}
+		return missing;
+	});
 </script>
 
 <svelte:head>
@@ -363,6 +423,89 @@
 			{/each}
 		</div>
 	{/if}
+</section>
+
+<!-- Storage Health -->
+<section class="health-section">
+	<h2>
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+		Storage Health
+	</h2>
+
+	<!-- Usage bar -->
+	<div class="health-card">
+		<div class="health-row">
+			<span class="health-label">LocalStorage usage</span>
+			<span class="health-value">{storageHealth.usedMB} MB / {storageHealth.maxMB} MB ({storageHealth.pct.toFixed(1)}%)</span>
+		</div>
+		<div class="progress-track">
+			<div
+				class="progress-fill"
+				class:fill-ok={storageHealth.level === 'ok'}
+				class:fill-warn={storageHealth.level === 'warn'}
+				class:fill-critical={storageHealth.level === 'critical'}
+				style="width: {Math.min(storageHealth.pct, 100)}%"
+			></div>
+		</div>
+		{#if storageHealth.level === 'critical'}
+			<div class="health-warning">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+				Storage is running low. Consider exporting and clearing old data.
+			</div>
+		{/if}
+	</div>
+
+	<!-- Entry stats -->
+	<div class="health-card">
+		<div class="health-row">
+			<span class="health-label">Total entries</span>
+			<span class="health-value">{stats.total}</span>
+		</div>
+		<div class="health-row">
+			<span class="health-label">Oldest entry</span>
+			<span class="health-value">{stats.firstDate ?? '—'}</span>
+		</div>
+		<div class="health-row">
+			<span class="health-label">Newest entry</span>
+			<span class="health-value">{stats.lastDate ?? '—'}</span>
+		</div>
+	</div>
+
+	<!-- Duplicates -->
+	<div class="health-card">
+		<div class="health-row">
+			<span class="health-label">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+				Duplicates
+			</span>
+			{#if duplicates.length > 0}
+				<span class="health-value health-warn-text">{duplicates.length} found</span>
+			{:else}
+				<span class="health-value health-ok-text">None</span>
+			{/if}
+		</div>
+		{#if duplicates.length > 0}
+			<button class="cleanup-btn" onclick={cleanDuplicates}>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+				Clean up
+			</button>
+		{/if}
+	</div>
+
+	<!-- Data quality -->
+	<div class="health-card">
+		<div class="health-row">
+			<span class="health-label">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+				Data quality
+			</span>
+			{#if dataQuality > 0}
+				<span class="health-value health-warn-text">{dataQuality} entries with missing data</span>
+			{:else}
+				<span class="health-value health-ok-text">All entries valid</span>
+			{/if}
+		</div>
+	</div>
 </section>
 
 <!-- Export / Import -->
@@ -779,6 +922,127 @@
 		border-radius: 8px;
 		background: var(--c-accent-bg);
 		color: var(--c-text-muted);
+	}
+
+	/* Storage Health */
+	.health-section {
+		padding: 0 1rem 1rem;
+	}
+
+	.health-section > h2 {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.health-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.health-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.health-row + .health-row {
+		margin-top: 0.4rem;
+	}
+
+	.health-label {
+		font-size: 0.8rem;
+		color: var(--c-text-muted);
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+	}
+
+	.health-value {
+		font-size: 0.8rem;
+		font-weight: 600;
+	}
+
+	.health-ok-text {
+		color: var(--c-done, #38a169);
+	}
+
+	.health-warn-text {
+		color: var(--c-cancel, #e53e3e);
+	}
+
+	/* Progress bar */
+	.progress-track {
+		height: 8px;
+		background: var(--c-border);
+		border-radius: 4px;
+		margin-top: 0.5rem;
+		overflow: hidden;
+	}
+
+	.progress-fill {
+		height: 100%;
+		border-radius: 4px;
+		transition: width 0.3s ease;
+	}
+
+	.fill-ok {
+		background: var(--c-done, #38a169);
+	}
+
+	.fill-warn {
+		background: #d69e2e;
+	}
+
+	.fill-critical {
+		background: var(--c-cancel, #e53e3e);
+	}
+
+	/* Warning banner */
+	.health-warning {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.4rem;
+		margin-top: 0.5rem;
+		padding: 0.5rem 0.6rem;
+		font-size: 0.78rem;
+		color: var(--c-cancel, #e53e3e);
+		background: color-mix(in srgb, var(--c-cancel, #e53e3e) 8%, transparent);
+		border: 1px solid color-mix(in srgb, var(--c-cancel, #e53e3e) 25%, transparent);
+		border-radius: var(--radius);
+		line-height: 1.3;
+	}
+
+	.health-warning svg {
+		flex-shrink: 0;
+		margin-top: 1px;
+	}
+
+	/* Cleanup button */
+	.cleanup-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		width: 100%;
+		margin-top: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		border: 1px solid var(--c-accent);
+		border-radius: var(--radius);
+		background: var(--c-accent-bg);
+		color: var(--c-accent);
+		cursor: pointer;
+	}
+
+	.cleanup-btn:hover {
+		background: var(--c-accent);
+		color: #fff;
 	}
 
 	@media (min-width: 600px) {

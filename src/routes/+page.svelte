@@ -205,6 +205,279 @@
 		}).join(' ');
 	});
 
+	/* --- Insights --- */
+	type Insight = { text: string; type: 'positive' | 'neutral' | 'warning' };
+
+	const insights = $derived.by((): Insight[] => {
+		const allItems = store.items;
+		const result: Insight[] = [];
+
+		// Helper: get unique dates from entries
+		function uniqueDates(entries: Entry[]): Set<string> {
+			return new Set(entries.map(e => dateOf(e)));
+		}
+
+		// 1. Habit-mood link: compare avg mood on days WITH a habit vs WITHOUT
+		const checkinsByDate = new Map<string, Entry[]>();
+		for (const e of allItems.filter(e => e.type === 'checkin')) {
+			const d = dateOf(e);
+			if (!checkinsByDate.has(d)) checkinsByDate.set(d, []);
+			checkinsByDate.get(d)!.push(e);
+		}
+
+		const habitsByDate = new Map<string, Set<string>>();
+		for (const e of allItems.filter(e => e.type === 'habit')) {
+			const d = dateOf(e);
+			if (!habitsByDate.has(d)) habitsByDate.set(d, new Set());
+			habitsByDate.get(d)!.add(e.data.habit as string);
+		}
+
+		const datesWithMood = [...checkinsByDate.entries()].filter(([_, entries]) => {
+			const latest = entries[entries.length - 1];
+			return typeof latest.data.mood === 'number' && latest.data.mood > 0;
+		});
+
+		if (datesWithMood.length >= 10) {
+			const trackableHabits = ['meditation', 'cold', 'fasting', 'wimhof'];
+			let bestHabit = '';
+			let bestDelta = 0;
+
+			for (const habit of trackableHabits) {
+				const withHabit: number[] = [];
+				const withoutHabit: number[] = [];
+
+				for (const [date, entries] of datesWithMood) {
+					const mood = Number(entries[entries.length - 1].data.mood) || 0;
+					const hasHabit = habitsByDate.get(date)?.has(habit) ?? false;
+					if (hasHabit) withHabit.push(mood);
+					else withoutHabit.push(mood);
+				}
+
+				if (withHabit.length >= 5 && withoutHabit.length >= 5) {
+					const avgWith = withHabit.reduce((s, v) => s + v, 0) / withHabit.length;
+					const avgWithout = withoutHabit.reduce((s, v) => s + v, 0) / withoutHabit.length;
+					const delta = avgWith - avgWithout;
+					if (delta > bestDelta) {
+						bestDelta = delta;
+						bestHabit = habit;
+					}
+				}
+			}
+
+			if (bestDelta >= 0.3 && bestHabit) {
+				const label = bestHabit.charAt(0).toUpperCase() + bestHabit.slice(1);
+				result.push({
+					text: `Your mood averages ${bestDelta.toFixed(1)} points higher on days you ${label.toLowerCase()}`,
+					type: 'positive'
+				});
+			}
+		}
+
+		// 2. Training streak
+		const trainingDates = uniqueDates(allItems.filter(e => TRAINING_TYPES.includes(e.type)));
+		if (trainingDates.size > 0) {
+			let currentStreak = 0;
+			for (let i = 0; i <= 365; i++) {
+				const d = isoForDaysAgo(i);
+				if (trainingDates.has(d)) currentStreak++;
+				else break;
+			}
+
+			let bestStreak = 0;
+			let tempStreak = 0;
+			const sortedDates = [...trainingDates].sort();
+			for (let i = 0; i < sortedDates.length; i++) {
+				if (i === 0) {
+					tempStreak = 1;
+				} else {
+					const prev = new Date(sortedDates[i - 1] + 'T12:00:00');
+					const curr = new Date(sortedDates[i] + 'T12:00:00');
+					const diff = Math.round((curr.getTime() - prev.getTime()) / 86400000);
+					if (diff === 1) tempStreak++;
+					else tempStreak = 1;
+				}
+				bestStreak = Math.max(bestStreak, tempStreak);
+			}
+
+			if (currentStreak >= 2) {
+				result.push({
+					text: `${currentStreak}-day training streak!${bestStreak > currentStreak ? ` Best: ${bestStreak} days` : ' New record!'}`,
+					type: 'positive'
+				});
+			}
+		}
+
+		// 3. Sleep-energy correlation
+		const checkins30 = allItems
+			.filter(e => e.type === 'checkin' && dateOf(e) >= isoForDaysAgo(30))
+			.filter(e => typeof e.data.sleep === 'number' && (e.data.sleep as number) > 0);
+
+		if (checkins30.length >= 7) {
+			const sleepValues = checkins30.map(e => Number(e.data.sleep) || 0);
+			const avgSleep = sleepValues.reduce((s, v) => s + v, 0) / sleepValues.length;
+
+			const yesterdaySleepEntry = yesterdayCheckins.find(e => typeof e.data.sleep === 'number' && (e.data.sleep as number) > 0)
+				?? todayCheckins.find(e => typeof e.data.sleep === 'number' && (e.data.sleep as number) > 0);
+
+			if (yesterdaySleepEntry) {
+				const lastSleep = Number(yesterdaySleepEntry.data.sleep) || 0;
+				const diff = lastSleep - avgSleep;
+				if (diff > 1) {
+					result.push({
+						text: 'Great sleep last night — expect higher energy',
+						type: 'positive'
+					});
+				} else if (diff < -1) {
+					result.push({
+						text: 'Below-average sleep — energy may dip today',
+						type: 'warning'
+					});
+				}
+			}
+		}
+
+		// 4. Supplement adherence trend (this week vs last week)
+		if (supplementStack.length > 0) {
+			function weekAdherence(startDaysAgo: number): number {
+				let totalMatched = 0;
+				let totalDays = 0;
+				for (let i = startDaysAgo; i < startDaysAgo + 7; i++) {
+					const d = isoForDaysAgo(i);
+					const daySupps = allItems.filter(e => e.type === 'supplement' && dateOf(e) === d);
+					const taken = new Set(daySupps.map(e => (e.data.name as string ?? '').toLowerCase()));
+					const matched = supplementStack.filter(s => taken.has(s.name.toLowerCase())).length;
+					totalMatched += matched;
+					totalDays++;
+				}
+				return (totalMatched / (totalDays * supplementStack.length)) * 100;
+			}
+
+			const thisWeek = weekAdherence(0);
+			const lastWeek = weekAdherence(7);
+
+			if (lastWeek > 0) {
+				const delta = Math.round(thisWeek - lastWeek);
+				if (delta > 5) {
+					result.push({
+						text: `Supplement adherence up ${delta}% vs last week`,
+						type: 'positive'
+					});
+				} else if (delta < -10) {
+					result.push({
+						text: `Supplement adherence down ${Math.abs(delta)}% vs last week`,
+						type: 'warning'
+					});
+				}
+			}
+		}
+
+		// 5. Check-in consistency (last 7 days)
+		let checkinDaysCount = 0;
+		for (let i = 0; i < 7; i++) {
+			const d = isoForDaysAgo(i);
+			if (allItems.some(e => e.type === 'checkin' && dateOf(e) === d)) {
+				checkinDaysCount++;
+			}
+		}
+
+		if (checkinDaysCount > 0 && checkinDaysCount < 5) {
+			result.push({
+				text: `Only ${checkinDaysCount}/7 check-ins this week — try to log daily`,
+				type: 'warning'
+			});
+		} else if (checkinDaysCount === 7) {
+			result.push({
+				text: 'Perfect check-in streak this week!',
+				type: 'positive'
+			});
+		}
+
+		// 6. Hydration vs target
+		const hydrationTarget = Number(ui.get().hydrationTarget) || 0;
+		if (hydrationTarget > 0) {
+			const todayHydration = allItems.filter(e => e.type === 'hydration' && dateOf(e) === today);
+			const totalMl = todayHydration.reduce((s, e) => s + (Number(e.data.amount) || 0), 0);
+			const pct = Math.round((totalMl / hydrationTarget) * 100);
+			if (pct >= 100) {
+				result.push({
+					text: `Hydration target reached (${(totalMl / 1000).toFixed(1)}L / ${(hydrationTarget / 1000).toFixed(1)}L)`,
+					type: 'positive'
+				});
+			} else if (pct > 0) {
+				result.push({
+					text: `Hydration: ${(totalMl / 1000).toFixed(1)}L of ${(hydrationTarget / 1000).toFixed(1)}L target (${pct}%)`,
+					type: pct >= 50 ? 'neutral' : 'warning'
+				});
+			}
+		}
+
+		return result.slice(0, 4);
+	});
+
+	/* --- Onboarding --- */
+	interface OnboardingStep {
+		id: string;
+		title: string;
+		description: string;
+		href: string;
+		done: boolean;
+	}
+
+	const onboardingSteps = $derived.by((): OnboardingStep[] => {
+		const allItems = store.items;
+		return [
+			{
+				id: 'profile',
+				title: 'Set your profile',
+				description: 'Add your weight to calibrate metrics',
+				href: '/profile',
+				done: allItems.some(e => e.type === 'weight')
+			},
+			{
+				id: 'checkin',
+				title: 'First check-in',
+				description: 'Log mood, energy, and sleep',
+				href: '/checkin',
+				done: allItems.some(e => e.type === 'checkin')
+			},
+			{
+				id: 'intake',
+				title: 'Log a meal',
+				description: 'Track what you eat and drink',
+				href: '/intake',
+				done: allItems.some(e => e.type === 'intake')
+			},
+			{
+				id: 'habit',
+				title: 'Define your habits',
+				description: 'Set up daily habits to track',
+				href: '/habits',
+				done: allItems.some(e => e.type === 'habit')
+			},
+			{
+				id: 'goal',
+				title: 'Set a goal',
+				description: 'Create targets to work towards',
+				href: '/goals',
+				done: allItems.some(e => e.type === 'goal')
+			}
+		];
+	});
+
+	const allOnboardingDone = $derived(onboardingSteps.every(s => s.done));
+	const showOnboarding = $derived(!ui.get().onboardingComplete && store.items.length < 3);
+
+	// Auto-complete onboarding if all steps are done and user has data
+	$effect(() => {
+		if (allOnboardingDone && !ui.get().onboardingComplete && store.items.length >= 3) {
+			ui.patch({ onboardingComplete: true });
+		}
+	});
+
+	function completeOnboarding() {
+		ui.patch({ onboardingComplete: true });
+	}
+
 	/* --- What's missing --- */
 	const missingItems = $derived.by(() => {
 		const items: Array<{ label: string; hint: string; href: string; icon: string }> = [];
@@ -273,141 +546,209 @@
 		<p class="date-label">{dateLabel}</p>
 	</header>
 
-	<!-- Score gauge -->
-	<div class="gauge-container">
-		{#if todayScore.hasData}
-			<svg viewBox="0 0 200 175" class="gauge-svg">
-				<path
-					d={gaugeBackgroundArc}
-					fill="none"
-					stroke="var(--c-border)"
-					stroke-width="14"
-					stroke-linecap="round"
-				/>
-				{#if gaugeValueArc}
+	{#if showOnboarding}
+		<!-- Onboarding wizard -->
+		<div class="onboarding">
+			<div class="onboarding-header">
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+				<div>
+					<h2 class="onboarding-title">Get started</h2>
+					<p class="onboarding-subtitle">Complete these steps to set up your tracker</p>
+				</div>
+			</div>
+
+			{#if allOnboardingDone}
+				<div class="onboarding-complete">
+					<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+						<path d="m9 11 3 3L22 4"/>
+					</svg>
+					<p class="complete-title">You're all set!</p>
+					<p class="complete-hint">Your tracker is ready to use.</p>
+					<button class="complete-btn" onclick={completeOnboarding}>Start tracking</button>
+				</div>
+			{:else}
+				<div class="onboarding-steps">
+					{#each onboardingSteps as step, i}
+						<a href={step.href} class="onboarding-step" class:step-done={step.done}>
+							<span class="step-num">
+								{#if step.done}
+									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/></svg>
+								{:else}
+									{i + 1}
+								{/if}
+							</span>
+							<span class="step-content">
+								<span class="step-title">{step.title}</span>
+								<span class="step-desc">{step.description}</span>
+							</span>
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+						</a>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{:else}
+		<!-- Score gauge -->
+		<div class="gauge-container">
+			{#if todayScore.hasData}
+				<svg viewBox="0 0 200 175" class="gauge-svg">
 					<path
-						d={gaugeValueArc}
+						d={gaugeBackgroundArc}
 						fill="none"
-						stroke={scoreColor(todayScore.score)}
+						stroke="var(--c-border)"
 						stroke-width="14"
 						stroke-linecap="round"
 					/>
-				{/if}
-				<text
-					x={gaugeCx}
-					y={gaugeCy - 4}
-					text-anchor="middle"
-					dominant-baseline="central"
-					class="score-number"
-					fill={scoreColor(todayScore.score)}
-				>{todayScore.score}</text>
-				<text
-					x={gaugeCx}
-					y={gaugeCy + 24}
-					text-anchor="middle"
-					class="score-label"
-					fill="var(--c-text-muted)"
-				>Your daily score</text>
-			</svg>
-		{:else}
-			<svg viewBox="0 0 200 175" class="gauge-svg">
-				<path
-					d={gaugeBackgroundArc}
-					fill="none"
-					stroke="var(--c-border)"
-					stroke-width="14"
-					stroke-linecap="round"
-				/>
-				<text
-					x={gaugeCx}
-					y={gaugeCy - 4}
-					text-anchor="middle"
-					dominant-baseline="central"
-					class="score-number score-empty"
-					fill="var(--c-text-muted)"
-				>--</text>
-				<text
-					x={gaugeCx}
-					y={gaugeCy + 24}
-					text-anchor="middle"
-					class="score-label"
-					fill="var(--c-text-muted)"
-				>No data yet today</text>
-			</svg>
-		{/if}
-	</div>
-
-	<!-- 7-day trend sparkline -->
-	{#if weekWithData.length >= 2}
-		<div class="trend-section">
-			<h2>7-day trend</h2>
-			<div class="sparkline-wrap">
-				<svg viewBox="0 0 200 40" class="sparkline-svg" preserveAspectRatio="none">
-					<polyline
-						points={sparklinePoints}
+					{#if gaugeValueArc}
+						<path
+							d={gaugeValueArc}
+							fill="none"
+							stroke={scoreColor(todayScore.score)}
+							stroke-width="14"
+							stroke-linecap="round"
+						/>
+					{/if}
+					<text
+						x={gaugeCx}
+						y={gaugeCy - 4}
+						text-anchor="middle"
+						dominant-baseline="central"
+						class="score-number"
+						fill={scoreColor(todayScore.score)}
+					>{todayScore.score}</text>
+					<text
+						x={gaugeCx}
+						y={gaugeCy + 24}
+						text-anchor="middle"
+						class="score-label"
+						fill="var(--c-text-muted)"
+					>Your daily score</text>
+				</svg>
+			{:else}
+				<svg viewBox="0 0 200 175" class="gauge-svg">
+					<path
+						d={gaugeBackgroundArc}
 						fill="none"
-						stroke="var(--c-accent)"
-						stroke-width="2"
-						stroke-linejoin="round"
+						stroke="var(--c-border)"
+						stroke-width="14"
 						stroke-linecap="round"
 					/>
-					{#each weekWithData as s, i}
-						{@const stepX = 190 / Math.max(weekWithData.length - 1, 1)}
-						{@const x = 5 + i * stepX}
-						{@const y = 35 - (s.score / 100) * 30}
-						<circle cx={x} cy={y} r="3" fill="var(--c-accent)" />
-					{/each}
+					<text
+						x={gaugeCx}
+						y={gaugeCy - 4}
+						text-anchor="middle"
+						dominant-baseline="central"
+						class="score-number score-empty"
+						fill="var(--c-text-muted)"
+					>--</text>
+					<text
+						x={gaugeCx}
+						y={gaugeCy + 24}
+						text-anchor="middle"
+						class="score-label"
+						fill="var(--c-text-muted)"
+					>No data yet today</text>
 				</svg>
-				<div class="sparkline-labels">
-					{#each weekScores as s}
-						<span class="sparkline-day" class:has-data={s.hasData}>
-							{new Date(s.date + 'T12:00:00').toLocaleDateString('en', { weekday: 'narrow' })}
-						</span>
+			{/if}
+		</div>
+
+		<!-- 7-day trend sparkline -->
+		{#if weekWithData.length >= 2}
+			<div class="trend-section">
+				<h2>7-day trend</h2>
+				<div class="sparkline-wrap">
+					<svg viewBox="0 0 200 40" class="sparkline-svg" preserveAspectRatio="none">
+						<polyline
+							points={sparklinePoints}
+							fill="none"
+							stroke="var(--c-accent)"
+							stroke-width="2"
+							stroke-linejoin="round"
+							stroke-linecap="round"
+						/>
+						{#each weekWithData as s, i}
+							{@const stepX = 190 / Math.max(weekWithData.length - 1, 1)}
+							{@const x = 5 + i * stepX}
+							{@const y = 35 - (s.score / 100) * 30}
+							<circle cx={x} cy={y} r="3" fill="var(--c-accent)" />
+						{/each}
+					</svg>
+					<div class="sparkline-labels">
+						{#each weekScores as s}
+							<span class="sparkline-day" class:has-data={s.hasData}>
+								{new Date(s.date + 'T12:00:00').toLocaleDateString('en', { weekday: 'narrow' })}
+							</span>
+						{/each}
+					</div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Insights -->
+		{#if insights.length > 0}
+			<div class="insights-section">
+				<h2>Insights</h2>
+				<div class="insights-list">
+					{#each insights as insight}
+						<div class="insight-card insight-{insight.type}">
+							<span class="insight-stripe"></span>
+							<span class="insight-icon">
+								{#if insight.type === 'positive'}
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+								{:else if insight.type === 'warning'}
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8a735" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+								{:else}
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+								{/if}
+							</span>
+							<span class="insight-text">{insight.text}</span>
+						</div>
 					{/each}
 				</div>
 			</div>
+		{/if}
+
+		<!-- What's missing today -->
+		<div class="missing-section">
+			<h2>Today's progress</h2>
+			{#if missingItems.length === 0}
+				<div class="all-done">
+					<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+						<path d="m9 11 3 3L22 4"/>
+					</svg>
+					<p>All caught up!</p>
+					<p class="all-done-hint">You've logged everything for today.</p>
+				</div>
+			{:else}
+				<div class="missing-list">
+					{#each missingItems as item}
+						<a href={item.href} class="missing-card">
+							<span class="missing-icon">
+								{#if item.icon === 'checkin'}
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>
+								{:else if item.icon === 'training'}
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>
+								{:else if item.icon === 'habit'}
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+								{:else if item.icon === 'supplement'}
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+								{:else if item.icon === 'journal'}
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
+								{/if}
+							</span>
+							<span class="missing-info">
+								<span class="missing-label">{item.label}</span>
+								<span class="missing-hint">{item.hint}</span>
+							</span>
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+						</a>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	{/if}
-
-	<!-- What's missing today -->
-	<div class="missing-section">
-		<h2>Today's progress</h2>
-		{#if missingItems.length === 0}
-			<div class="all-done">
-				<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-					<path d="m9 11 3 3L22 4"/>
-				</svg>
-				<p>All caught up!</p>
-				<p class="all-done-hint">You've logged everything for today.</p>
-			</div>
-		{:else}
-			<div class="missing-list">
-				{#each missingItems as item}
-					<a href={item.href} class="missing-card">
-						<span class="missing-icon">
-							{#if item.icon === 'checkin'}
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>
-							{:else if item.icon === 'training'}
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>
-							{:else if item.icon === 'habit'}
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-							{:else if item.icon === 'supplement'}
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
-							{:else if item.icon === 'journal'}
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
-							{/if}
-						</span>
-						<span class="missing-info">
-							<span class="missing-label">{item.label}</span>
-							<span class="missing-hint">{item.hint}</span>
-						</span>
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-					</a>
-				{/each}
-			</div>
-		{/if}
-	</div>
 </section>
 
 <style>
@@ -505,6 +846,193 @@
 	.sparkline-day.has-data {
 		color: var(--c-accent);
 		font-weight: 600;
+	}
+
+	/* Insights */
+	.insights-section {
+		padding: 0.75rem 0;
+	}
+
+	.insights-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+	}
+
+	.insight-card {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.6rem 0.75rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		position: relative;
+		overflow: hidden;
+	}
+
+	.insight-stripe {
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		width: 3px;
+	}
+
+	.insight-positive .insight-stripe {
+		background: var(--c-done);
+	}
+
+	.insight-neutral .insight-stripe {
+		background: var(--c-text-muted);
+	}
+
+	.insight-warning .insight-stripe {
+		background: #e8a735;
+	}
+
+	.insight-icon {
+		display: flex;
+		align-items: center;
+		flex-shrink: 0;
+	}
+
+	.insight-text {
+		font-size: 0.82rem;
+		color: var(--c-text);
+		line-height: 1.3;
+	}
+
+	/* Onboarding */
+	.onboarding {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 1.25rem;
+		margin-top: 0.5rem;
+	}
+
+	.onboarding-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
+	.onboarding-title {
+		font-size: 1rem;
+		font-weight: 700;
+		margin: 0;
+		color: var(--c-text);
+		text-transform: none;
+		letter-spacing: normal;
+	}
+
+	.onboarding-subtitle {
+		font-size: 0.8rem;
+		color: var(--c-text-muted);
+		margin: 0.15rem 0 0;
+	}
+
+	.onboarding-steps {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.onboarding-step {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem;
+		background: var(--c-bg);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		text-decoration: none;
+		color: var(--c-text);
+		transition: border-color 0.15s;
+	}
+
+	.onboarding-step:hover {
+		border-color: var(--c-accent);
+	}
+
+	.onboarding-step.step-done {
+		opacity: 0.6;
+	}
+
+	.step-num {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		flex-shrink: 0;
+		border-radius: 50%;
+		background: var(--c-accent-bg);
+		color: var(--c-accent);
+		font-size: 0.8rem;
+		font-weight: 700;
+	}
+
+	.step-done .step-num {
+		background: transparent;
+	}
+
+	.step-content {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+	}
+
+	.step-title {
+		font-weight: 600;
+		font-size: 0.9rem;
+	}
+
+	.step-done .step-title {
+		text-decoration: line-through;
+	}
+
+	.step-desc {
+		font-size: 0.75rem;
+		color: var(--c-text-muted);
+	}
+
+	.onboarding-complete {
+		text-align: center;
+		padding: 1rem 0;
+	}
+
+	.complete-title {
+		margin: 0.75rem 0 0.25rem;
+		font-weight: 700;
+		font-size: 1.1rem;
+		color: var(--c-done);
+	}
+
+	.complete-hint {
+		margin: 0 0 1rem;
+		font-size: 0.85rem;
+		color: var(--c-text-muted);
+	}
+
+	.complete-btn {
+		display: inline-block;
+		padding: 0.6rem 1.5rem;
+		background: var(--c-accent);
+		color: white;
+		border: none;
+		border-radius: var(--radius);
+		font-weight: 600;
+		font-size: 0.9rem;
+		cursor: pointer;
+		transition: opacity 0.15s;
+	}
+
+	.complete-btn:hover {
+		opacity: 0.9;
 	}
 
 	/* Missing section */

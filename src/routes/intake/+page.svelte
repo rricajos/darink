@@ -23,8 +23,25 @@
 		timeEnd = `${hh}:${mm}`;
 	});
 
+	let errors = $state<Record<string, string>>({});
+
+	function validate(): boolean {
+		const e: Record<string, string> = {};
+		if (!what.trim()) e.what = 'Food or drink name is required';
+		errors = e;
+		return Object.keys(e).length === 0;
+	}
+
+	function clearError(field: string) {
+		if (errors[field]) {
+			const next = { ...errors };
+			delete next[field];
+			errors = next;
+		}
+	}
+
 	function submit() {
-		if (!what.trim()) return;
+		if (!validate()) return;
 		const today = new Date().toISOString().slice(0, 10);
 		entries.add('intake', {
 			what: what.trim(), amount, mood: moodVal, meal,
@@ -32,6 +49,7 @@
 			whenEnd: `${today} ${timeEnd}`
 		});
 		what = '';
+		errors = {};
 		toast.show('Intake logged');
 	}
 
@@ -97,7 +115,8 @@
 {/if}
 
 <section class="form">
-	<label>What <input type="text" bind:value={what} placeholder="Food, drink..." /></label>
+	<label class:field-has-error={!!errors.what}>What <input type="text" bind:value={what} placeholder="Food, drink..." oninput={() => clearError('what')} /></label>
+	{#if errors.what}<span class="field-error">{errors.what}</span>{/if}
 	<div class="row">
 		<label>
 			Amount
@@ -391,6 +410,9 @@
 	.quick-chip:hover { border-color: var(--c-accent); background: var(--c-accent-bg); }
 	.quick-count { font-size: 0.65rem; color: var(--c-text-muted); }
 
+	.field-error { font-size: 0.75rem; color: var(--c-cancel); margin-top: 0.15rem; display: block; }
+	.field-has-error { color: var(--c-cancel); }
+	.field-has-error input { border-color: var(--c-cancel); }
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
 	.row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 	.row label { flex: 1; min-width: 120px; }
