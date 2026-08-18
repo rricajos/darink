@@ -24,6 +24,17 @@
 	] as const;
 
 	const weightStore = useEntries('weight');
+	const measurementStore = useEntries('measurement');
+
+	const latestMeasurement = $derived.by(() => {
+		const items = measurementStore.items;
+		if (items.length === 0) return null;
+		return items.toSorted((a, b) => {
+			const da = (a.data.date as string) ?? a.createdAt.slice(0, 10);
+			const db2 = (b.data.date as string) ?? b.createdAt.slice(0, 10);
+			return db2.localeCompare(da);
+		})[0];
+	});
 
 	onMount(() => {
 		const profile = ui.get().profile as Record<string, any> | undefined;
@@ -127,6 +138,39 @@
 			<span class="metric-sub activity-tag">{activityLabel}</span>
 		</div>
 	</div>
+</section>
+{/if}
+
+{#if latestMeasurement}
+<section class="metrics">
+	<h2>Latest Measurements</h2>
+	<div class="metrics-row">
+		{#if latestMeasurement.data.waist}
+			<div class="metric-card">
+				<span class="metric-value">{latestMeasurement.data.waist}</span>
+				<span class="metric-label">Waist</span>
+				<span class="metric-sub">cm</span>
+			</div>
+		{/if}
+		{#if latestMeasurement.data.chest}
+			<div class="metric-card">
+				<span class="metric-value">{latestMeasurement.data.chest}</span>
+				<span class="metric-label">Chest</span>
+				<span class="metric-sub">cm</span>
+			</div>
+		{/if}
+		{#if latestMeasurement.data.hips}
+			<div class="metric-card">
+				<span class="metric-value">{latestMeasurement.data.hips}</span>
+				<span class="metric-label">Hips</span>
+				<span class="metric-sub">cm</span>
+			</div>
+		{/if}
+	</div>
+	<a href="/measurements" class="meas-link">
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+		View all measurements
+	</a>
 </section>
 {/if}
 
@@ -280,6 +324,16 @@
 	}
 	.dot.weight { background: var(--c-accent); }
 	.dot.bf { background: var(--c-done); }
+
+	.meas-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		margin-top: 0.5rem;
+		font-size: 0.8rem;
+		font-weight: 500;
+		color: var(--c-accent);
+	}
 
 	@media (max-width: 359px) {
 		.metrics-row { flex-direction: column; }

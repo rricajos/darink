@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import TagInput from '$lib/components/TagInput.svelte';
 	import { db, type Entry } from '$lib/db';
 	import { useEntries, bumpEntries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
@@ -14,18 +15,71 @@
 	let exportFrom = $state('');
 	let exportTo = $state('');
 
+	let selectedTags = $state<string[]>([]);
+	let tagCloudOpen = $state(false);
+
+	/* --- All tags across all entries --- */
+	const allTagsData = $derived.by(() => {
+		const counts: Record<string, number> = {};
+		for (const e of store.items) {
+			const tags = e.data.tags;
+			if (Array.isArray(tags)) {
+				for (const t of tags) {
+					if (typeof t === 'string') {
+						counts[t] = (counts[t] || 0) + 1;
+					}
+				}
+			}
+		}
+		return counts;
+	});
+
+	const allTags = $derived(Object.keys(allTagsData).sort());
+
+	function toggleTagFilter(tag: string): void {
+		if (selectedTags.includes(tag)) {
+			selectedTags = selectedTags.filter((t) => t !== tag);
+		} else {
+			selectedTags = [...selectedTags, tag];
+		}
+	}
+
+	function clearTagFilter(): void {
+		selectedTags = [];
+	}
+
 	const filtered = $derived.by(() => {
 		const all = store.items;
 		const q = search.trim().toLowerCase();
-		if (!q) return all.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
-		return all
-			.filter((e) => {
+		const hasTags = selectedTags.length > 0;
+
+		let results = all;
+
+		if (q) {
+			results = results.filter((e) => {
 				if (e.type.toLowerCase().includes(q)) return true;
 				for (const val of Object.values(e.data)) {
 					if (typeof val === 'string' && val.toLowerCase().includes(q)) return true;
 				}
+				const tags = e.data.tags;
+				if (Array.isArray(tags)) {
+					for (const t of tags) {
+						if (typeof t === 'string' && t.toLowerCase().includes(q)) return true;
+					}
+				}
 				return false;
-			})
+			});
+		}
+
+		if (hasTags) {
+			results = results.filter((e) => {
+				const tags = e.data.tags;
+				if (!Array.isArray(tags)) return false;
+				return selectedTags.every((st) => tags.includes(st));
+			});
+		}
+
+		return results
 			.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
 			.slice(0, 50);
 	});
@@ -193,13 +247,68 @@
 		placeholder="Search all entries..."
 		bind:value={search}
 	/>
-	{#if search.trim()}
+	{#if search.trim() || selectedTags.length > 0}
 		<p class="search-hint">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
 	{/if}
 </section>
 
+<!-- Tag filter -->
+{#if allTags.length > 0}
+<section class="tag-filter-section">
+	<div class="tag-filter-header">
+		<h2>
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+			Filter by tags
+		</h2>
+		{#if selectedTags.length > 0}
+			<button class="clear-tags-btn" onclick={clearTagFilter}>Clear</button>
+		{/if}
+	</div>
+	<div class="tag-filter-chips">
+		{#each allTags as tag}
+			<button
+				class="filter-tag-chip"
+				class:active={selectedTags.includes(tag)}
+				onclick={() => toggleTagFilter(tag)}
+			>
+				{tag}
+				<span class="tag-count">{allTagsData[tag]}</span>
+			</button>
+		{/each}
+	</div>
+</section>
+{/if}
+
+<!-- Tag Cloud -->
+{#if allTags.length > 0}
+<section class="tag-cloud-section">
+	<button class="toggle-cloud" onclick={() => tagCloudOpen = !tagCloudOpen}>
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+		Tag cloud
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron" class:open={tagCloudOpen}><path d="m6 9 6 6 6-6"/></svg>
+	</button>
+	{#if tagCloudOpen}
+		{@const maxCount = Math.max(...Object.values(allTagsData), 1)}
+		<div class="tag-cloud">
+			{#each allTags as tag}
+				{@const count = allTagsData[tag]}
+				{@const size = 0.75 + (count / maxCount) * 0.75}
+				<button
+					class="cloud-tag"
+					style="font-size: {size}rem"
+					class:active={selectedTags.includes(tag)}
+					onclick={() => toggleTagFilter(tag)}
+				>
+					{tag}
+				</button>
+			{/each}
+		</div>
+	{/if}
+</section>
+{/if}
+
 <!-- Search Results -->
-{#if search.trim()}
+{#if search.trim() || selectedTags.length > 0}
 	<section class="results">
 		{#each filtered as entry (entry.id)}
 			<div class="result-item">
@@ -208,6 +317,13 @@
 					<span class="result-date">{formatDate(entry.createdAt)}</span>
 				</div>
 				<p class="result-summary">{summarize(entry)}</p>
+				{#if Array.isArray(entry.data.tags) && entry.data.tags.length > 0}
+					<div class="entry-tags">
+						{#each entry.data.tags as tag}
+							<span class="entry-tag">{tag}</span>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		{:else}
 			<p class="empty">No entries match your search.</p>
@@ -502,6 +618,167 @@
 
 	.danger-btn:hover {
 		opacity: 0.9;
+	}
+
+	/* Tag filter */
+	.tag-filter-section {
+		padding: 0 1rem 0.75rem;
+	}
+
+	.tag-filter-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.35rem;
+	}
+
+	.tag-filter-header h2 {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		margin-bottom: 0;
+	}
+
+	.clear-tags-btn {
+		font-size: 0.7rem;
+		padding: 0.15rem 0.5rem;
+		border-radius: 4px;
+		border: 1px solid var(--c-border);
+		background: var(--c-bg-card);
+		color: var(--c-text-muted);
+		cursor: pointer;
+	}
+
+	.clear-tags-btn:hover {
+		color: var(--c-accent);
+		border-color: var(--c-accent);
+		transform: none;
+		box-shadow: none;
+	}
+
+	.tag-filter-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+	}
+
+	.filter-tag-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.72rem;
+		font-weight: 500;
+		padding: 0.2rem 0.5rem;
+		border-radius: 20px;
+		border: 1px solid var(--c-accent);
+		background: transparent;
+		color: var(--c-accent);
+		cursor: pointer;
+		transition: background 0.15s, color 0.15s;
+	}
+
+	.filter-tag-chip:hover {
+		transform: none;
+		box-shadow: none;
+	}
+
+	.filter-tag-chip.active {
+		background: var(--c-accent);
+		color: #fff;
+	}
+
+	.tag-count {
+		font-size: 0.6rem;
+		opacity: 0.7;
+	}
+
+	/* Tag cloud */
+	.tag-cloud-section {
+		padding: 0 1rem 0.75rem;
+	}
+
+	.toggle-cloud {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		width: 100%;
+		font-size: 0.8rem;
+		padding: 0.4rem 0.6rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		color: var(--c-text-muted);
+		cursor: pointer;
+		font-weight: 500;
+	}
+
+	.toggle-cloud:hover {
+		border-color: var(--c-accent);
+		color: var(--c-text);
+		background: var(--c-bg-card);
+		transform: none;
+		box-shadow: none;
+	}
+
+	.toggle-cloud .chevron {
+		margin-left: auto;
+		transition: transform 0.2s;
+	}
+
+	.toggle-cloud .chevron.open {
+		transform: rotate(180deg);
+	}
+
+	.tag-cloud {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.75rem;
+		margin-top: 0.4rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+	}
+
+	.cloud-tag {
+		border: none;
+		background: none;
+		color: var(--c-accent);
+		cursor: pointer;
+		padding: 0.1rem 0.3rem;
+		border-radius: 4px;
+		font-weight: 500;
+		line-height: 1.3;
+		transition: background 0.15s;
+	}
+
+	.cloud-tag:hover {
+		background: var(--c-accent-bg);
+		transform: none;
+		box-shadow: none;
+	}
+
+	.cloud-tag.active {
+		background: var(--c-accent);
+		color: #fff;
+	}
+
+	/* Entry tags on result items */
+	.entry-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.2rem;
+		margin-top: 0.3rem;
+	}
+
+	.entry-tag {
+		font-size: 0.65rem;
+		font-weight: 500;
+		padding: 0.1rem 0.35rem;
+		border-radius: 8px;
+		background: var(--c-accent-bg);
+		color: var(--c-text-muted);
 	}
 
 	@media (min-width: 600px) {

@@ -4,11 +4,12 @@
 	import { useEntries } from '$lib/stores/entries.svelte';
 
 	const store = useEntries();
+	const hydrationStore = useEntries('hydration');
 
 	let period = $state<'week' | 'month' | '3month'>('week');
 	let heatmapFilter = $state<string | null>(null);
 
-	const heatmapTypes = ['checkin', 'intake', 'training', 'habit', 'supplement', 'journal'] as const;
+	const heatmapTypes = ['checkin', 'intake', 'training', 'habit', 'supplement', 'journal', 'hydration'] as const;
 
 	const filteredHeatmapItems = $derived(
 		heatmapFilter ? store.items.filter((e) => e.type === heatmapFilter || e.type.startsWith(heatmapFilter + '.')) : store.items
@@ -246,6 +247,19 @@
 				key: 'signals',
 				label: 'Signals',
 				items: signals.map((e) => e.type.replace('signal.', ''))
+			});
+		}
+
+		const todayHydration = hydrationStore.items.filter((e) => {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			return d === today;
+		});
+		if (todayHydration.length > 0) {
+			const total = todayHydration.reduce((sum, e) => sum + (e.data.amount as number), 0);
+			groups.push({
+				key: 'hydration',
+				label: 'Hydration',
+				items: [`Water ${total}ml`]
 			});
 		}
 

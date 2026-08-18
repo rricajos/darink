@@ -4,6 +4,41 @@
 
 	const store = useEntries();
 
+	/* --- Tag filter state --- */
+	let selectedTags = $state<string[]>([]);
+	let tagFilterOpen = $state(false);
+
+	const allTagsData = $derived.by(() => {
+		const counts: Record<string, number> = {};
+		for (const e of store.items) {
+			const tags = e.data.tags;
+			if (Array.isArray(tags)) {
+				for (const t of tags) {
+					if (typeof t === 'string') {
+						counts[t] = (counts[t] || 0) + 1;
+					}
+				}
+			}
+		}
+		return counts;
+	});
+
+	const allTags = $derived(Object.keys(allTagsData).sort());
+
+	function toggleTagFilter(tag: string): void {
+		if (selectedTags.includes(tag)) {
+			selectedTags = selectedTags.filter((t) => t !== tag);
+		} else {
+			selectedTags = [...selectedTags, tag];
+		}
+		visibleCount = 50;
+	}
+
+	function clearTagFilter(): void {
+		selectedTags = [];
+		visibleCount = 50;
+	}
+
 	/* --- Type color map --- */
 	const typeColors: Record<string, string> = {
 		checkin: '#4aa3ff',
@@ -128,10 +163,16 @@
 	const filtered = $derived.by(() => {
 		const from = dateFrom + 'T00:00:00';
 		const to = dateTo + 'T23:59:59';
+		const hasTags = selectedTags.length > 0;
 		return store.items
 			.filter((e) => {
 				if (!enabledTypes.has(e.type)) return false;
 				if (e.createdAt < from || e.createdAt > to) return false;
+				if (hasTags) {
+					const tags = e.data.tags;
+					if (!Array.isArray(tags)) return false;
+					if (!selectedTags.every((st) => tags.includes(st))) return false;
+				}
 				return true;
 			})
 			.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -236,6 +277,36 @@
 		</div>
 	</div>
 	{/if}
+
+	{#if allTags.length > 0}
+	<button class="toggle-filters tag-toggle" onclick={() => tagFilterOpen = !tagFilterOpen}>
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+		Tags ({selectedTags.length}/{allTags.length})
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron" class:open={tagFilterOpen}><path d="m6 9 6 6 6-6"/></svg>
+	</button>
+
+	{#if tagFilterOpen}
+	<div class="type-filters">
+		{#if selectedTags.length > 0}
+		<div class="type-actions">
+			<button class="sm" onclick={clearTagFilter}>Clear tags</button>
+		</div>
+		{/if}
+		<div class="type-chips">
+			{#each allTags as tag}
+				<button
+					class="tag-filter-chip"
+					class:active={selectedTags.includes(tag)}
+					onclick={() => toggleTagFilter(tag)}
+				>
+					{tag}
+					<span class="tag-chip-count">{allTagsData[tag]}</span>
+				</button>
+			{/each}
+		</div>
+	</div>
+	{/if}
+	{/if}
 </section>
 
 <!-- Timeline feed -->
@@ -262,6 +333,13 @@
 					<span class="entry-time">{formatTime(entry.createdAt)}</span>
 				</div>
 				<div class="entry-summary">{summarize(entry.type, entry.data)}</div>
+				{#if Array.isArray(entry.data.tags) && entry.data.tags.length > 0}
+					<div class="entry-tags">
+						{#each entry.data.tags as tag}
+							<span class="entry-tag">{tag}</span>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		{/each}
 	{/each}
@@ -460,6 +538,59 @@
 		color: var(--c-text);
 		line-height: 1.4;
 		word-break: break-word;
+	}
+
+	/* --- Tag filter --- */
+	.tag-toggle {
+		margin-top: 0.5rem;
+	}
+
+	.tag-filter-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.2rem;
+		font-size: 0.72rem;
+		padding: 0.2rem 0.55rem;
+		border-radius: 20px;
+		border: 1px solid var(--c-accent);
+		background: transparent;
+		color: var(--c-accent);
+		cursor: pointer;
+		font-weight: 500;
+		transition: background 0.15s, color 0.15s;
+		line-height: 1.4;
+	}
+
+	.tag-filter-chip:hover {
+		transform: none;
+		box-shadow: none;
+	}
+
+	.tag-filter-chip.active {
+		background: var(--c-accent);
+		color: #fff;
+	}
+
+	.tag-chip-count {
+		font-size: 0.6rem;
+		opacity: 0.7;
+	}
+
+	/* --- Entry tags --- */
+	.entry-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.2rem;
+		margin-top: 0.25rem;
+	}
+
+	.entry-tag {
+		font-size: 0.6rem;
+		font-weight: 500;
+		padding: 0.08rem 0.3rem;
+		border-radius: 8px;
+		background: var(--c-accent-bg);
+		color: var(--c-text-muted);
 	}
 
 	/* --- Load more --- */

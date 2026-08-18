@@ -8,6 +8,8 @@
 				{ href: '/signals', label: 'Signals', desc: 'Body signal monitoring' },
 				{ href: '/habits', label: 'Habits', desc: 'Daily habits and streaks' },
 				{ href: '/supplements', label: 'Supplements', desc: 'Stack and adherence' },
+				{ href: '/hydration', label: 'Hydration', desc: 'Water and fluid tracking' },
+				{ href: '/measurements', label: 'Measurements', desc: 'Body measurements over time' },
 				{ href: '/journal', label: 'Journal', desc: 'Freeform notes' }
 			]
 		},
