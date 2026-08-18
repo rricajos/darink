@@ -11,7 +11,7 @@
 		{ href: '/more', label: 'More', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>' }
 	];
 
-	const morePaths = ['/checkin', '/signals', '/habits', '/supplements', '/experiments', '/profile', '/data', '/ref', '/timeline', '/goals', '/journal', '/report', '/reminders', '/records', '/hydration', '/measurements'];
+	const morePaths = ['/checkin', '/signals', '/habits', '/supplements', '/experiments', '/profile', '/data', '/ref', '/timeline', '/goals', '/journal', '/report', '/reminders', '/records', '/hydration', '/measurements', '/bloodwork', '/medications', '/symptoms', '/insights'];
 
 	let isDark = $state(false);
 

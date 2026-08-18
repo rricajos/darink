@@ -10,6 +10,9 @@
 				{ href: '/supplements', label: 'Supplements', desc: 'Stack and adherence' },
 				{ href: '/hydration', label: 'Hydration', desc: 'Water and fluid tracking' },
 				{ href: '/measurements', label: 'Measurements', desc: 'Body measurements over time' },
+				{ href: '/bloodwork', label: 'Blood Work', desc: 'Lab results and reference ranges' },
+				{ href: '/medications', label: 'Medications', desc: 'Prescriptions, doses, side effects' },
+				{ href: '/symptoms', label: 'Symptoms', desc: 'Pain and symptom tracking' },
 				{ href: '/journal', label: 'Journal', desc: 'Freeform notes' }
 			]
 		},
@@ -20,7 +23,8 @@
 				{ href: '/goals', label: 'Goals', desc: 'Targets and progress' },
 				{ href: '/experiments', label: 'Experiments', desc: 'n=1 testing' },
 				{ href: '/records', label: 'Records', desc: 'Personal bests and milestones' },
-				{ href: '/report', label: 'Report', desc: 'Weekly summary for review' }
+				{ href: '/report', label: 'Report', desc: 'Weekly summary for review' },
+				{ href: '/insights', label: 'Insights', desc: 'Deep dive analytics and patterns' }
 			]
 		},
 		{
