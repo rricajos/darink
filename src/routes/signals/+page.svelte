@@ -52,6 +52,191 @@
 	function fmtDate(iso: string): string {
 		return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 	}
+
+	// --- Composite Signal Score ---
+	const signalTypesWithData = $derived(
+		[sleepLast, skinLast, hairLast, genitalLast].filter(Boolean).length
+	);
+
+	const compositeScore = $derived.by(() => {
+		if (signalTypesWithData < 2) return null;
+		let total = 0;
+		let weight = 0;
+		if (sleepLast) {
+			const hours = Math.max(0, Math.min(10, ((Number(sleepLast.data.hours) - 4) / 4) * 10));
+			const quality = Number(sleepLast.data.quality);
+			const sleepScore = (hours + quality) / 2;
+			total += sleepScore * 0.4;
+			weight += 0.4;
+		}
+		if (skinLast) {
+			total += Number(skinLast.data.elasticity) * 0.2;
+			weight += 0.2;
+		}
+		if (hairLast) {
+			total += Number(hairLast.data.density) * 0.15;
+			weight += 0.15;
+		}
+		if (genitalLast) {
+			total += Number(genitalLast.data.libido) * 0.25;
+			weight += 0.25;
+		}
+		return Math.round((total / weight) * 10);
+	});
+
+	function gaugeColor(score: number): string {
+		if (score >= 70) return 'var(--c-done)';
+		if (score >= 40) return '#e6a817';
+		return 'var(--c-cancel)';
+	}
+
+	function gaugeArc(score: number): string {
+		const startAngle = -225;
+		const sweep = (score / 100) * 270;
+		const endAngle = startAngle + sweep;
+		const r = 40;
+		const cx = 50;
+		const cy = 50;
+		const toRad = (deg: number) => (deg * Math.PI) / 180;
+		const x1 = cx + r * Math.cos(toRad(startAngle));
+		const y1 = cy + r * Math.sin(toRad(startAngle));
+		const x2 = cx + r * Math.cos(toRad(endAngle));
+		const y2 = cy + r * Math.sin(toRad(endAngle));
+		const largeArc = sweep > 180 ? 1 : 0;
+		return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+	}
+
+	function gaugeTrackArc(): string {
+		const r = 40;
+		const cx = 50;
+		const cy = 50;
+		const toRad = (deg: number) => (deg * Math.PI) / 180;
+		const startAngle = -225;
+		const endAngle = startAngle + 270;
+		const x1 = cx + r * Math.cos(toRad(startAngle));
+		const y1 = cy + r * Math.sin(toRad(startAngle));
+		const x2 = cx + r * Math.cos(toRad(endAngle));
+		const y2 = cy + r * Math.sin(toRad(endAngle));
+		return `M ${x1} ${y1} A ${r} ${r} 0 1 1 ${x2} ${y2}`;
+	}
+
+	// --- Cross-Signal Correlation ---
+	function pearson(xs: number[], ys: number[]): number | null {
+		const n = Math.min(xs.length, ys.length);
+		if (n < 5) return null;
+		const ax = xs.slice(-n);
+		const ay = ys.slice(-n);
+		const mx = ax.reduce((s, v) => s + v, 0) / n;
+		const my = ay.reduce((s, v) => s + v, 0) / n;
+		let num = 0, dx = 0, dy = 0;
+		for (let i = 0; i < n; i++) {
+			const xd = ax[i] - mx;
+			const yd = ay[i] - my;
+			num += xd * yd;
+			dx += xd * xd;
+			dy += yd * yd;
+		}
+		const denom = Math.sqrt(dx * dy);
+		if (denom === 0) return null;
+		return num / denom;
+	}
+
+	function corrLabel(r: number): string {
+		const abs = Math.abs(r);
+		if (abs >= 0.7) return 'Strong';
+		if (abs >= 0.4) return 'Moderate';
+		if (abs >= 0.2) return 'Weak';
+		return 'None';
+	}
+
+	function corrColor(r: number): string {
+		const abs = Math.abs(r);
+		if (abs < 0.2) return 'var(--c-text-muted)';
+		return r > 0 ? 'var(--c-done)' : 'var(--c-cancel)';
+	}
+
+	const sleepQualityVals = $derived(sleepSorted.map(e => Number(e.data.quality)));
+	const sleepHoursVals = $derived(sleepSorted.map(e => Number(e.data.hours)));
+	const skinElasticityVals = $derived(skinSorted.map(e => Number(e.data.elasticity)));
+	const skinOilinessVals = $derived(skinSorted.map(e => Number(e.data.oiliness)));
+	const hairDensityVals = $derived(hairSorted.map(e => Number(e.data.density)));
+	const genitalLibidoVals = $derived(genitalSorted.map(e => Number(e.data.libido)));
+
+	interface CorrPair {
+		labelA: string;
+		labelB: string;
+		r: number | null;
+	}
+
+	const correlationPairs = $derived.by((): CorrPair[] => {
+		return [
+			{ labelA: 'Sleep Quality', labelB: 'Skin Elasticity', r: pearson(sleepQualityVals, skinElasticityVals) },
+			{ labelA: 'Sleep Hours', labelB: 'Libido', r: pearson(sleepHoursVals, genitalLibidoVals) },
+			{ labelA: 'Skin Oiliness', labelB: 'Hair Density', r: pearson(skinOilinessVals, hairDensityVals) }
+		];
+	});
+
+	const hasCorrelations = $derived(correlationPairs.some(p => p.r !== null));
+
+	// --- Trend Alerts ---
+	interface TrendAlert {
+		label: string;
+		direction: 'declining' | 'improving';
+	}
+
+	function detectTrend(values: number[]): 'declining' | 'improving' | null {
+		if (values.length < 3) return null;
+		const last3 = values.slice(-3);
+		if (last3[0] > last3[1] && last3[1] > last3[2]) return 'declining';
+		if (last3[0] < last3[1] && last3[1] < last3[2]) return 'improving';
+		return null;
+	}
+
+	const trendAlerts = $derived.by((): TrendAlert[] => {
+		const alerts: TrendAlert[] = [];
+		const checks: [string, number[]][] = [
+			['Sleep', sleepSorted.map(e => Number(e.data.quality))],
+			['Skin', skinSorted.map(e => Number(e.data.elasticity))],
+			['Hair', hairSorted.map(e => Number(e.data.density))],
+			['Genital', genitalSorted.map(e => Number(e.data.libido))]
+		];
+		for (const [label, vals] of checks) {
+			const dir = detectTrend(vals);
+			if (dir) alerts.push({ label, direction: dir });
+		}
+		return alerts;
+	});
+
+	// --- Signal Summary Stats ---
+	const totalEntries = $derived(
+		sleepSorted.length + skinSorted.length + hairSorted.length + genitalSorted.length
+	);
+
+	const mostTracked = $derived.by(() => {
+		const counts = [
+			{ label: 'Sleep', count: sleepSorted.length },
+			{ label: 'Skin', count: skinSorted.length },
+			{ label: 'Hair', count: hairSorted.length },
+			{ label: 'Genital', count: genitalSorted.length }
+		];
+		const max = counts.reduce((a, b) => (b.count > a.count ? b : a));
+		return max.count > 0 ? max.label : 'None';
+	});
+
+	const avgFrequency = $derived.by(() => {
+		const all = [
+			...sleepSorted.map(e => e.createdAt),
+			...skinSorted.map(e => e.createdAt),
+			...hairSorted.map(e => e.createdAt),
+			...genitalSorted.map(e => e.createdAt)
+		];
+		if (all.length < 2) return 0;
+		all.sort();
+		const firstMs = new Date(all[0]).getTime();
+		const lastMs = new Date(all[all.length - 1]).getTime();
+		const weeks = Math.max((lastMs - firstMs) / (7 * 86400000), 1);
+		return Math.round((all.length / weeks) * 10) / 10;
+	});
 </script>
 
 <svelte:head>
@@ -196,6 +381,108 @@
 	</div>
 </section>
 
+<!-- Composite Signal Score -->
+{#if compositeScore !== null}
+<section class="overview">
+	<h2>Composite Signal Score</h2>
+	<div class="gauge-container">
+		<svg class="gauge-svg" viewBox="0 0 100 75">
+			<path d={gaugeTrackArc()} fill="none" stroke="var(--c-border)" stroke-width="7" stroke-linecap="round" />
+			<path d={gaugeArc(compositeScore)} fill="none" stroke={gaugeColor(compositeScore)} stroke-width="7" stroke-linecap="round" />
+			<text x="50" y="52" text-anchor="middle" font-size="18" font-weight="700" fill="currentColor">{compositeScore}</text>
+			<text x="50" y="63" text-anchor="middle" font-size="6" fill="var(--c-text-muted)">/100</text>
+		</svg>
+		<div class="gauge-breakdown">
+			{#if sleepLast}
+				<span class="gauge-item">Sleep 40%</span>
+			{/if}
+			{#if skinLast}
+				<span class="gauge-item">Skin 20%</span>
+			{/if}
+			{#if hairLast}
+				<span class="gauge-item">Hair 15%</span>
+			{/if}
+			{#if genitalLast}
+				<span class="gauge-item">Genital 25%</span>
+			{/if}
+		</div>
+	</div>
+</section>
+{/if}
+
+<!-- Trend Alerts -->
+{#if trendAlerts.length > 0}
+<section class="overview">
+	<h2>Trend Alerts</h2>
+	<div class="alerts-grid">
+		{#each trendAlerts as alert}
+			<div class="alert-card" class:alert-declining={alert.direction === 'declining'} class:alert-improving={alert.direction === 'improving'}>
+				{#if alert.direction === 'declining'}
+					<svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-cancel)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+				{:else}
+					<svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+				{/if}
+				<div class="alert-text">
+					<strong>{alert.label}</strong>
+					{#if alert.direction === 'declining'}
+						<span>Declining trend detected</span>
+					{:else}
+						<span>Improving trend</span>
+					{/if}
+				</div>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+<!-- Cross-Signal Correlation Matrix -->
+{#if hasCorrelations}
+<section class="overview">
+	<h2>Cross-Signal Correlations</h2>
+	<div class="corr-grid">
+		{#each correlationPairs as pair}
+			{#if pair.r !== null}
+				<div class="corr-card">
+					<div class="corr-labels">
+						<span class="corr-signal">{pair.labelA}</span>
+						<span class="corr-vs">vs</span>
+						<span class="corr-signal">{pair.labelB}</span>
+					</div>
+					<div class="corr-value" style="color: {corrColor(pair.r)}">
+						{pair.r >= 0 ? '+' : ''}{pair.r.toFixed(2)}
+					</div>
+					<div class="corr-strength" style="color: {corrColor(pair.r)}">
+						{corrLabel(pair.r)}
+					</div>
+				</div>
+			{/if}
+		{/each}
+	</div>
+</section>
+{/if}
+
+<!-- Signal Summary Stats -->
+{#if totalEntries > 0}
+<section class="overview summary-section">
+	<h2>Signal Summary</h2>
+	<div class="summary-grid">
+		<div class="summary-card">
+			<span class="summary-value">{totalEntries}</span>
+			<span class="summary-label">Total entries</span>
+		</div>
+		<div class="summary-card">
+			<span class="summary-value">{mostTracked}</span>
+			<span class="summary-label">Most tracked</span>
+		</div>
+		<div class="summary-card">
+			<span class="summary-value">{avgFrequency}/wk</span>
+			<span class="summary-label">Avg frequency</span>
+		</div>
+	</div>
+</section>
+{/if}
+
 <style>
 	.grid { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.card { display: flex; flex-direction: column; padding: 1rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); text-decoration: none; color: var(--c-text); transition: border-color 0.15s; }
@@ -227,4 +514,36 @@
 	.chip-icon { display: inline-flex; align-items: center; line-height: 1; }
 	.done-icon { color: var(--c-done); }
 	.miss-icon { color: var(--c-text-muted); opacity: 0.5; }
+
+	/* Composite Gauge */
+	.gauge-container { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+	.gauge-svg { width: 160px; height: 120px; }
+	.gauge-breakdown { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; }
+	.gauge-item { font-size: 0.7rem; color: var(--c-text-muted); background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.2rem 0.5rem; }
+
+	/* Trend Alerts */
+	.alerts-grid { display: flex; flex-direction: column; gap: 0.5rem; }
+	.alert-card { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); }
+	.alert-declining { border-color: var(--c-cancel); background: color-mix(in srgb, var(--c-cancel) 6%, var(--c-bg-card)); }
+	.alert-improving { border-color: var(--c-done); background: color-mix(in srgb, var(--c-done) 6%, var(--c-bg-card)); }
+	.alert-icon { flex-shrink: 0; }
+	.alert-text { display: flex; flex-direction: column; gap: 0.1rem; }
+	.alert-text strong { font-size: 0.85rem; }
+	.alert-text span { font-size: 0.75rem; color: var(--c-text-muted); }
+
+	/* Correlation Matrix */
+	.corr-grid { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+	.corr-card { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+	.corr-labels { display: flex; align-items: center; gap: 0.3rem; flex: 1; min-width: 0; }
+	.corr-signal { font-size: 0.8rem; font-weight: 600; }
+	.corr-vs { font-size: 0.7rem; color: var(--c-text-muted); }
+	.corr-value { font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+	.corr-strength { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; flex-shrink: 0; }
+
+	/* Signal Summary */
+	.summary-section { padding-bottom: 2rem; }
+	.summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+	.summary-card { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.2rem; }
+	.summary-value { font-size: 1.1rem; font-weight: 700; }
+	.summary-label { font-size: 0.65rem; color: var(--c-text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; }
 </style>

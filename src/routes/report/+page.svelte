@@ -447,6 +447,159 @@
 	function doPrint() {
 		window.print();
 	}
+
+	// --- Medication Adherence ---
+	let medicationRegimen = $state<Array<{ name: string; dose: string; frequency: string }>>([]);
+	onMount(() => {
+		const saved = ui.get();
+		if (Array.isArray(saved.medicationRegimen)) {
+			medicationRegimen = saved.medicationRegimen as Array<{ name: string; dose: string; frequency: string }>;
+		}
+	});
+
+	const medicationAdherence = $derived.by(() => {
+		if (medicationRegimen.length === 0) return null;
+		const results: { name: string; dose: string; daysLogged: number; pct: number }[] = [];
+		for (const med of medicationRegimen) {
+			const days = new Set<string>();
+			for (const e of supplementEntries) {
+				if ((e.data.name as string)?.toLowerCase() === med.name.toLowerCase()) {
+					const d = String(e.data.date || e.createdAt.slice(0, 10));
+					days.add(d);
+				}
+			}
+			const pct = Math.min(Math.round((days.size / 7) * 100), 100);
+			results.push({ name: med.name, dose: med.dose, daysLogged: days.size, pct });
+		}
+		return results;
+	});
+
+	// --- Supplement Compliance (horizontal bar version) ---
+	const supplementCompliance = $derived.by(() => {
+		if (plannedStack.length === 0) return null;
+		const results: { name: string; dose: string; timing: string; daysLogged: number; pct: number }[] = [];
+		for (const item of plannedStack) {
+			const days = new Set<string>();
+			for (const e of supplementEntries) {
+				if ((e.data.name as string)?.toLowerCase() === item.name.toLowerCase()) {
+					const d = String(e.data.date || e.createdAt.slice(0, 10));
+					days.add(d);
+				}
+			}
+			const pct = Math.min(Math.round((days.size / 7) * 100), 100);
+			results.push({ name: item.name, dose: item.dose, timing: item.timing, daysLogged: days.size, pct });
+		}
+		return results;
+	});
+
+	// --- Training Volume Summary ---
+	function trainingVolume(entries: Entry[]) {
+		const te = entries.filter((e) => TRAINING_TYPES.includes(e.type as typeof TRAINING_TYPES[number]));
+		const totalSessions = te.length;
+		const totalMinutes = te.reduce((sum, e) => sum + (Number(e.data.durationMin) || 0), 0);
+		const byType: Record<string, { count: number; minutes: number }> = {};
+		for (const e of te) {
+			const label = TYPE_LABELS[e.type] ?? e.type;
+			if (!byType[label]) byType[label] = { count: 0, minutes: 0 };
+			byType[label].count += 1;
+			byType[label].minutes += Number(e.data.durationMin) || 0;
+		}
+		return {
+			totalSessions,
+			totalMinutes,
+			byType: Object.entries(byType).sort((a, b) => b[1].count - a[1].count)
+		};
+	}
+
+	const currentVolume = $derived(trainingVolume(weekEntries));
+	const prevVolume = $derived(trainingVolume(prevEntries));
+
+	const TRAINING_COLORS: Record<string, string> = {
+		Strength: '#6366f1',
+		Rings: '#f59e0b',
+		HIIT: '#ef4444',
+		Cardio: '#10b981',
+		Mobility: '#8b5cf6'
+	};
+
+	// --- Signal Summary ---
+	const signalSummary = $derived.by(() => {
+		const result: {
+			sleep: { avgHours: number; avgQuality: number; count: number } | null;
+			skin: { avgElasticity: number; count: number } | null;
+			hair: { latestDensity: number | null; count: number } | null;
+			genital: { avgLibido: number; count: number } | null;
+		} = { sleep: null, skin: null, hair: null, genital: null };
+
+		// Sleep signals
+		const sleepEntries = weekEntries.filter((e) => e.type === 'signal.sleep');
+		if (sleepEntries.length > 0) {
+			const hours = sleepEntries.map((e) => Number(e.data.hours) || 0);
+			const quality = sleepEntries.map((e) => Number(e.data.quality) || 0);
+			result.sleep = {
+				avgHours: +(hours.reduce((a, b) => a + b, 0) / hours.length).toFixed(1),
+				avgQuality: +(quality.reduce((a, b) => a + b, 0) / quality.length).toFixed(1),
+				count: sleepEntries.length
+			};
+		}
+
+		// Skin signals
+		const skinEntries = weekEntries.filter((e) => e.type === 'signal.skin');
+		if (skinEntries.length > 0) {
+			const elasticity = skinEntries.map((e) => Number(e.data.elasticity) || 0);
+			result.skin = {
+				avgElasticity: +(elasticity.reduce((a, b) => a + b, 0) / elasticity.length).toFixed(1),
+				count: skinEntries.length
+			};
+		}
+
+		// Hair signals
+		const hairEntries = weekEntries.filter((e) => e.type === 'signal.hair');
+		if (hairEntries.length > 0) {
+			const sorted = [...hairEntries].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+			const latest = sorted[sorted.length - 1];
+			result.hair = {
+				latestDensity: Number(latest.data.density) || null,
+				count: hairEntries.length
+			};
+		}
+
+		// Genital signals
+		const genitalEntries = weekEntries.filter((e) => e.type === 'signal.genital');
+		if (genitalEntries.length > 0) {
+			const libido = genitalEntries.map((e) => Number(e.data.libido) || 0);
+			result.genital = {
+				avgLibido: +(libido.reduce((a, b) => a + b, 0) / libido.length).toFixed(1),
+				count: genitalEntries.length
+			};
+		}
+
+		const hasAny = result.sleep || result.skin || result.hair || result.genital;
+		return hasAny ? result : null;
+	});
+
+	// --- Overall Weekly Grade ---
+	function letterGrade(score: number): string {
+		if (score >= 80) return 'A';
+		if (score >= 65) return 'B';
+		if (score >= 50) return 'C';
+		if (score >= 35) return 'D';
+		return 'F';
+	}
+
+	function gradeColor(grade: string): string {
+		switch (grade) {
+			case 'A': return '#16a34a';
+			case 'B': return '#22c55e';
+			case 'C': return '#e8a735';
+			case 'D': return '#f97316';
+			case 'F': return '#e53e3e';
+			default: return 'var(--c-text-muted)';
+		}
+	}
+
+	const currentGrade = $derived(weeklyScore.hasData ? letterGrade(weeklyScore.score) : null);
+	const prevGrade = $derived(prevWeeklyScore.hasData ? letterGrade(prevWeeklyScore.score) : null);
 </script>
 
 <svelte:head>
@@ -807,6 +960,185 @@
 				{/each}
 			</section>
 		{/if}
+
+		<!-- Medication Adherence -->
+		{#if medicationAdherence !== null && medicationAdherence.length > 0}
+			<section class="report-section">
+				<h2>Medication Adherence</h2>
+				<div class="adherence-list">
+					{#each medicationAdherence as med}
+						<div class="adherence-row">
+							<div class="adherence-info">
+								<span class="adherence-name">{med.name}</span>
+								<span class="adherence-dose">{med.dose}</span>
+							</div>
+							<div class="adherence-bar-wrap">
+								<div
+									class="adherence-bar"
+									style="width: {med.pct}%; background: {med.pct >= 80 ? 'var(--c-done)' : med.pct >= 50 ? '#e8a735' : '#e53e3e'}"
+								></div>
+							</div>
+							<span class="adherence-pct">{med.pct}%</span>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		<!-- Supplement Compliance -->
+		{#if supplementCompliance !== null && supplementCompliance.length > 0}
+			<section class="report-section">
+				<h2>Supplement Compliance</h2>
+				<div class="adherence-list">
+					{#each supplementCompliance as sup}
+						<div class="adherence-row">
+							<div class="adherence-info">
+								<span class="adherence-name">{sup.name}</span>
+								<span class="adherence-dose">{sup.dose} &middot; {sup.timing}</span>
+							</div>
+							<div class="adherence-bar-wrap">
+								<div
+									class="adherence-bar"
+									style="width: {sup.pct}%; background: {sup.pct >= 80 ? 'var(--c-done)' : sup.pct >= 50 ? '#e8a735' : '#e53e3e'}"
+								></div>
+							</div>
+							<span class="adherence-pct">{sup.daysLogged}/7</span>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		<!-- Training Volume Summary -->
+		{#if currentVolume.totalSessions > 0}
+			{@const sessionsDelta = delta(currentVolume.totalSessions, prevVolume.totalSessions)}
+			{@const minutesDelta = delta(currentVolume.totalMinutes, prevVolume.totalMinutes)}
+			<section class="report-section">
+				<h2>Training Volume</h2>
+				<div class="metrics-row">
+					<div class="metric-card">
+						<span class="metric-value">{currentVolume.totalSessions}</span>
+						<span class="metric-label">Sessions</span>
+						{#if sessionsDelta}
+							<span class="delta delta-{sessionsDelta.direction}">{sessionsDelta.value}</span>
+						{/if}
+					</div>
+					<div class="metric-card">
+						<span class="metric-value">{currentVolume.totalMinutes}</span>
+						<span class="metric-label">Minutes</span>
+						{#if minutesDelta}
+							<span class="delta delta-{minutesDelta.direction}">{minutesDelta.value}</span>
+						{/if}
+					</div>
+				</div>
+				{#if currentVolume.byType.length > 0}
+					<div class="training-breakdown">
+						{#each currentVolume.byType as [label, data]}
+							{@const color = TRAINING_COLORS[label] ?? 'var(--c-accent)'}
+							<div class="training-type-row">
+								<span class="training-type-dot" style="background: {color}"></span>
+								<span class="training-type-label">{label}</span>
+								<span class="training-type-count">{data.count}x</span>
+								{#if data.minutes > 0}
+									<span class="training-type-min">{data.minutes} min</span>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</section>
+		{/if}
+
+		<!-- Signal Summary -->
+		{#if signalSummary}
+			<section class="report-section">
+				<h2>Signal Summary</h2>
+				<div class="signal-grid">
+					{#if signalSummary.sleep}
+						<div class="signal-card">
+							<div class="signal-icon">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+							</div>
+							<div class="signal-data">
+								<span class="signal-title">Sleep</span>
+								<span class="signal-value">{signalSummary.sleep.avgHours}h avg</span>
+								<span class="signal-sub">Quality: {signalSummary.sleep.avgQuality}/10</span>
+							</div>
+						</div>
+					{/if}
+					{#if signalSummary.skin}
+						<div class="signal-card">
+							<div class="signal-icon">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+							</div>
+							<div class="signal-data">
+								<span class="signal-title">Skin</span>
+								<span class="signal-value">Elasticity: {signalSummary.skin.avgElasticity}/10</span>
+								<span class="signal-sub">{signalSummary.skin.count} reading{signalSummary.skin.count !== 1 ? 's' : ''}</span>
+							</div>
+						</div>
+					{/if}
+					{#if signalSummary.hair}
+						<div class="signal-card">
+							<div class="signal-icon">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7c0-3.5-3.5-5-7-1.5C9.5 2 6 3.5 6 7c0 4 6.5 10 7 10.5C13.5 17 20 11 20 7Z"/></svg>
+							</div>
+							<div class="signal-data">
+								<span class="signal-title">Hair</span>
+								{#if signalSummary.hair.latestDensity !== null}
+									<span class="signal-value">Density: {signalSummary.hair.latestDensity}/10</span>
+								{:else}
+									<span class="signal-value">Logged</span>
+								{/if}
+								<span class="signal-sub">{signalSummary.hair.count} reading{signalSummary.hair.count !== 1 ? 's' : ''}</span>
+							</div>
+						</div>
+					{/if}
+					{#if signalSummary.genital}
+						<div class="signal-card">
+							<div class="signal-icon">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+							</div>
+							<div class="signal-data">
+								<span class="signal-title">Genital</span>
+								<span class="signal-value">Libido: {signalSummary.genital.avgLibido}/10</span>
+								<span class="signal-sub">{signalSummary.genital.count} reading{signalSummary.genital.count !== 1 ? 's' : ''}</span>
+							</div>
+						</div>
+					{/if}
+				</div>
+			</section>
+		{/if}
+
+		<!-- Overall Weekly Grade -->
+		{#if currentGrade}
+			<section class="report-section grade-section">
+				<h2>Overall Weekly Grade</h2>
+				<div class="grade-container">
+					<div class="grade-badge" style="--grade-color: {gradeColor(currentGrade)}">
+						<span class="grade-letter">{currentGrade}</span>
+						<span class="grade-score">{weeklyScore.score}/100</span>
+					</div>
+					{#if prevGrade}
+						<div class="grade-comparison">
+							{#if currentGrade === prevGrade}
+								<span class="grade-same">Same as last week ({prevGrade})</span>
+							{:else if weeklyScore.score > prevWeeklyScore.score}
+								<span class="grade-improved">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+									Up from {prevGrade} ({prevWeeklyScore.score})
+								</span>
+							{:else}
+								<span class="grade-declined">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+									Down from {prevGrade} ({prevWeeklyScore.score})
+								</span>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			</section>
+		{/if}
 	{/if}
 </article>
 
@@ -1148,10 +1480,230 @@
 		}
 	}
 
+	/* Adherence horizontal bars (medication + supplement compliance) */
+	.adherence-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.adherence-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.5rem 0.75rem;
+	}
+
+	.adherence-info {
+		min-width: 90px;
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+	}
+
+	.adherence-name {
+		font-size: 0.8rem;
+		font-weight: 600;
+	}
+
+	.adherence-dose {
+		font-size: 0.65rem;
+		color: var(--c-text-muted);
+	}
+
+	.adherence-bar-wrap {
+		flex: 1;
+		height: 8px;
+		background: var(--c-border);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.adherence-bar {
+		height: 100%;
+		border-radius: 4px;
+		transition: width 0.3s ease;
+	}
+
+	.adherence-pct {
+		font-size: 0.75rem;
+		font-weight: 700;
+		min-width: 32px;
+		text-align: right;
+	}
+
+	/* Training breakdown */
+	.training-breakdown {
+		margin-top: 0.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.training-type-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.8rem;
+		padding: 0.25rem 0;
+	}
+
+	.training-type-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.training-type-label {
+		flex: 1;
+		font-weight: 500;
+	}
+
+	.training-type-count {
+		font-weight: 700;
+		color: var(--c-accent);
+	}
+
+	.training-type-min {
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+		min-width: 48px;
+		text-align: right;
+	}
+
+	/* Signal summary grid */
+	.signal-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+		gap: 0.5rem;
+	}
+
+	.signal-card {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.6rem 0.75rem;
+	}
+
+	.signal-icon {
+		color: var(--c-accent);
+		flex-shrink: 0;
+		margin-top: 0.1rem;
+	}
+
+	.signal-data {
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+	}
+
+	.signal-title {
+		font-size: 0.7rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		color: var(--c-text-muted);
+	}
+
+	.signal-value {
+		font-size: 0.85rem;
+		font-weight: 700;
+	}
+
+	.signal-sub {
+		font-size: 0.65rem;
+		color: var(--c-text-muted);
+	}
+
+	/* Overall weekly grade */
+	.grade-section {
+		margin-top: 0.5rem;
+	}
+
+	.grade-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 1.25rem 1rem;
+	}
+
+	.grade-badge {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		width: 96px;
+		height: 96px;
+		border-radius: 50%;
+		border: 4px solid var(--grade-color);
+		background: var(--c-bg-card);
+	}
+
+	.grade-letter {
+		font-size: 2.5rem;
+		font-weight: 900;
+		line-height: 1;
+		color: var(--grade-color);
+	}
+
+	.grade-score {
+		font-size: 0.7rem;
+		font-weight: 600;
+		color: var(--c-text-muted);
+		line-height: 1;
+	}
+
+	.grade-comparison {
+		text-align: center;
+	}
+
+	.grade-same {
+		font-size: 0.8rem;
+		color: var(--c-text-muted);
+		font-weight: 500;
+	}
+
+	.grade-improved {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--c-done);
+	}
+
+	.grade-declined {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--c-cancel, #e53e3e);
+	}
+
 	@media (max-width: 359px) {
 		.metrics-row { flex-direction: column; }
 		.metric-card { min-width: auto; }
 		.mini-charts { flex-direction: column; }
 		.mini-chart-block { min-width: auto; }
+		.signal-grid { grid-template-columns: 1fr; }
+	}
+
+	@media print {
+		.adherence-bar-wrap { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+		.adherence-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+		.training-type-dot { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+		.grade-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+		.grade-letter { color: #333 !important; }
+		.grade-badge { border-color: #333 !important; }
+		.signal-card { border: 1px solid #ccc; }
+		.adherence-row { border: 1px solid #ccc; }
 	}
 </style>

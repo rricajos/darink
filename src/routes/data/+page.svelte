@@ -1,9 +1,10 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import TagInput from '$lib/components/TagInput.svelte';
-	import { db, type Entry } from '$lib/db';
+	import { db, ui, type Entry } from '$lib/db';
 	import { useEntries, bumpEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { onMount } from 'svelte';
 
 	const store = useEntries();
 
@@ -14,6 +15,110 @@
 	let exportType = $state('');
 	let exportFrom = $state('');
 	let exportTo = $state('');
+
+	/* --- Auto-backup tracking --- */
+	let lastExportDate = $state<string | null>(null);
+
+	onMount(() => {
+		const saved = ui.get().lastExportDate;
+		if (typeof saved === 'string') lastExportDate = saved;
+	});
+
+	const backupStatus = $derived.by(() => {
+		if (!lastExportDate) return { label: 'Never backed up', daysAgo: Infinity, warn: true };
+		const diff = Math.floor((Date.now() - new Date(lastExportDate).getTime()) / 86400000);
+		return { label: `Last backup: ${diff} day${diff !== 1 ? 's' : ''} ago`, daysAgo: diff, warn: diff > 7 };
+	});
+
+	function markExported() {
+		const now = new Date().toISOString();
+		lastExportDate = now;
+		ui.patch({ lastExportDate: now });
+	}
+
+	/* --- Donut chart colors --- */
+	const TYPE_COLORS: Record<string, string> = {
+		checkin: '#4aa3ff',
+		intake: '#22c55e',
+		habit: '#a855f7',
+		supplement: '#14b8a6',
+		journal: '#6366f1',
+		hydration: '#06b6d4',
+		experiment: '#f59e0b',
+		weight: '#8b5cf6',
+		measurement: '#d946ef',
+		bloodwork: '#ef4444',
+		medication: '#f97316',
+		symptom: '#dc2626'
+	};
+
+	function getTypeColor(type: string): string {
+		if (TYPE_COLORS[type]) return TYPE_COLORS[type];
+		if (type.startsWith('training')) return '#f97316';
+		if (type.startsWith('signal')) return '#ec4899';
+		return '#94a3b8';
+	}
+
+	const donutData = $derived.by(() => {
+		const items = stats.byType;
+		const total = stats.total;
+		if (total === 0) return [];
+		let offset = 0;
+		return items.map(([type, count]) => {
+			const pct = count / total;
+			const dash = pct * 100;
+			const entry = { type, count, color: getTypeColor(type), dash, offset };
+			offset += dash;
+			return entry;
+		});
+	});
+
+	/* --- Entry count stats --- */
+	const entryStats = $derived.by(() => {
+		const all = store.items;
+		const total = all.length;
+		const now = Date.now();
+		const weekAgo = now - 7 * 86400000;
+		const monthAgo = now - 30 * 86400000;
+		let thisWeek = 0;
+		let last30 = 0;
+		let oldest: string | null = null;
+		for (const e of all) {
+			const t = new Date(e.createdAt).getTime();
+			if (t >= weekAgo) thisWeek++;
+			if (t >= monthAgo) last30++;
+			if (!oldest || e.createdAt < oldest) oldest = e.createdAt;
+		}
+		const avgPerDay = last30 > 0 ? (last30 / 30) : 0;
+		return {
+			total,
+			thisWeek,
+			avgPerDay: avgPerDay.toFixed(1),
+			oldest: oldest ? oldest.slice(0, 10) : null
+		};
+	});
+
+	/* --- Storage usage (full localStorage) --- */
+	const storageUsage = $derived.by(() => {
+		const _ = store.items;
+		if (typeof localStorage === 'undefined') return { bytes: 0, pct: 0, label: '0 B', maxLabel: '5 MB', color: '#38a169' };
+		let totalBytes = 0;
+		for (let i = 0; i < localStorage.length; i++) {
+			const key = localStorage.key(i);
+			if (key) {
+				totalBytes += key.length + (localStorage.getItem(key)?.length ?? 0);
+			}
+		}
+		totalBytes *= 2; // UTF-16
+		const maxBytes = 5 * 1024 * 1024;
+		const pct = (totalBytes / maxBytes) * 100;
+		let label: string;
+		if (totalBytes < 1024) label = `${totalBytes} B`;
+		else if (totalBytes < 1024 * 1024) label = `${(totalBytes / 1024).toFixed(1)} KB`;
+		else label = `${(totalBytes / (1024 * 1024)).toFixed(2)} MB`;
+		const color = pct >= 80 ? '#e53e3e' : pct >= 50 ? '#d69e2e' : '#38a169';
+		return { bytes: totalBytes, pct, label, maxLabel: '5 MB', color };
+	});
 
 	let selectedTags = $state<string[]>([]);
 	let tagCloudOpen = $state(false);
@@ -155,6 +260,7 @@
 		a.click();
 		URL.revokeObjectURL(url);
 		toast.show(`${data.length} entries exported as JSON`);
+		markExported();
 	}
 
 	function exportCSV() {
@@ -199,6 +305,7 @@
 		a.click();
 		URL.revokeObjectURL(url);
 		toast.show(`${all.length} entries exported as CSV`);
+		markExported();
 	}
 
 	function importData() {
@@ -298,6 +405,62 @@
 </svelte:head>
 
 <PageHeader title="Data" />
+
+<!-- Entry Count Stats -->
+<section class="metrics-section">
+	<div class="metrics-grid">
+		<div class="metric-card">
+			<span class="metric-value">{entryStats.total}</span>
+			<span class="metric-label">Total entries</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{entryStats.thisWeek}</span>
+			<span class="metric-label">This week</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{entryStats.avgPerDay}</span>
+			<span class="metric-label">Per day (30d)</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{entryStats.oldest ?? '--'}</span>
+			<span class="metric-label">Oldest entry</span>
+		</div>
+	</div>
+</section>
+
+<!-- Entry Distribution Chart -->
+{#if donutData.length > 0}
+<section class="donut-section">
+	<h2>
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+		Entry distribution
+	</h2>
+	<div class="donut-wrapper">
+		<svg class="donut-chart" viewBox="0 0 42 42" role="img" aria-label="Entry distribution donut chart">
+			{#each donutData as seg}
+				<circle
+					cx="21" cy="21" r="15.915"
+					fill="none"
+					stroke={seg.color}
+					stroke-width="5"
+					stroke-dasharray="{seg.dash} {100 - seg.dash}"
+					stroke-dashoffset="{-seg.offset}"
+					transform="rotate(-90 21 21)"
+				/>
+			{/each}
+		</svg>
+		<div class="donut-legend">
+			{#each donutData as seg}
+				<div class="legend-item">
+					<span class="legend-swatch" style="background: {seg.color}"></span>
+					<span class="legend-type">{seg.type}</span>
+					<span class="legend-count">{seg.count}</span>
+				</div>
+			{/each}
+		</div>
+	</div>
+</section>
+{/if}
 
 <!-- Search -->
 <section class="search-section">
@@ -455,6 +618,20 @@
 		{/if}
 	</div>
 
+	<!-- Full localStorage usage -->
+	<div class="health-card">
+		<div class="health-row">
+			<span class="health-label">Full localStorage</span>
+			<span class="health-value">{storageUsage.label} / {storageUsage.maxLabel} ({storageUsage.pct.toFixed(1)}%)</span>
+		</div>
+		<div class="progress-track">
+			<div
+				class="progress-fill"
+				style="width: {Math.min(storageUsage.pct, 100)}%; background: {storageUsage.color}"
+			></div>
+		</div>
+	</div>
+
 	<!-- Entry stats -->
 	<div class="health-card">
 		<div class="health-row">
@@ -506,6 +683,30 @@
 			{/if}
 		</div>
 	</div>
+</section>
+
+<!-- Auto-Backup Status -->
+<section class="backup-section">
+	{#if backupStatus.warn}
+		<div class="backup-card backup-warn">
+			<div class="backup-icon">
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+			</div>
+			<div class="backup-text">
+				<strong>{backupStatus.label}</strong>
+				<span>Export your data regularly to avoid data loss.</span>
+			</div>
+		</div>
+	{:else}
+		<div class="backup-card backup-ok">
+			<div class="backup-icon">
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+			</div>
+			<div class="backup-text">
+				<strong>{backupStatus.label}</strong>
+			</div>
+		</div>
+	{/if}
 </section>
 
 <!-- Export / Import -->
@@ -1045,8 +1246,154 @@
 		color: #fff;
 	}
 
+	/* Metrics cards */
+	.metrics-section {
+		padding: 0 1rem 1rem;
+	}
+
+	.metrics-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.5rem;
+	}
+
+	.metric-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.6rem 0.75rem;
+		text-align: center;
+	}
+
+	.metric-value {
+		display: block;
+		font-size: 1.1rem;
+		font-weight: 700;
+	}
+
+	.metric-label {
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	/* Donut chart */
+	.donut-section {
+		padding: 0 1rem 1rem;
+	}
+
+	.donut-section > h2 {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.donut-wrapper {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 1rem;
+	}
+
+	.donut-chart {
+		width: 120px;
+		height: 120px;
+		flex-shrink: 0;
+	}
+
+	.donut-legend {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		overflow-y: auto;
+		max-height: 140px;
+	}
+
+	.legend-item {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.75rem;
+	}
+
+	.legend-swatch {
+		width: 10px;
+		height: 10px;
+		border-radius: 2px;
+		flex-shrink: 0;
+	}
+
+	.legend-type {
+		flex: 1;
+		color: var(--c-text-muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.legend-count {
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* Auto-backup */
+	.backup-section {
+		padding: 0 1rem 0.75rem;
+	}
+
+	.backup-card {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.6rem;
+		padding: 0.75rem;
+		border-radius: var(--radius);
+		font-size: 0.82rem;
+		line-height: 1.4;
+	}
+
+	.backup-warn {
+		background: color-mix(in srgb, #d69e2e 10%, transparent);
+		border: 1px solid color-mix(in srgb, #d69e2e 30%, transparent);
+		color: #d69e2e;
+	}
+
+	.backup-ok {
+		background: color-mix(in srgb, var(--c-done, #38a169) 10%, transparent);
+		border: 1px solid color-mix(in srgb, var(--c-done, #38a169) 30%, transparent);
+		color: var(--c-done, #38a169);
+	}
+
+	.backup-icon {
+		flex-shrink: 0;
+		margin-top: 1px;
+	}
+
+	.backup-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.backup-text strong {
+		font-weight: 600;
+	}
+
+	.backup-text span {
+		font-size: 0.76rem;
+		opacity: 0.85;
+	}
+
 	@media (min-width: 600px) {
 		.stats-grid {
+			grid-template-columns: repeat(4, 1fr);
+		}
+
+		.metrics-grid {
 			grid-template-columns: repeat(4, 1fr);
 		}
 	}
