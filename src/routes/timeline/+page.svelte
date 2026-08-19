@@ -54,7 +54,14 @@
 		'signal.skin': '#ec4899',
 		'signal.hair': '#ec4899',
 		'signal.genital': '#ec4899',
-		experiment: '#f59e0b'
+		experiment: '#f59e0b',
+		journal: '#6366f1',
+		hydration: '#06b6d4',
+		weight: '#8b5cf6',
+		measurement: '#d946ef',
+		bloodwork: '#ef4444',
+		medication: '#f97316',
+		symptom: '#dc2626'
 	};
 
 	function getTypeColor(type: string): string {
@@ -80,6 +87,13 @@
 		if (type === 'signal.hair') return 'Hair';
 		if (type === 'signal.genital') return 'Genital';
 		if (type === 'experiment') return 'Experiment';
+		if (type === 'journal') return 'Journal';
+		if (type === 'hydration') return 'Hydration';
+		if (type === 'weight') return 'Weight';
+		if (type === 'measurement') return 'Measurement';
+		if (type === 'bloodwork') return 'Blood Work';
+		if (type === 'medication') return 'Medication';
+		if (type === 'symptom') return 'Symptom';
 		return type;
 	}
 
@@ -114,6 +128,31 @@
 				return `Libido ${data.libido ?? '?'}/10`;
 			case 'experiment':
 				return `${data.hypothesis ?? '?'} [${data.status ?? '?'}]`;
+			case 'journal': {
+				const text = typeof data.text === 'string' ? data.text : '';
+				return text.length > 0 ? text.slice(0, 60) : 'Entry';
+			}
+			case 'hydration':
+				return `${data.amount ?? '?'}ml ${data.source ?? ''}`.trim();
+			case 'weight': {
+				let w = `${data.weight ?? '?'}kg`;
+				if (data.bodyFat != null) w += ` ${data.bodyFat}% BF`;
+				return w;
+			}
+			case 'measurement': {
+				const parts: string[] = [];
+				if (data.waist != null) parts.push(`Waist ${data.waist}cm`);
+				if (data.chest != null) parts.push(`Chest ${data.chest}cm`);
+				return parts.length > 0 ? parts.join(' / ') : 'Measurement';
+			}
+			case 'bloodwork': {
+				if (data.marker != null && data.value != null) return `${data.marker}: ${data.value}`;
+				return 'Blood work';
+			}
+			case 'medication':
+				return `${data.medication ?? '?'} ${data.dose ?? ''}`.trim();
+			case 'symptom':
+				return `${data.symptom ?? '?'} severity ${data.severity ?? '?'}/10`;
 			default:
 				return JSON.stringify(data).slice(0, 60);
 		}
@@ -125,7 +164,8 @@
 		'training.strength', 'training.cardio', 'training.hiit', 'training.rings', 'training.mobility',
 		'habit', 'supplement',
 		'signal.sleep', 'signal.skin', 'signal.hair', 'signal.genital',
-		'experiment'
+		'experiment',
+		'journal', 'hydration', 'weight', 'measurement', 'bloodwork', 'medication', 'symptom'
 	];
 
 	/* --- Filter state --- */
@@ -227,6 +267,94 @@
 		return d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
 	}
 
+	/* --- Daily density data (max 60 days) --- */
+	interface DayDensity {
+		date: string;
+		count: number;
+		dominantType: string;
+	}
+
+	const dailyDensity = $derived.by((): DayDensity[] => {
+		if (filtered.length === 0) return [];
+
+		const dayCounts: Record<string, Record<string, number>> = {};
+
+		for (const e of filtered) {
+			const d = e.createdAt.slice(0, 10);
+			if (!dayCounts[d]) dayCounts[d] = {};
+			dayCounts[d][e.type] = (dayCounts[d][e.type] || 0) + 1;
+		}
+
+		const fromDate = new Date(dateFrom + 'T00:00:00');
+		const toDate = new Date(dateTo + 'T00:00:00');
+		const dayMs = 86400000;
+		const totalDays = Math.min(60, Math.round((toDate.getTime() - fromDate.getTime()) / dayMs) + 1);
+
+		const result: DayDensity[] = [];
+		for (let i = 0; i < totalDays; i++) {
+			const d = new Date(fromDate.getTime() + i * dayMs);
+			const ds = d.toISOString().slice(0, 10);
+			const types = dayCounts[ds] ?? {};
+			const count = Object.values(types).reduce((s, v) => s + v, 0);
+			let dominant = '';
+			let maxC = 0;
+			for (const [t, c] of Object.entries(types)) {
+				if (c > maxC) { maxC = c; dominant = t; }
+			}
+			result.push({ date: ds, count, dominantType: dominant });
+		}
+		return result;
+	});
+
+	const densityMax = $derived(Math.max(1, ...dailyDensity.map((d) => d.count)));
+
+	/* --- Summary stats --- */
+	interface TypeCount {
+		type: string;
+		count: number;
+	}
+
+	const summaryStats = $derived.by(() => {
+		const total = filtered.length;
+		if (total === 0) return null;
+
+		// Most active day
+		const dayCounts: Record<string, number> = {};
+		const typeCounts: Record<string, number> = {};
+		for (const e of filtered) {
+			const d = e.createdAt.slice(0, 10);
+			dayCounts[d] = (dayCounts[d] || 0) + 1;
+			typeCounts[e.type] = (typeCounts[e.type] || 0) + 1;
+		}
+
+		let bestDay = '';
+		let bestDayCount = 0;
+		for (const [d, c] of Object.entries(dayCounts)) {
+			if (c > bestDayCount) { bestDayCount = c; bestDay = d; }
+		}
+
+		const uniqueDays = Object.keys(dayCounts).length;
+		const avg = uniqueDays > 0 ? (total / uniqueDays) : 0;
+
+		const topTypes: TypeCount[] = Object.entries(typeCounts)
+			.map(([type, count]) => ({ type, count }))
+			.sort((a, b) => b.count - a.count)
+			.slice(0, 3);
+
+		return {
+			total,
+			bestDay,
+			bestDayCount,
+			avg: avg.toFixed(1),
+			topTypes
+		};
+	});
+
+	function formatDayName(dateStr: string): string {
+		const d = new Date(dateStr + 'T12:00:00');
+		return d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
+	}
+
 	function formatTime(iso: string): string {
 		return iso.slice(11, 16);
 	}
@@ -309,6 +437,32 @@
 	{/if}
 </section>
 
+<!-- Daily activity density -->
+{#if dailyDensity.length > 0 && filtered.length > 0}
+<section class="density-section">
+	<div class="density-label">Daily activity</div>
+	<div class="density-chart-wrap">
+		<svg class="density-chart" viewBox="0 0 {dailyDensity.length * 10} 40" preserveAspectRatio="none">
+			{#each dailyDensity as day, i}
+				{@const barH = day.count > 0 ? Math.max(2, (day.count / densityMax) * 36) : 0}
+				{@const barColor = day.count > 0 ? getTypeColor(day.dominantType) : 'transparent'}
+				<rect
+					x={i * 10 + 1}
+					y={40 - barH}
+					width="8"
+					height={barH}
+					rx="1.5"
+					fill={barColor}
+					opacity="0.85"
+				>
+					<title>{day.date}: {day.count} {day.count === 1 ? 'entry' : 'entries'}</title>
+				</rect>
+			{/each}
+		</svg>
+	</div>
+</section>
+{/if}
+
 <!-- Timeline feed -->
 {#if filtered.length === 0}
 <div class="empty-state">
@@ -318,7 +472,33 @@
 </div>
 {:else}
 <div class="feed">
-	<div class="feed-count">{filtered.length} entries</div>
+	{#if summaryStats}
+	<div class="summary-stats">
+		<div class="stat-row">
+			<div class="stat-item">
+				<span class="stat-value">{summaryStats.total}</span>
+				<span class="stat-label">entries</span>
+			</div>
+			<div class="stat-item">
+				<span class="stat-value">{summaryStats.avg}</span>
+				<span class="stat-label">per day</span>
+			</div>
+			<div class="stat-item">
+				<span class="stat-value">{summaryStats.bestDayCount}</span>
+				<span class="stat-label">{formatDayName(summaryStats.bestDay)}</span>
+			</div>
+		</div>
+		{#if summaryStats.topTypes.length > 0}
+		<div class="top-types">
+			{#each summaryStats.topTypes as t}
+				<span class="top-type-chip" style="--chip-color: {getTypeColor(t.type)}">
+					{getTypeLabel(t.type)} <span class="top-type-count">{t.count}</span>
+				</span>
+			{/each}
+		</div>
+		{/if}
+	</div>
+	{/if}
 
 	{#each grouped as group}
 		<div class="date-header">
@@ -466,12 +646,6 @@
 		padding: 0 1rem;
 	}
 
-	.feed-count {
-		font-size: 0.75rem;
-		color: var(--c-text-muted);
-		margin-bottom: 0.5rem;
-		font-weight: 500;
-	}
 
 	/* --- Date headers --- */
 	.date-header {
@@ -591,6 +765,103 @@
 		border-radius: 8px;
 		background: var(--c-accent-bg);
 		color: var(--c-text-muted);
+	}
+
+	/* --- Density chart --- */
+	.density-section {
+		padding: 0 1rem 0.25rem;
+	}
+
+	.density-label {
+		font-size: 0.7rem;
+		font-weight: 600;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-bottom: 0.25rem;
+	}
+
+	.density-chart-wrap {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.35rem 0.5rem;
+		overflow-x: auto;
+	}
+
+	.density-chart {
+		display: block;
+		width: 100%;
+		height: 40px;
+		min-width: 200px;
+	}
+
+	/* --- Summary stats --- */
+	.summary-stats {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.6rem 0.75rem;
+		margin-bottom: 0.6rem;
+	}
+
+	.stat-row {
+		display: flex;
+		gap: 0.75rem;
+		justify-content: space-around;
+	}
+
+	.stat-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.05rem;
+	}
+
+	.stat-value {
+		font-size: 1.1rem;
+		font-weight: 700;
+		color: var(--c-text);
+		font-variant-numeric: tabular-nums;
+		line-height: 1.2;
+	}
+
+	.stat-label {
+		font-size: 0.65rem;
+		color: var(--c-text-muted);
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 7rem;
+	}
+
+	.top-types {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+		margin-top: 0.45rem;
+		justify-content: center;
+	}
+
+	.top-type-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.2rem;
+		font-size: 0.68rem;
+		font-weight: 600;
+		padding: 0.12rem 0.5rem;
+		border-radius: 20px;
+		background: color-mix(in srgb, var(--chip-color) 15%, transparent);
+		color: var(--chip-color);
+		line-height: 1.4;
+	}
+
+	.top-type-count {
+		font-size: 0.62rem;
+		opacity: 0.75;
 	}
 
 	/* --- Load more --- */

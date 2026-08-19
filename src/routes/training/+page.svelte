@@ -28,6 +28,7 @@
 	};
 
 	const allStore = useEntries();
+	const checkinStore = useEntries('checkin');
 
 	const trainingEntries = $derived(
 		allStore.items.filter((e: Entry) => TRAINING_TYPES.includes(e.type as typeof TRAINING_TYPES[number]))
@@ -169,6 +170,131 @@
 		}).length
 	);
 	const weekDiff = $derived(thisWeekCount - lastWeekCount);
+
+	// --- 6. Recovery impact (training vs rest day mood/energy) ---
+	const recoveryData = $derived.by(() => {
+		const now = new Date();
+		now.setHours(0, 0, 0, 0);
+		const thirtyAgo = new Date(now);
+		thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+
+		// Build sets of training day keys (last 30 days)
+		const trainingDays = new Set<string>();
+		for (const e of trainingEntries) {
+			const d = isoToDate(e.createdAt);
+			if (d >= thirtyAgo) trainingDays.add(dateKey(e.createdAt));
+		}
+
+		// Build checkin map by date
+		const checkinByDate: Record<string, { mood: number[]; energy: number[] }> = {};
+		for (const c of checkinStore.items) {
+			const key = dateKey(c.createdAt);
+			if (!checkinByDate[key]) checkinByDate[key] = { mood: [], energy: [] };
+			const m = Number(c.data.mood);
+			const en = Number(c.data.energy);
+			if (m > 0) checkinByDate[key].mood.push(m);
+			if (en > 0) checkinByDate[key].energy.push(en);
+		}
+
+		// For training days: look at NEXT day's checkin
+		const postTrainMoods: number[] = [];
+		const postTrainEnergy: number[] = [];
+		const restMoods: number[] = [];
+		const restEnergy: number[] = [];
+
+		for (let i = 30; i >= 0; i--) {
+			const d = new Date(now);
+			d.setDate(d.getDate() - i);
+			const key = d.toISOString().slice(0, 10);
+
+			if (trainingDays.has(key)) {
+				// Next day
+				const nd = new Date(d);
+				nd.setDate(nd.getDate() + 1);
+				const nk = nd.toISOString().slice(0, 10);
+				const nc = checkinByDate[nk];
+				if (nc) {
+					if (nc.mood.length > 0) postTrainMoods.push(nc.mood.reduce((a, b) => a + b, 0) / nc.mood.length);
+					if (nc.energy.length > 0) postTrainEnergy.push(nc.energy.reduce((a, b) => a + b, 0) / nc.energy.length);
+				}
+			} else {
+				// Rest day: same day's checkin
+				const rc = checkinByDate[key];
+				if (rc) {
+					if (rc.mood.length > 0) restMoods.push(rc.mood.reduce((a, b) => a + b, 0) / rc.mood.length);
+					if (rc.energy.length > 0) restEnergy.push(rc.energy.reduce((a, b) => a + b, 0) / rc.energy.length);
+				}
+			}
+		}
+
+		const avg = (arr: number[]) => arr.length > 0 ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : null;
+
+		const ptMood = avg(postTrainMoods);
+		const ptEnergy = avg(postTrainEnergy);
+		const rMood = avg(restMoods);
+		const moodDiff = ptMood !== null && rMood !== null ? Math.round((ptMood - rMood) * 10) / 10 : null;
+
+		return { ptMood, ptEnergy, rMood, moodDiff, hasData: ptMood !== null || rMood !== null };
+	});
+
+	// --- 7. Rest & volume stats (14 days) ---
+	const restVolumeData = $derived.by(() => {
+		const now = new Date();
+		now.setHours(0, 0, 0, 0);
+		const fourteenAgo = new Date(now);
+		fourteenAgo.setDate(fourteenAgo.getDate() - 13);
+
+		const trainingDays14 = new Set<string>();
+		for (const e of trainingEntries) {
+			const d = isoToDate(e.createdAt);
+			if (d >= fourteenAgo) trainingDays14.add(dateKey(e.createdAt));
+		}
+		const restDays = 14 - trainingDays14.size;
+
+		let totalMinutes = 0;
+		for (const e of trainingEntries) {
+			const d = isoToDate(e.createdAt);
+			if (d >= fourteenAgo) {
+				const dur = Number(e.data.durationMin);
+				if (dur > 0) totalMinutes += dur;
+			}
+		}
+
+		return { restDays, totalMinutes: Math.round(totalMinutes) };
+	});
+
+	// --- 8. Monthly volume chart (last 4 weeks) ---
+	const monthlyVolumeData = $derived.by(() => {
+		const now = new Date();
+		now.setHours(0, 0, 0, 0);
+		const weeks: { label: string; byType: Record<string, number>; total: number }[] = [];
+
+		for (let w = 3; w >= 0; w--) {
+			const weekEnd = new Date(now);
+			weekEnd.setDate(weekEnd.getDate() - w * 7);
+			const weekStart = new Date(weekEnd);
+			weekStart.setDate(weekStart.getDate() - 6);
+
+			const byType: Record<string, number> = {};
+			for (const t of TRAINING_TYPES) byType[t] = 0;
+
+			for (const e of trainingEntries) {
+				const d = isoToDate(e.createdAt);
+				if (d >= weekStart && d <= weekEnd) {
+					byType[e.type] = (byType[e.type] || 0) + 1;
+				}
+			}
+
+			const total = TRAINING_TYPES.reduce((s, t) => s + byType[t], 0);
+			const label = `${weekStart.toISOString().slice(5, 10)}`;
+			weeks.push({ label, byType, total });
+		}
+
+		return weeks;
+	});
+	const monthlyMaxTotal = $derived(
+		Math.max(1, ...monthlyVolumeData.map((w) => w.total))
+	);
 
 	// --- SVG chart helpers ---
 	function polylinePoints(
@@ -346,6 +472,110 @@
 				<svg viewBox="0 0 280 80" class="line-chart">
 					<polyline points={cLine} fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linejoin="round" />
 				</svg>
+			</div>
+		</section>
+	{/if}
+
+	<!-- 6. Recovery impact -->
+	{#if recoveryData.hasData}
+		<section class="analytics">
+			<h2>Recovery impact (30 days)</h2>
+			<div class="metrics-row">
+				{#if recoveryData.ptMood !== null}
+					<div class="metric-card">
+						<span class="metric-value">{recoveryData.ptMood}</span>
+						<span class="metric-label">Post-training mood</span>
+					</div>
+				{/if}
+				{#if recoveryData.ptEnergy !== null}
+					<div class="metric-card">
+						<span class="metric-value">{recoveryData.ptEnergy}</span>
+						<span class="metric-label">Post-training energy</span>
+					</div>
+				{/if}
+				{#if recoveryData.rMood !== null}
+					<div class="metric-card">
+						<span class="metric-value">{recoveryData.rMood}</span>
+						<span class="metric-label">Rest day mood</span>
+					</div>
+				{/if}
+			</div>
+			{#if recoveryData.moodDiff !== null}
+				<div class="recovery-diff">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						{#if recoveryData.moodDiff >= 0}
+							<polyline points="18 15 12 9 6 15" />
+						{:else}
+							<polyline points="6 9 12 15 18 9" />
+						{/if}
+					</svg>
+					<span class="diff-value" class:positive={recoveryData.moodDiff >= 0} class:negative={recoveryData.moodDiff < 0}>
+						{recoveryData.moodDiff > 0 ? '+' : ''}{recoveryData.moodDiff}
+					</span>
+					<span class="diff-label">mood difference (training vs rest)</span>
+				</div>
+			{/if}
+		</section>
+	{/if}
+
+	<!-- 7. Rest & volume stats -->
+	<section class="analytics">
+		<h2>Rest & volume (14 days)</h2>
+		<div class="metrics-row">
+			<div class="metric-card">
+				<span class="metric-value">{restVolumeData.restDays}</span>
+				<span class="metric-label">Rest days</span>
+			</div>
+			<div class="metric-card">
+				<span class="metric-value">{restVolumeData.totalMinutes}<span class="metric-unit">min</span></span>
+				<span class="metric-label">Training time</span>
+			</div>
+		</div>
+	</section>
+
+	<!-- 8. Monthly volume chart (4 weeks) -->
+	{#if monthlyVolumeData.some((w) => w.total > 0)}
+		<section class="analytics">
+			<h2>Monthly volume (sessions/week)</h2>
+			<div class="chart-wrap">
+				<svg viewBox="0 0 280 100" class="bar-chart">
+					{#each monthlyVolumeData as week, i}
+						{@const barW = 280 / 4 - 16}
+						{@const x = i * (280 / 4) + 8}
+						{#if week.total > 0}
+							{#each TRAINING_TYPES as tt, ti}
+								{@const segH = (week.byType[tt] / monthlyMaxTotal) * 80}
+								{@const prevH = TRAINING_TYPES.slice(0, ti).reduce((s, pt) => s + (week.byType[pt] / monthlyMaxTotal) * 80, 0)}
+								{#if week.byType[tt] > 0}
+									<rect
+										x={x}
+										y={90 - prevH - segH}
+										width={barW}
+										height={segH}
+										rx="3"
+										fill={TYPE_COLORS[tt]}
+										opacity="0.85"
+									/>
+								{/if}
+							{/each}
+						{/if}
+						<text
+							x={x + barW / 2}
+							y="99"
+							text-anchor="middle"
+							fill="var(--c-text-muted)"
+							font-size="7"
+						>{week.label}</text>
+					{/each}
+				</svg>
+				<div class="legend">
+					{#each TRAINING_TYPES as tt}
+						<span class="legend-item">
+							<span class="dot" style="background:{TYPE_COLORS[tt]}"></span>
+							{TYPE_LABELS[tt]}
+						</span>
+					{/each}
+				</div>
 			</div>
 		</section>
 	{/if}
@@ -539,5 +769,39 @@
 	@media (max-width: 359px) {
 		.metrics-row, .volume-row { flex-direction: column; }
 		.metric-card, .volume-card { min-width: auto; }
+	}
+
+	/* Recovery diff */
+	.recovery-diff {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin-top: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		font-size: 0.8rem;
+	}
+
+	.diff-value {
+		font-weight: 700;
+		font-size: 0.95rem;
+	}
+
+	.diff-value.positive { color: var(--c-done); }
+	.diff-value.negative { color: var(--c-cancel, #e53e3e); }
+
+	.diff-label {
+		color: var(--c-text-muted);
+		font-size: 0.75rem;
+	}
+
+	/* Metric unit */
+	.metric-unit {
+		font-size: 0.75rem;
+		font-weight: 400;
+		color: var(--c-text-muted);
+		margin-left: 0.15rem;
 	}
 </style>

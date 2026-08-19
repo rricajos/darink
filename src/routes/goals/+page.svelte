@@ -170,6 +170,18 @@
 	const dailyHit = $derived(dailyGoals.filter(gp => gp.done).length);
 	const weeklyHit = $derived(weeklyGoals.filter(gp => gp.done).length);
 
+	/* --- Helper: check if all daily goals met for a given date string --- */
+	function allDailyGoalsMet(dayStr: string, dailyG: Goal[], items: typeof store.items): boolean {
+		for (const g of dailyG) {
+			const dayItems = items.filter(e => {
+				const eDate = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+				return eDate === dayStr;
+			});
+			if (getProgressForDay(g, dayItems) < g.target) return false;
+		}
+		return true;
+	}
+
 	/* --- Streak: consecutive days with all daily goals met --- */
 	const streak = $derived.by(() => {
 		if (goals.filter(g => g.type === 'daily').length === 0) return 0;
@@ -182,20 +194,7 @@
 			const d = new Date(now);
 			d.setDate(d.getDate() - i);
 			const dayStr = d.toISOString().slice(0, 10);
-
-			let allMet = true;
-			for (const g of dailyG) {
-				const dayItems = items.filter(e => {
-					const eDate = (e.data.date as string) ?? e.createdAt.slice(0, 10);
-					return eDate === dayStr;
-				});
-				const val = getProgressForDay(g, dayItems);
-				if (val < g.target) {
-					allMet = false;
-					break;
-				}
-			}
-			if (allMet) {
+			if (allDailyGoalsMet(dayStr, dailyG, items)) {
 				count++;
 			} else {
 				break;
@@ -203,6 +202,107 @@
 		}
 		return count;
 	});
+
+	/* --- Best streak: longest consecutive run with all daily goals met --- */
+	const bestStreak = $derived.by(() => {
+		const dailyG = goals.filter(g => g.type === 'daily');
+		if (dailyG.length === 0) return { days: 0, from: '', to: '' };
+		const items = store.items;
+		const now = new Date();
+		let best = 0;
+		let bestFrom = '';
+		let bestTo = '';
+		let current = 0;
+		let currentFrom = '';
+
+		for (let i = 364; i >= 0; i--) {
+			const d = new Date(now);
+			d.setDate(d.getDate() - i);
+			const dayStr = d.toISOString().slice(0, 10);
+			if (allDailyGoalsMet(dayStr, dailyG, items)) {
+				if (current === 0) currentFrom = dayStr;
+				current++;
+				if (current > best) {
+					best = current;
+					bestFrom = currentFrom;
+					bestTo = dayStr;
+				}
+			} else {
+				current = 0;
+			}
+		}
+		return { days: best, from: bestFrom, to: bestTo };
+	});
+
+	/* --- 30-day calendar: which days all daily goals were met --- */
+	const calendarDays = $derived.by(() => {
+		const dailyG = goals.filter(g => g.type === 'daily');
+		if (dailyG.length === 0) return [];
+		const items = store.items;
+		const today = todayStr();
+		const result: { date: string; day: number; met: boolean; isToday: boolean }[] = [];
+		const now = new Date();
+		for (let i = 29; i >= 0; i--) {
+			const d = new Date(now);
+			d.setDate(d.getDate() - i);
+			const dayStr = d.toISOString().slice(0, 10);
+			result.push({
+				date: dayStr,
+				day: d.getDate(),
+				met: allDailyGoalsMet(dayStr, dailyG, items),
+				isToday: dayStr === today
+			});
+		}
+		return result;
+	});
+
+	/* --- Weekly completion rates: last 4 weeks --- */
+	const weeklyRates = $derived.by(() => {
+		const dailyG = goals.filter(g => g.type === 'daily');
+		if (dailyG.length === 0) return [];
+		const items = store.items;
+		const now = new Date();
+		const dayOfWeek = now.getDay();
+		const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+		const labels = ['This week', 'Last week', '2 weeks ago', '3 weeks ago'];
+		const weeks: { label: string; pct: number; met: number; total: number }[] = [];
+
+		for (let w = 0; w < 4; w++) {
+			let met = 0;
+			const weekStartOffset = mondayOffset + w * 7;
+			const daysInWeek = w === 0 ? mondayOffset + 1 : 7;
+			for (let d = 0; d < daysInWeek; d++) {
+				const dt = new Date(now);
+				dt.setDate(dt.getDate() - weekStartOffset + d);
+				const dayStr = dt.toISOString().slice(0, 10);
+				if (allDailyGoalsMet(dayStr, dailyG, items)) met++;
+			}
+			weeks.push({
+				label: labels[w],
+				pct: daysInWeek > 0 ? Math.round((met / 7) * 100) : 0,
+				met,
+				total: 7
+			});
+		}
+		return weeks;
+	});
+
+	/* --- Sparkline: last 14 days of individual goal completion --- */
+	function getGoalSparkline(goal: Goal, items: typeof store.items): { date: string; met: boolean }[] {
+		const now = new Date();
+		const result: { date: string; met: boolean }[] = [];
+		for (let i = 13; i >= 0; i--) {
+			const d = new Date(now);
+			d.setDate(d.getDate() - i);
+			const dayStr = d.toISOString().slice(0, 10);
+			const dayItems = items.filter(e => {
+				const eDate = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+				return eDate === dayStr;
+			});
+			result.push({ date: dayStr, met: getProgressForDay(goal, dayItems) >= goal.target });
+		}
+		return result;
+	}
 
 	function getProgressForDay(goal: Goal, dayItems: typeof store.items): number {
 		switch (goal.metric) {
@@ -267,11 +367,65 @@
 </section>
 {/if}
 
+<!-- 30-Day Completion Calendar -->
+{#if calendarDays.length > 0}
+<section class="calendar-section">
+	<h2>Last 30 days</h2>
+	<div class="calendar-grid">
+		{#each calendarDays as cell}
+			<div
+				class="calendar-cell"
+				class:met={cell.met}
+				class:today={cell.isToday}
+				title={cell.date}
+			>
+				{cell.day}
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+<!-- Weekly Completion Rate -->
+{#if weeklyRates.length > 0}
+<section class="weekly-section">
+	<h2>Weekly completion</h2>
+	<div class="weekly-bars">
+		{#each weeklyRates as week}
+			{@const color = week.pct >= 80 ? '#22c55e' : week.pct >= 50 ? '#eab308' : '#ef4444'}
+			<div class="weekly-row">
+				<span class="weekly-label">{week.label}</span>
+				<div class="weekly-bar-track">
+					<div class="weekly-bar-fill" style="width: {week.pct}%; background: {color}"></div>
+				</div>
+				<span class="weekly-pct" style="color: {color}">{week.pct}%</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+<!-- Best Streak -->
+{#if bestStreak.days > 0}
+<section class="best-streak-section">
+	<div class="best-streak-card">
+		<div class="best-streak-icon">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+		</div>
+		<div class="best-streak-info">
+			<span class="best-streak-value">Best streak: {bestStreak.days} days</span>
+			<span class="best-streak-range">{bestStreak.from} &ndash; {bestStreak.to}</span>
+		</div>
+	</div>
+</section>
+{/if}
+
 <!-- Goal cards -->
 {#if goalProgress.length > 0}
 <section class="goal-list">
 	{#each goalProgress as gp}
 		{@const barWidth = `${gp.pct}%`}
+		{@const sparkline = gp.goal.type === 'daily' ? getGoalSparkline(gp.goal, store.items) : null}
 		<div class="goal-card" class:done={gp.done}>
 			<div class="goal-header">
 				<div class="goal-info">
@@ -291,6 +445,13 @@
 			<div class="progress-bar-track">
 				<div class="progress-bar-fill" class:complete={gp.done} style="width: {barWidth}"></div>
 			</div>
+			{#if sparkline}
+			<div class="sparkline-row">
+				{#each sparkline as dot}
+					<span class="spark-dot" class:spark-met={dot.met} title={dot.date}></span>
+				{/each}
+			</div>
+			{/if}
 			{#if gp.done}
 			<div class="done-badge">
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -394,6 +555,147 @@
 		font-weight: 600;
 		color: var(--c-text-muted);
 		text-transform: uppercase;
+	}
+
+	/* 30-day calendar */
+	.calendar-section {
+		padding: 0 1rem 1rem;
+	}
+
+	.calendar-grid {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		gap: 4px;
+	}
+
+	.calendar-cell {
+		aspect-ratio: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.72rem;
+		font-weight: 600;
+		border-radius: 6px;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		color: var(--c-text-muted);
+	}
+
+	.calendar-cell.met {
+		background: #22c55e;
+		border-color: #22c55e;
+		color: #fff;
+	}
+
+	.calendar-cell.today {
+		box-shadow: inset 0 0 0 2px var(--c-accent);
+	}
+
+	/* Weekly completion */
+	.weekly-section {
+		padding: 0 1rem 1rem;
+	}
+
+	.weekly-bars {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.weekly-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.weekly-label {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--c-text-muted);
+		min-width: 80px;
+		flex-shrink: 0;
+	}
+
+	.weekly-bar-track {
+		flex: 1;
+		height: 8px;
+		background: var(--c-border);
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	.weekly-bar-fill {
+		height: 100%;
+		border-radius: 4px;
+		transition: width 0.3s ease;
+	}
+
+	.weekly-pct {
+		font-size: 0.75rem;
+		font-weight: 700;
+		min-width: 32px;
+		text-align: right;
+	}
+
+	/* Best streak */
+	.best-streak-section {
+		padding: 0 1rem 1rem;
+	}
+
+	.best-streak-card {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem 1rem;
+	}
+
+	.best-streak-icon {
+		color: #f97316;
+		display: flex;
+		flex-shrink: 0;
+	}
+
+	.best-streak-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+	}
+
+	.best-streak-value {
+		font-size: 0.9rem;
+		font-weight: 700;
+	}
+
+	.best-streak-range {
+		font-size: 0.75rem;
+		color: var(--c-text-muted);
+	}
+
+	/* Sparkline dots */
+	.sparkline-row {
+		display: flex;
+		align-items: center;
+		gap: 3px;
+		margin-top: 0.5rem;
+		padding-top: 0.4rem;
+		border-top: 1px solid var(--c-border);
+	}
+
+	.spark-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: transparent;
+		border: 1.5px solid var(--c-text-muted);
+		flex-shrink: 0;
+	}
+
+	.spark-dot.spark-met {
+		background: #22c55e;
+		border-color: #22c55e;
 	}
 
 	/* Goal list */
