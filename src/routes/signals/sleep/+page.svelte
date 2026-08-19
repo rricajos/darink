@@ -6,6 +6,7 @@
 	import type { Entry } from '$lib/db';
 
 	const store = useEntries('signal.sleep');
+	const allStore = useEntries();
 
 	let date = $state(new Date().toISOString().slice(0, 10));
 	let hours = $state(7);
@@ -22,6 +23,81 @@
 
 	const thirtyDaysAgo = $derived(new Date(Date.now() - 30 * 86400000).toISOString());
 	const recent30 = $derived(sorted.filter(e => e.createdAt >= thirtyDaysAgo));
+
+	const sleepMoodCorrelation = $derived.by(() => {
+		const checkins = allStore.items.filter(e => e.type === 'checkin');
+		if (checkins.length < 3 || store.items.length < 3) return null;
+		const sleepByDate: Record<string, number> = {};
+		for (const e of store.items) {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			sleepByDate[d] = Number(e.data.hours);
+		}
+		let goodMoods: number[] = [], poorMoods: number[] = [];
+		let goodEnergies: number[] = [], poorEnergies: number[] = [];
+		for (const c of checkins) {
+			const d = (c.data.date as string) ?? c.createdAt.slice(0, 10);
+			const h = sleepByDate[d];
+			if (h === undefined) continue;
+			const mood = Number(c.data.mood);
+			const energy = Number(c.data.energy);
+			if (h >= 7) { goodMoods.push(mood); goodEnergies.push(energy); }
+			else { poorMoods.push(mood); poorEnergies.push(energy); }
+		}
+		if (goodMoods.length === 0 || poorMoods.length === 0) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return { goodMood: avg(goodMoods), poorMood: avg(poorMoods), goodEnergy: avg(goodEnergies), poorEnergy: avg(poorEnergies), goodN: goodMoods.length, poorN: poorMoods.length };
+	});
+
+	const weeklyPattern = $derived.by(() => {
+		if (store.items.length < 7) return null;
+		const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+		const buckets: number[][] = Array.from({ length: 7 }, () => []);
+		for (const e of store.items) {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			const day = new Date(d + 'T12:00:00').getDay();
+			buckets[day].push(Number(e.data.hours));
+		}
+		const data = dayNames.map((name, i) => ({
+			name,
+			avg: buckets[i].length ? +(buckets[i].reduce((s, v) => s + v, 0) / buckets[i].length).toFixed(1) : 0,
+			count: buckets[i].length
+		}));
+		const maxAvg = Math.max(...data.map(d => d.avg), 1);
+		return { data, maxAvg };
+	});
+
+	const sleepDebt = $derived.by(() => {
+		if (store.items.length < 7) return null;
+		const target = 8;
+		const recent7 = sorted.slice(-7);
+		const totalHours = recent7.reduce((s, e) => s + Number(e.data.hours), 0);
+		const debt = +(target * 7 - totalHours).toFixed(1);
+		const avgRecent = +(totalHours / recent7.length).toFixed(1);
+		return { debt, avgRecent, target };
+	});
+
+	const trainingRecovery = $derived.by(() => {
+		const checkins = allStore.items.filter(e => e.type === 'checkin');
+		const trainings = allStore.items.filter(e => e.type.startsWith('training.'));
+		if (checkins.length < 3 || trainings.length < 2 || store.items.length < 3) return null;
+		const trainingDates = new Set(trainings.map(e => e.createdAt.slice(0, 10)));
+		const sleepByDate: Record<string, number> = {};
+		for (const e of store.items) {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			sleepByDate[d] = Number(e.data.quality);
+		}
+		let postTrainQ: number[] = [], restDayQ: number[] = [];
+		for (const d of Object.keys(sleepByDate)) {
+			const prev = new Date(d + 'T12:00:00');
+			prev.setDate(prev.getDate() - 1);
+			const prevKey = prev.toISOString().slice(0, 10);
+			if (trainingDates.has(prevKey)) postTrainQ.push(sleepByDate[d]);
+			else restDayQ.push(sleepByDate[d]);
+		}
+		if (postTrainQ.length === 0 || restDayQ.length === 0) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return { postTrain: avg(postTrainQ), restDay: avg(restDayQ) };
+	});
 
 	function submit() {
 		entries.add('signal.sleep', { date, hours, quality, dreams, bedtime, wakeTime, notes });
@@ -153,6 +229,85 @@
 </section>
 {/if}
 
+{#if sleepMoodCorrelation}
+<section class="analytics">
+	<h2>Sleep–Mood Correlation</h2>
+	<p class="hint">Comparing check-in mood &amp; energy on days with ≥7h sleep vs &lt;7h</p>
+	<div class="corr-grid">
+		<div class="corr-card">
+			<span class="corr-label">≥7h sleep (n={sleepMoodCorrelation.goodN})</span>
+			<div class="corr-bars">
+				<div class="corr-row"><span>Mood</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.goodMood * 10}%;background:var(--c-done)"></div></div><span>{sleepMoodCorrelation.goodMood}</span></div>
+				<div class="corr-row"><span>Energy</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.goodEnergy * 10}%;background:#6ec6ff"></div></div><span>{sleepMoodCorrelation.goodEnergy}</span></div>
+			</div>
+		</div>
+		<div class="corr-card">
+			<span class="corr-label">&lt;7h sleep (n={sleepMoodCorrelation.poorN})</span>
+			<div class="corr-bars">
+				<div class="corr-row"><span>Mood</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.poorMood * 10}%;background:#e8a735"></div></div><span>{sleepMoodCorrelation.poorMood}</span></div>
+				<div class="corr-row"><span>Energy</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.poorEnergy * 10}%;background:#e8a735"></div></div><span>{sleepMoodCorrelation.poorEnergy}</span></div>
+			</div>
+		</div>
+	</div>
+</section>
+{/if}
+
+{#if weeklyPattern}
+<section class="analytics">
+	<h2>Weekly Sleep Pattern</h2>
+	<div class="week-chart">
+		{#each weeklyPattern.data as day}
+			<div class="week-bar-col">
+				<span class="week-val">{day.avg}h</span>
+				<div class="week-bar" style="height:{(day.avg / weeklyPattern.maxAvg) * 100}%;background:{day.avg >= 7 ? 'var(--c-done)' : day.avg >= 6 ? '#e8a735' : '#e53e3e'}"></div>
+				<span class="week-label">{day.name}</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+{#if sleepDebt}
+<section class="analytics">
+	<h2>Sleep Debt (Last 7 Days)</h2>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value" style="color:{sleepDebt.debt <= 0 ? 'var(--c-done)' : sleepDebt.debt <= 5 ? '#e8a735' : '#e53e3e'}">{sleepDebt.debt > 0 ? '+' : ''}{sleepDebt.debt}h</span>
+			<span class="metric-label">Sleep debt</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{sleepDebt.avgRecent}h</span>
+			<span class="metric-label">Avg (7d)</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{sleepDebt.target}h</span>
+			<span class="metric-label">Target</span>
+		</div>
+	</div>
+</section>
+{/if}
+
+{#if trainingRecovery}
+<section class="analytics">
+	<h2>Training Recovery</h2>
+	<p class="hint">Sleep quality on nights after training vs rest days</p>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value">{trainingRecovery.postTrain}/10</span>
+			<span class="metric-label">Post-training</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{trainingRecovery.restDay}/10</span>
+			<span class="metric-label">Rest day</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value" style="color:{trainingRecovery.postTrain >= trainingRecovery.restDay ? 'var(--c-done)' : '#e53e3e'}">{trainingRecovery.postTrain >= trainingRecovery.restDay ? '+' : ''}{+(trainingRecovery.postTrain - trainingRecovery.restDay).toFixed(1)}</span>
+			<span class="metric-label">Difference</span>
+		</div>
+	</div>
+</section>
+{/if}
+
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
 	.row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -173,4 +328,20 @@
 	.metric-card { flex: 1; min-width: 80px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
 	.metric-value { font-size: 1.4rem; font-weight: 700; }
 	.metric-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; }
+	.analytics { padding: 1.5rem 1rem 0; }
+	.hint { font-size: 0.8rem; color: var(--c-text-muted); margin-bottom: 0.75rem; }
+	.corr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+	.corr-card { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; }
+	.corr-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; display: block; margin-bottom: 0.5rem; }
+	.corr-bars { display: flex; flex-direction: column; gap: 0.4rem; }
+	.corr-row { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; }
+	.corr-row span:first-child { width: 3rem; font-size: 0.75rem; color: var(--c-text-muted); }
+	.corr-row span:last-child { width: 2rem; text-align: right; font-weight: 600; }
+	.bar-bg { flex: 1; height: 10px; background: var(--c-border); border-radius: 5px; overflow: hidden; }
+	.bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s; }
+	.week-chart { display: flex; align-items: flex-end; gap: 0.25rem; height: 120px; padding: 0.5rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); }
+	.week-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+	.week-val { font-size: 0.65rem; color: var(--c-text-muted); margin-bottom: 2px; }
+	.week-bar { width: 70%; border-radius: 3px 3px 0 0; min-height: 4px; transition: height 0.3s; }
+	.week-label { font-size: 0.7rem; color: var(--c-text-muted); margin-top: 4px; }
 </style>

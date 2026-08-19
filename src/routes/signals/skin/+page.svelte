@@ -6,6 +6,7 @@
 	import type { Entry } from '$lib/db';
 
 	const store = useEntries('signal.skin');
+	const allStore = useEntries();
 
 	let acneZone = $state('');
 	let oiliness = $state(3);
@@ -17,6 +18,66 @@
 	const last30 = $derived(sorted.slice(-30));
 	const oilinessChart = $derived(last30.map(e => ({ value: Number(e.data.oiliness) * 2 })));
 	const elasticityChart = $derived(last30.map(e => ({ value: Number(e.data.elasticity) })));
+
+	const hydrationSkinLink = $derived.by(() => {
+		const hydEntries = allStore.items.filter(e => e.type === 'hydration');
+		if (hydEntries.length < 5 || store.items.length < 5) return null;
+		const hydByDate: Record<string, number> = {};
+		for (const e of hydEntries) {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			hydByDate[d] = (hydByDate[d] || 0) + Number(e.data.amount || 0);
+		}
+		const skinByDate: Record<string, { o: number; e: number }> = {};
+		for (const e of store.items) {
+			const d = e.createdAt.slice(0, 10);
+			skinByDate[d] = { o: Number(e.data.oiliness), e: Number(e.data.elasticity) };
+		}
+		const allHyd = Object.values(hydByDate);
+		if (allHyd.length === 0) return null;
+		const median = allHyd.toSorted((a, b) => a - b)[Math.floor(allHyd.length / 2)];
+		let highElast: number[] = [], lowElast: number[] = [];
+		for (const [d, skin] of Object.entries(skinByDate)) {
+			const h = hydByDate[d];
+			if (h === undefined) continue;
+			if (h >= median) highElast.push(skin.e);
+			else lowElast.push(skin.e);
+		}
+		if (highElast.length === 0 || lowElast.length === 0) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return { highHyd: avg(highElast), lowHyd: avg(lowElast), highN: highElast.length, lowN: lowElast.length };
+	});
+
+	const acneZoneFreq = $derived.by(() => {
+		const counts: Record<string, number> = {};
+		for (const e of store.items) {
+			const zone = (e.data.acneZone as string)?.trim();
+			if (zone) counts[zone] = (counts[zone] || 0) + 1;
+		}
+		const sorted = Object.entries(counts).toSorted((a, b) => b[1] - a[1]).slice(0, 5);
+		const max = sorted.length > 0 ? sorted[0][1] : 1;
+		return { zones: sorted, max };
+	});
+
+	const skinMoodLink = $derived.by(() => {
+		const checkins = allStore.items.filter(e => e.type === 'checkin');
+		if (checkins.length < 5 || store.items.length < 5) return null;
+		const moodByDate: Record<string, number> = {};
+		for (const c of checkins) {
+			const d = (c.data.date as string) ?? c.createdAt.slice(0, 10);
+			moodByDate[d] = Number(c.data.mood);
+		}
+		const pairs: { elast: number; mood: number }[] = [];
+		for (const e of store.items) {
+			const d = e.createdAt.slice(0, 10);
+			if (moodByDate[d] !== undefined) pairs.push({ elast: Number(e.data.elasticity), mood: moodByDate[d] });
+		}
+		if (pairs.length < 3) return null;
+		const highElast = pairs.filter(p => p.elast >= 7);
+		const lowElast = pairs.filter(p => p.elast < 5);
+		if (highElast.length === 0 || lowElast.length === 0) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return { highSkinMood: avg(highElast.map(p => p.mood)), lowSkinMood: avg(lowElast.map(p => p.mood)) };
+	});
 
 	function submit() {
 		entries.add('signal.skin', { acneZone, oiliness, elasticity, healing, notes });
@@ -122,6 +183,55 @@
 </section>
 {/if}
 
+{#if hydrationSkinLink}
+<section class="analytics">
+	<h2>Hydration–Skin Link</h2>
+	<p class="hint">Avg elasticity on high vs low hydration days</p>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value" style="color:var(--c-done)">{hydrationSkinLink.highHyd}/10</span>
+			<span class="metric-label">High hydration (n={hydrationSkinLink.highN})</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value" style="color:#e8a735">{hydrationSkinLink.lowHyd}/10</span>
+			<span class="metric-label">Low hydration (n={hydrationSkinLink.lowN})</span>
+		</div>
+	</div>
+</section>
+{/if}
+
+{#if acneZoneFreq.zones.length > 0}
+<section class="analytics">
+	<h2>Acne Zone Frequency</h2>
+	<div class="zone-bars">
+		{#each acneZoneFreq.zones as [zone, count]}
+			<div class="zone-row">
+				<span class="zone-name">{zone}</span>
+				<div class="bar-bg"><div class="bar-fill" style="width:{(count / acneZoneFreq.max) * 100}%;background:#ff9800"></div></div>
+				<span class="zone-count">{count}</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+{#if skinMoodLink}
+<section class="analytics">
+	<h2>Skin–Mood Link</h2>
+	<p class="hint">Average mood when skin elasticity is high (≥7) vs low (&lt;5)</p>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value" style="color:var(--c-done)">{skinMoodLink.highSkinMood}</span>
+			<span class="metric-label">Good skin days</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value" style="color:#e8a735">{skinMoodLink.lowSkinMood}</span>
+			<span class="metric-label">Poor skin days</span>
+		</div>
+	</div>
+</section>
+{/if}
+
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
 	input[type="range"] { padding: 0; }
@@ -140,4 +250,12 @@
 	.metric-card { flex: 1; min-width: 80px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
 	.metric-value { font-size: 1.4rem; font-weight: 700; }
 	.metric-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; }
+	.analytics { padding: 1.5rem 1rem 0; }
+	.hint { font-size: 0.8rem; color: var(--c-text-muted); margin-bottom: 0.75rem; }
+	.zone-bars { display: flex; flex-direction: column; gap: 0.5rem; }
+	.zone-row { display: flex; align-items: center; gap: 0.5rem; }
+	.zone-name { width: 5rem; font-size: 0.8rem; text-align: right; color: var(--c-text-muted); }
+	.zone-count { width: 2rem; font-size: 0.8rem; font-weight: 600; }
+	.bar-bg { flex: 1; height: 12px; background: var(--c-border); border-radius: 6px; overflow: hidden; }
+	.bar-fill { height: 100%; border-radius: 6px; transition: width 0.3s; }
 </style>

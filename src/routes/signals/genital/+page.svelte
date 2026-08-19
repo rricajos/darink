@@ -6,6 +6,7 @@
 	import type { Entry } from '$lib/db';
 
 	const store = useEntries('signal.genital');
+	const allStore = useEntries();
 
 	let morningErection = $state(0);
 	let libido = $state(5);
@@ -16,6 +17,78 @@
 	const last30 = $derived(sorted.slice(-30));
 	const libidoChart = $derived(last30.map(e => ({ value: Number(e.data.libido) })));
 	const sensitivityChart = $derived(last30.map(e => ({ value: Number(e.data.sensitivity) })));
+
+	const sleepLibidoLink = $derived.by(() => {
+		const sleepEntries = allStore.items.filter(e => e.type === 'signal.sleep');
+		if (sleepEntries.length < 5 || store.items.length < 5) return null;
+		const sleepByDate: Record<string, number> = {};
+		for (const e of sleepEntries) {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			sleepByDate[d] = Number(e.data.hours);
+		}
+		let goodSleepLibido: number[] = [], poorSleepLibido: number[] = [];
+		for (const e of store.items) {
+			const d = e.createdAt.slice(0, 10);
+			const h = sleepByDate[d];
+			if (h === undefined) continue;
+			const lib = Number(e.data.libido);
+			if (h >= 7) goodSleepLibido.push(lib);
+			else poorSleepLibido.push(lib);
+		}
+		if (goodSleepLibido.length === 0 || poorSleepLibido.length === 0) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return { goodSleep: avg(goodSleepLibido), poorSleep: avg(poorSleepLibido), goodN: goodSleepLibido.length, poorN: poorSleepLibido.length };
+	});
+
+	const trainingLibidoLink = $derived.by(() => {
+		const trainings = allStore.items.filter(e => e.type.startsWith('training.'));
+		if (trainings.length < 3 || store.items.length < 5) return null;
+		const trainDates = new Set(trainings.map(e => e.createdAt.slice(0, 10)));
+		let trainDayLib: number[] = [], restDayLib: number[] = [];
+		for (const e of store.items) {
+			const d = e.createdAt.slice(0, 10);
+			const lib = Number(e.data.libido);
+			if (trainDates.has(d)) trainDayLib.push(lib);
+			else restDayLib.push(lib);
+		}
+		if (trainDayLib.length === 0 || restDayLib.length === 0) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return { train: avg(trainDayLib), rest: avg(restDayLib) };
+	});
+
+	const meWeeklyPattern = $derived.by(() => {
+		if (store.items.length < 7) return null;
+		const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+		const buckets: number[][] = Array.from({ length: 7 }, () => []);
+		for (const e of store.items) {
+			const d = e.createdAt.slice(0, 10);
+			const day = new Date(d + 'T12:00:00').getDay();
+			buckets[day].push(Number(e.data.morningErection));
+		}
+		const data = dayNames.map((name, i) => ({
+			name,
+			avg: buckets[i].length ? +(buckets[i].reduce((s, v) => s + v, 0) / buckets[i].length).toFixed(1) : 0,
+			count: buckets[i].length
+		}));
+		const maxAvg = Math.max(...data.map(d => d.avg), 1);
+		return { data, maxAvg };
+	});
+
+	const supplementLibidoLink = $derived.by(() => {
+		const suppEntries = allStore.items.filter(e => e.type === 'supplement');
+		if (suppEntries.length < 5 || store.items.length < 5) return null;
+		const suppDates = new Set(suppEntries.map(e => (e.data.date as string) ?? e.createdAt.slice(0, 10)));
+		let suppDays: number[] = [], noSuppDays: number[] = [];
+		for (const e of store.items) {
+			const d = e.createdAt.slice(0, 10);
+			const lib = Number(e.data.libido);
+			if (suppDates.has(d)) suppDays.push(lib);
+			else noSuppDays.push(lib);
+		}
+		if (suppDays.length === 0 || noSuppDays.length === 0) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return { supp: avg(suppDays), noSupp: avg(noSuppDays) };
+	});
 
 	function submit() {
 		entries.add('signal.genital', { morningErection, libido, sensitivity, notes });
@@ -130,6 +203,72 @@
 </section>
 {/if}
 
+{#if sleepLibidoLink}
+<section class="analytics">
+	<h2>Sleep–Libido Link</h2>
+	<p class="hint">Avg libido on good sleep (≥7h) vs poor sleep (&lt;7h) days</p>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value" style="color:var(--c-done)">{sleepLibidoLink.goodSleep}/10</span>
+			<span class="metric-label">≥7h sleep (n={sleepLibidoLink.goodN})</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value" style="color:#e8a735">{sleepLibidoLink.poorSleep}/10</span>
+			<span class="metric-label">&lt;7h sleep (n={sleepLibidoLink.poorN})</span>
+		</div>
+	</div>
+</section>
+{/if}
+
+{#if trainingLibidoLink}
+<section class="analytics">
+	<h2>Training–Libido Link</h2>
+	<p class="hint">Avg libido on training days vs rest days</p>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value">{trainingLibidoLink.train}/10</span>
+			<span class="metric-label">Training days</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{trainingLibidoLink.rest}/10</span>
+			<span class="metric-label">Rest days</span>
+		</div>
+	</div>
+</section>
+{/if}
+
+{#if meWeeklyPattern}
+<section class="analytics">
+	<h2>Morning Erection Pattern</h2>
+	<div class="week-chart">
+		{#each meWeeklyPattern.data as day}
+			<div class="week-bar-col">
+				<span class="week-val">{day.avg}</span>
+				<div class="week-bar" style="height:{(day.avg / meWeeklyPattern.maxAvg) * 100}%;background:{day.avg >= 2.5 ? 'var(--c-done)' : day.avg >= 1.5 ? '#e8a735' : '#e53e3e'}"></div>
+				<span class="week-label">{day.name}</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+{#if supplementLibidoLink}
+<section class="analytics">
+	<h2>Supplement Impact</h2>
+	<p class="hint">Avg libido on supplement days vs non-supplement days</p>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value" style="color:var(--c-done)">{supplementLibidoLink.supp}/10</span>
+			<span class="metric-label">Supplement days</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value" style="color:var(--c-text-muted)">{supplementLibidoLink.noSupp}/10</span>
+			<span class="metric-label">No supplement</span>
+		</div>
+	</div>
+</section>
+{/if}
+
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
 	input[type="range"] { padding: 0; }
@@ -148,4 +287,11 @@
 	.metric-card { flex: 1; min-width: 80px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
 	.metric-value { font-size: 1.4rem; font-weight: 700; }
 	.metric-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; }
+	.analytics { padding: 1.5rem 1rem 0; }
+	.hint { font-size: 0.8rem; color: var(--c-text-muted); margin-bottom: 0.75rem; }
+	.week-chart { display: flex; align-items: flex-end; gap: 0.25rem; height: 120px; padding: 0.5rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); }
+	.week-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+	.week-val { font-size: 0.65rem; color: var(--c-text-muted); margin-bottom: 2px; }
+	.week-bar { width: 70%; border-radius: 3px 3px 0 0; min-height: 4px; transition: height 0.3s; }
+	.week-label { font-size: 0.7rem; color: var(--c-text-muted); margin-top: 4px; }
 </style>

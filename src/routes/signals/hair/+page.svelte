@@ -6,6 +6,7 @@
 	import type { Entry } from '$lib/db';
 
 	const store = useEntries('signal.hair');
+	const allStore = useEntries();
 
 	let zone = $state('');
 	let density = $state(5);
@@ -17,6 +18,74 @@
 	const last30 = $derived(sorted.slice(-30));
 	const densityChart = $derived(last30.map(e => ({ value: Number(e.data.density) })));
 	const sheddingChart = $derived(last30.map(e => ({ value: Number(e.data.shedding) })));
+
+	const stressHairLink = $derived.by(() => {
+		const checkins = allStore.items.filter(e => e.type === 'checkin');
+		if (checkins.length < 5 || store.items.length < 5) return null;
+		const stressByDate: Record<string, number> = {};
+		for (const c of checkins) {
+			const d = (c.data.date as string) ?? c.createdAt.slice(0, 10);
+			stressByDate[d] = Number(c.data.stress);
+		}
+		let highStressShed: number[] = [], lowStressShed: number[] = [];
+		for (const e of store.items) {
+			const d = e.createdAt.slice(0, 10);
+			const stress = stressByDate[d];
+			if (stress === undefined) continue;
+			const shed = Number(e.data.shedding);
+			if (stress >= 7) highStressShed.push(shed);
+			else if (stress <= 4) lowStressShed.push(shed);
+		}
+		if (highStressShed.length === 0 || lowStressShed.length === 0) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return { highStress: avg(highStressShed), lowStress: avg(lowStressShed), highN: highStressShed.length, lowN: lowStressShed.length };
+	});
+
+	const zoneFreq = $derived.by(() => {
+		const counts: Record<string, number> = {};
+		for (const e of store.items) {
+			const z = (e.data.zone as string)?.trim();
+			if (z) counts[z] = (counts[z] || 0) + 1;
+		}
+		const sorted = Object.entries(counts).toSorted((a, b) => b[1] - a[1]).slice(0, 5);
+		const max = sorted.length > 0 ? sorted[0][1] : 1;
+		return { zones: sorted, max };
+	});
+
+	const monthlyTrend = $derived.by(() => {
+		if (store.items.length < 5) return null;
+		const byMonth: Record<string, { density: number[]; shedding: number[] }> = {};
+		for (const e of store.items) {
+			const m = e.createdAt.slice(0, 7);
+			if (!byMonth[m]) byMonth[m] = { density: [], shedding: [] };
+			byMonth[m].density.push(Number(e.data.density));
+			byMonth[m].shedding.push(Number(e.data.shedding));
+		}
+		const months = Object.keys(byMonth).toSorted();
+		const last6 = months.slice(-6);
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return last6.map(m => ({
+			month: m.slice(2),
+			avgDensity: avg(byMonth[m].density),
+			avgShedding: avg(byMonth[m].shedding)
+		}));
+	});
+
+	const supplementHairLink = $derived.by(() => {
+		const suppEntries = allStore.items.filter(e => e.type === 'supplement');
+		if (suppEntries.length < 5 || store.items.length < 5) return null;
+		const suppDates = new Set(suppEntries.map(e => (e.data.date as string) ?? e.createdAt.slice(0, 10)));
+		let suppDays: number[] = [], noSuppDays: number[] = [];
+		for (const e of store.items) {
+			const d = e.createdAt.slice(0, 10);
+			const density = Number(e.data.density);
+			if (suppDates.has(d)) suppDays.push(density);
+			else noSuppDays.push(density);
+		}
+		if (suppDays.length === 0 || noSuppDays.length === 0) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		return { supp: avg(suppDays), noSupp: avg(noSuppDays) };
+	});
 
 	function submit() {
 		entries.add('signal.hair', { zone, density, shedding, miniaturization, notes });
@@ -122,6 +191,73 @@
 </section>
 {/if}
 
+{#if stressHairLink}
+<section class="analytics">
+	<h2>Stress–Shedding Link</h2>
+	<p class="hint">Avg shedding on high stress (≥7) vs low stress (≤4) days</p>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value" style="color:#e53e3e">{stressHairLink.highStress}/10</span>
+			<span class="metric-label">High stress (n={stressHairLink.highN})</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value" style="color:var(--c-done)">{stressHairLink.lowStress}/10</span>
+			<span class="metric-label">Low stress (n={stressHairLink.lowN})</span>
+		</div>
+	</div>
+</section>
+{/if}
+
+{#if zoneFreq.zones.length > 0}
+<section class="analytics">
+	<h2>Zone Frequency</h2>
+	<div class="zone-bars">
+		{#each zoneFreq.zones as [z, count]}
+			<div class="zone-row">
+				<span class="zone-name">{z}</span>
+				<div class="bar-bg"><div class="bar-fill" style="width:{(count / zoneFreq.max) * 100}%;background:var(--c-accent)"></div></div>
+				<span class="zone-count">{count}</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+{#if supplementHairLink}
+<section class="analytics">
+	<h2>Supplement–Hair Link</h2>
+	<p class="hint">Avg hair density on supplement days vs non-supplement days</p>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value" style="color:var(--c-done)">{supplementHairLink.supp}/10</span>
+			<span class="metric-label">Supplement days</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value" style="color:var(--c-text-muted)">{supplementHairLink.noSupp}/10</span>
+			<span class="metric-label">No supplement</span>
+		</div>
+	</div>
+</section>
+{/if}
+
+{#if monthlyTrend && monthlyTrend.length > 1}
+<section class="analytics">
+	<h2>Monthly Trend</h2>
+	<div class="monthly-table">
+		<div class="monthly-header">
+			<span>Month</span><span>Density</span><span>Shedding</span>
+		</div>
+		{#each monthlyTrend as m}
+			<div class="monthly-row">
+				<span>{m.month}</span>
+				<span style="color:var(--c-accent)">{m.avgDensity}</span>
+				<span style="color:#ef5350">{m.avgShedding}</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
 <style>
 	.form { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
 	input[type="range"] { padding: 0; }
@@ -142,4 +278,16 @@
 	.metric-card { flex: 1; min-width: 80px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
 	.metric-value { font-size: 1.4rem; font-weight: 700; }
 	.metric-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; }
+	.analytics { padding: 1.5rem 1rem 0; }
+	.hint { font-size: 0.8rem; color: var(--c-text-muted); margin-bottom: 0.75rem; }
+	.zone-bars { display: flex; flex-direction: column; gap: 0.5rem; }
+	.zone-row { display: flex; align-items: center; gap: 0.5rem; }
+	.zone-name { width: 5rem; font-size: 0.8rem; text-align: right; color: var(--c-text-muted); }
+	.zone-count { width: 2rem; font-size: 0.8rem; font-weight: 600; }
+	.bar-bg { flex: 1; height: 12px; background: var(--c-border); border-radius: 6px; overflow: hidden; }
+	.bar-fill { height: 100%; border-radius: 6px; transition: width 0.3s; }
+	.monthly-table { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); overflow: hidden; }
+	.monthly-header, .monthly-row { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 0.5rem 0.75rem; font-size: 0.8rem; }
+	.monthly-header { font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; font-size: 0.7rem; border-bottom: 1px solid var(--c-border); }
+	.monthly-row:not(:last-child) { border-bottom: 1px solid var(--c-border); }
 </style>
