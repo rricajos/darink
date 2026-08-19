@@ -7,6 +7,7 @@
 	import type { Entry } from '$lib/db';
 
 	const store = useEntries('intake');
+	const checkinStore = useEntries('checkin');
 
 	let what = $state('');
 	let amount = $state('normal');
@@ -92,6 +93,141 @@
 		meal = (item.last.meal as string) ?? 'other';
 		toast.show('Pre-filled');
 	}
+
+	// --- Quick Stats ---
+	const quickStats = $derived.by(() => {
+		const total = store.items.length;
+		const now = new Date();
+		const weekAgoDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+		const weekItems = store.items.filter(e => new Date(e.createdAt) >= weekAgoDate);
+		const avgPerDay = (weekItems.length / 7).toFixed(1);
+
+		const foodCounts = new Map<string, number>();
+		for (const e of store.items) {
+			const w = String(e.data.what || '').trim().toLowerCase();
+			if (w) foodCounts.set(w, (foodCounts.get(w) || 0) + 1);
+		}
+		let mostCommon = '-';
+		let maxC = 0;
+		for (const [name, count] of foodCounts) {
+			if (count > maxC) { maxC = count; mostCommon = name; }
+		}
+
+		return { total, avgPerDay, mostCommon };
+	});
+
+	// --- Daily Intake Summary (today) ---
+	const todaySummary = $derived.by(() => {
+		const today = new Date().toISOString().slice(0, 10);
+		const todayItems = store.items
+			.filter(e => e.createdAt.startsWith(today))
+			.toSorted((a, b) => {
+				const tA = String(a.data.whenStart || '').split(' ')[1] ?? '';
+				const tB = String(b.data.whenStart || '').split(' ')[1] ?? '';
+				return tA.localeCompare(tB);
+			});
+		return todayItems;
+	});
+
+	// --- Meal Frequency Chart (last 14 days) ---
+	const freqChart = $derived.by(() => {
+		const now = new Date();
+		const days: { label: string; date: string; count: number; dominant: string }[] = [];
+		const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+		for (let i = 13; i >= 0; i--) {
+			const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+			const ds = d.toISOString().slice(0, 10);
+			days.push({ label: dayLabels[d.getDay()], date: ds, count: 0, dominant: 'normal' });
+		}
+		const dateMap = new Map(days.map(d => [d.date, d]));
+		for (const e of store.items) {
+			const eDate = e.createdAt.slice(0, 10);
+			const slot = dateMap.get(eDate);
+			if (slot) {
+				slot.count++;
+				const amt = String(e.data.amount || 'normal');
+				if (amt === 'mucho') slot.dominant = 'mucho';
+				else if (amt === 'poco' && slot.dominant !== 'mucho') slot.dominant = 'poco';
+			}
+		}
+		const maxCount = Math.max(1, ...days.map(d => d.count));
+		return { days, maxCount };
+	});
+
+	// --- Meal Timing Patterns ---
+	const timingPatterns = $derived.by(() => {
+		const slots = [
+			{ name: 'Morning', range: [5, 11], count: 0 },
+			{ name: 'Midday', range: [11, 15], count: 0 },
+			{ name: 'Afternoon', range: [15, 19], count: 0 },
+			{ name: 'Evening', range: [19, 29], count: 0 }
+		];
+		let totalWithTime = 0;
+		for (const e of store.items) {
+			const ws = String(e.data.whenStart || '');
+			const timePart = ws.split(' ')[1] ?? '';
+			if (!timePart) continue;
+			const hh = parseInt(timePart.split(':')[0], 10);
+			if (isNaN(hh)) continue;
+			totalWithTime++;
+			const normalizedH = hh < 5 ? hh + 24 : hh;
+			for (const slot of slots) {
+				if (normalizedH >= slot.range[0] && normalizedH < slot.range[1]) {
+					slot.count++;
+					break;
+				}
+			}
+		}
+		const show = totalWithTime >= 5;
+		return { slots, totalWithTime, show };
+	});
+
+	// --- Food-Mood Correlation ---
+	const foodMoodCorrelation = $derived.by(() => {
+		const foodDays = new Map<string, Set<string>>();
+		const foodCounts = new Map<string, number>();
+		for (const e of store.items) {
+			const w = String(e.data.what || '').trim().toLowerCase();
+			if (!w) continue;
+			const day = e.createdAt.slice(0, 10);
+			foodCounts.set(w, (foodCounts.get(w) || 0) + 1);
+			if (!foodDays.has(w)) foodDays.set(w, new Set());
+			foodDays.get(w)!.add(day);
+		}
+
+		const checkinByDate = new Map<string, number>();
+		for (const c of checkinStore.items) {
+			const d = String(c.data.date || c.createdAt.slice(0, 10));
+			const m = Number(c.data.mood);
+			if (!isNaN(m)) checkinByDate.set(d, m);
+		}
+
+		if (checkinByDate.size < 3) return [];
+
+		const allMoods = [...checkinByDate.values()];
+		const globalAvg = allMoods.reduce((s, v) => s + v, 0) / allMoods.length;
+
+		const top5 = [...foodCounts.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 5)
+			.filter(([, count]) => count >= 3);
+
+		const results: { food: string; count: number; avgMood: number; delta: number }[] = [];
+		for (const [food] of top5) {
+			const daysSet = foodDays.get(food)!;
+			const moods: number[] = [];
+			for (const day of daysSet) {
+				const m = checkinByDate.get(day);
+				if (m !== undefined) moods.push(m);
+			}
+			if (moods.length < 2) continue;
+			const avgMood = moods.reduce((s, v) => s + v, 0) / moods.length;
+			const delta = avgMood - globalAvg;
+			results.push({ food, count: daysSet.size, avgMood, delta });
+		}
+
+		return results.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+	});
 </script>
 
 <svelte:head>
@@ -156,6 +292,48 @@
 		{/if}
 	</div>
 </section>
+
+<!-- Quick Stats Row -->
+{#if store.items.length > 0}
+<section class="metrics quick-stats-section">
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value">{quickStats.total}</span>
+			<span class="metric-label">Total meals</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{quickStats.avgPerDay}</span>
+			<span class="metric-label">Avg / day (7d)</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value qs-food">{quickStats.mostCommon}</span>
+			<span class="metric-label">Most common</span>
+		</div>
+	</div>
+</section>
+{/if}
+
+<!-- Daily Intake Summary (today) -->
+{#if todaySummary.length > 0}
+<section class="daily-summary">
+	<h2>
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+		Today — {todaySummary.length} meal{todaySummary.length === 1 ? '' : 's'}
+	</h2>
+	<div class="timeline">
+		{#each todaySummary as item}
+			{@const time = String(item.data.whenStart || '').split(' ')[1] ?? ''}
+			{@const amtClass = item.data.amount === 'poco' ? 'amt-poco' : item.data.amount === 'mucho' ? 'amt-mucho' : 'amt-normal'}
+			<div class="timeline-item">
+				<span class="timeline-time">{time}</span>
+				<span class="timeline-dot {amtClass}"></span>
+				<span class="timeline-food">{item.data.what}</span>
+				<span class="timeline-amount">{item.data.amount === 'poco' ? 'small' : item.data.amount === 'mucho' ? 'large' : 'normal'}</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
 
 {#snippet editForm(item: Entry, done: () => void)}
 	{@const data = item.data}
@@ -232,6 +410,90 @@
 		</div>
 	{/snippet}
 </EntryList>
+
+<!-- Analytics: Meal Frequency Chart (last 14 days) -->
+{#if store.items.length > 0}
+	{@const fc = freqChart}
+	{@const barW = 280 / 14 - 2}
+	<section class="chart-section">
+		<h2>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+			Meal frequency (14 days)
+		</h2>
+		<svg class="freq-chart" viewBox="0 0 280 80" preserveAspectRatio="xMidYMid meet">
+			{#each fc.days as day, i}
+				{@const barH = fc.maxCount > 0 ? (day.count / fc.maxCount) * 55 : 0}
+				{@const fillColor = day.dominant === 'mucho' ? '#e8a735' : day.dominant === 'poco' ? '#2e8b57' : '#4aa3ff'}
+				<rect
+					x={i * 20 + 1}
+					y={60 - barH}
+					width={barW}
+					height={barH}
+					rx="2"
+					fill={fillColor}
+					opacity="0.85"
+				/>
+				<text
+					x={i * 20 + 1 + barW / 2}
+					y="75"
+					text-anchor="middle"
+					font-size="5"
+					fill="var(--c-text-muted)"
+				>{day.label.charAt(0)}</text>
+			{/each}
+		</svg>
+		<div class="freq-legend">
+			<span class="freq-legend-item"><span class="freq-dot" style="background:#4aa3ff"></span>Normal</span>
+			<span class="freq-legend-item"><span class="freq-dot" style="background:#2e8b57"></span>Light</span>
+			<span class="freq-legend-item"><span class="freq-dot" style="background:#e8a735"></span>Heavy</span>
+		</div>
+	</section>
+{/if}
+
+<!-- Analytics: Meal Timing Patterns -->
+{#if timingPatterns.show}
+	{@const tp = timingPatterns}
+	<section class="metrics">
+		<h2>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>
+			Meal timing patterns
+		</h2>
+		<div class="mood-bars">
+			{#each tp.slots as slot}
+				{@const pct = tp.totalWithTime > 0 ? Math.round((slot.count / tp.totalWithTime) * 100) : 0}
+				<div class="mood-bar-row">
+					<span class="mood-bar-label timing-label">{slot.name}</span>
+					<div class="mood-bar-track">
+						<div class="mood-bar-fill timing-fill" style="width: {pct}%"></div>
+					</div>
+					<span class="mood-bar-pct">{pct}%</span>
+				</div>
+			{/each}
+		</div>
+	</section>
+{/if}
+
+<!-- Analytics: Food-Mood Correlation -->
+{#if foodMoodCorrelation.length > 0}
+	<section class="metrics">
+		<h2>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+			Food-mood correlation
+		</h2>
+		<div class="correlation-list">
+			{#each foodMoodCorrelation as item}
+				{@const sign = item.delta >= 0 ? '+' : ''}
+				{@const colorClass = item.delta >= 0 ? 'corr-positive' : 'corr-negative'}
+				<div class="correlation-row">
+					<span class="corr-food">{item.food}</span>
+					<span class="corr-delta {colorClass}">{sign}{item.delta.toFixed(1)} mood</span>
+					<span class="corr-info">{item.count}d logged</span>
+				</div>
+			{/each}
+		</div>
+		<p class="corr-note">Compared to average mood across all days</p>
+	</section>
+{/if}
 
 <!-- Analytics: Meal timing chart (intakes per hour of day) -->
 {#if store.items.length > 0}
@@ -471,4 +733,41 @@
 	.rank { font-size: 0.7rem; font-weight: 700; color: var(--c-text-muted); width: 24px; }
 	.ranked-name { flex: 1; font-size: 0.85rem; text-transform: capitalize; }
 	.ranked-count { font-size: 0.85rem; font-weight: 700; color: var(--c-accent); }
+
+	/* Quick Stats */
+	.quick-stats-section { padding-top: 1rem; }
+	.qs-food { font-size: 1rem; text-transform: capitalize; }
+
+	/* Daily Summary */
+	.daily-summary { padding: 1rem 1rem 0; }
+	.daily-summary h2 { display: flex; align-items: center; gap: 0.35rem; }
+	.timeline { display: flex; flex-direction: column; gap: 0.25rem; }
+	.timeline-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); }
+	.timeline-time { font-size: 0.8rem; font-weight: 600; color: var(--c-text-muted); width: 40px; flex-shrink: 0; }
+	.timeline-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+	.timeline-dot.amt-normal { background: #4aa3ff; }
+	.timeline-dot.amt-poco { background: #2e8b57; }
+	.timeline-dot.amt-mucho { background: #e8a735; }
+	.timeline-food { flex: 1; font-size: 0.85rem; text-transform: capitalize; }
+	.timeline-amount { font-size: 0.7rem; color: var(--c-text-muted); text-transform: capitalize; }
+
+	/* Meal Frequency Chart */
+	.freq-chart { width: 100%; height: 80px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.25rem; }
+	.freq-legend { display: flex; gap: 0.75rem; justify-content: center; margin-top: 0.35rem; }
+	.freq-legend-item { display: flex; align-items: center; gap: 0.25rem; font-size: 0.7rem; color: var(--c-text-muted); }
+	.freq-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+	/* Timing Patterns */
+	.timing-label { width: 70px; }
+	.timing-fill { background: var(--c-accent); }
+
+	/* Food-Mood Correlation */
+	.correlation-list { display: flex; flex-direction: column; gap: 0.35rem; }
+	.correlation-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); }
+	.corr-food { flex: 1; font-size: 0.85rem; font-weight: 600; text-transform: capitalize; }
+	.corr-delta { font-size: 0.85rem; font-weight: 700; }
+	.corr-positive { color: var(--c-done, #228b22); }
+	.corr-negative { color: #dc143c; }
+	.corr-info { font-size: 0.7rem; color: var(--c-text-muted); width: 55px; text-align: right; }
+	.corr-note { font-size: 0.7rem; color: var(--c-text-muted); margin-top: 0.35rem; font-style: italic; }
 </style>

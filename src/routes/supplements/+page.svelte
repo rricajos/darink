@@ -8,6 +8,7 @@
 	import type { Entry } from '$lib/db';
 
 	const store = useEntries('supplement');
+	const checkinStore = useEntries('checkin');
 
 	/* --- Log form state --- */
 	let date = $state(new Date().toISOString().slice(0, 10));
@@ -100,6 +101,141 @@
 			.map(([n, count]) => ({ name: n, count }));
 	});
 
+	/* --- Supplement Stats --- */
+	const totalDoses = $derived(store.items.length);
+
+	const mostConsistent = $derived.by(() => {
+		if (stack.length === 0 || store.items.length === 0) return null;
+		const allDates = new Set<string>();
+		for (const e of store.items) {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			allDates.add(d);
+		}
+		const totalDays = allDates.size || 1;
+		let best: { name: string; pct: number } | null = null;
+		for (const s of stack) {
+			const daysHit = new Set<string>();
+			for (const e of store.items) {
+				if ((e.data.name as string).toLowerCase() === s.name.toLowerCase()) {
+					const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+					daysHit.add(d);
+				}
+			}
+			const pct = Math.round((daysHit.size / totalDays) * 100);
+			if (!best || pct > best.pct) best = { name: s.name, pct };
+		}
+		return best;
+	});
+
+	const daysSinceLastMiss = $derived.by(() => {
+		if (stack.length === 0) return null;
+		const today = new Date();
+		for (let i = 0; i <= 365; i++) {
+			const d = new Date(today);
+			d.setDate(d.getDate() - i);
+			const key = d.toISOString().slice(0, 10);
+			const dayEntries = store.items.filter((e) => {
+				const ed = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+				return ed === key;
+			});
+			const allTaken = stack.every((s) =>
+				dayEntries.some((e) => (e.data.name as string).toLowerCase() === s.name.toLowerCase())
+			);
+			if (!allTaken) return i > 0 ? i - 1 : 0;
+		}
+		return 365;
+	});
+
+	/* --- Supplement-Wellbeing Correlation --- */
+	const correlations = $derived.by(() => {
+		if (stack.length === 0 || checkinStore.items.length < 10) return [];
+		const checkinByDate = new Map<string, { mood: number; energy: number }>();
+		for (const c of checkinStore.items) {
+			const d = (c.data.date as string) ?? c.createdAt.slice(0, 10);
+			checkinByDate.set(d, { mood: Number(c.data.mood) || 5, energy: Number(c.data.energy) || 5 });
+		}
+		const suppDates = new Map<string, Set<string>>();
+		for (const e of store.items) {
+			const n = (e.data.name as string).toLowerCase();
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			if (!suppDates.has(n)) suppDates.set(n, new Set());
+			suppDates.get(n)!.add(d);
+		}
+		const results: { name: string; moodDiff: number; energyDiff: number; takenDays: number; missedDays: number }[] = [];
+		for (const s of stack) {
+			const sn = s.name.toLowerCase();
+			const taken = suppDates.get(sn) ?? new Set<string>();
+			let takenMood = 0, takenEnergy = 0, takenCount = 0;
+			let missedMood = 0, missedEnergy = 0, missedCount = 0;
+			for (const [date, vals] of checkinByDate) {
+				if (taken.has(date)) {
+					takenMood += vals.mood;
+					takenEnergy += vals.energy;
+					takenCount++;
+				} else {
+					missedMood += vals.mood;
+					missedEnergy += vals.energy;
+					missedCount++;
+				}
+			}
+			if (takenCount >= 5 && missedCount >= 5) {
+				const avgTakenMood = takenMood / takenCount;
+				const avgMissedMood = missedMood / missedCount;
+				const avgTakenEnergy = takenEnergy / takenCount;
+				const avgMissedEnergy = missedEnergy / missedCount;
+				results.push({
+					name: s.name,
+					moodDiff: Math.round((avgTakenMood - avgMissedMood) * 10) / 10,
+					energyDiff: Math.round((avgTakenEnergy - avgMissedEnergy) * 10) / 10,
+					takenDays: takenCount,
+					missedDays: missedCount
+				});
+			}
+		}
+		return results;
+	});
+
+	/* --- Stack Timeline (30 days) --- */
+	const timelineDays = $derived.by(() => {
+		const days: { key: string; label: string }[] = [];
+		for (let i = 29; i >= 0; i--) {
+			const d = new Date();
+			d.setDate(d.getDate() - i);
+			const key = d.toISOString().slice(0, 10);
+			const label = d.getDate().toString();
+			days.push({ key, label });
+		}
+		return days;
+	});
+
+	const timelineData = $derived.by(() => {
+		if (stack.length === 0) return [];
+		const suppDates = new Map<string, Set<string>>();
+		for (const e of store.items) {
+			const n = (e.data.name as string).toLowerCase();
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			if (!suppDates.has(n)) suppDates.set(n, new Set());
+			suppDates.get(n)!.add(d);
+		}
+		return stack.map((s) => {
+			const dates = suppDates.get(s.name.toLowerCase()) ?? new Set<string>();
+			const cells = timelineDays.map((day) => dates.has(day.key));
+			return { name: s.name, cells };
+		});
+	});
+
+	/* --- Take Now (quick log from stack) --- */
+	function takeNow(item: StackItem) {
+		entries.add('supplement', {
+			date: todayStr,
+			name: item.name,
+			dose: item.dose,
+			timing: item.timing,
+			notes: ''
+		});
+		toast.show(`${item.name} logged`);
+	}
+
 	/* --- Timing labels --- */
 	const timingLabels: Record<string, string> = {
 		morning: 'Morning',
@@ -172,6 +308,12 @@
 				{#if ai.planned.dose}
 					<span class="meta">{ai.planned.dose}</span>
 				{/if}
+				{#if !ai.taken}
+					<button class="take-now-btn" onclick={() => takeNow(ai.planned)}>
+						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+						Take now
+					</button>
+				{/if}
 			</div>
 		{/each}
 	</div>
@@ -212,6 +354,85 @@
 			{/if}
 		{/each}
 	</svg>
+</section>
+{/if}
+
+<!-- Supplement Stats -->
+{#if stack.length > 0 && store.items.length > 0}
+<section class="stats-section">
+	<h2>Supplement Stats</h2>
+	<div class="stats-grid">
+		<div class="stat-card">
+			<span class="stat-value">{totalDoses}</span>
+			<span class="stat-label">Total doses logged</span>
+		</div>
+		<div class="stat-card">
+			{#if mostConsistent}
+				<span class="stat-value">{mostConsistent.pct}%</span>
+				<span class="stat-label">Most consistent: {mostConsistent.name}</span>
+			{:else}
+				<span class="stat-value">--</span>
+				<span class="stat-label">Most consistent</span>
+			{/if}
+		</div>
+		<div class="stat-card">
+			{#if daysSinceLastMiss !== null}
+				<span class="stat-value">{daysSinceLastMiss}</span>
+				<span class="stat-label">Days since last miss</span>
+			{:else}
+				<span class="stat-value">--</span>
+				<span class="stat-label">Days since last miss</span>
+			{/if}
+		</div>
+	</div>
+</section>
+{/if}
+
+<!-- Supplement-Wellbeing Correlation -->
+{#if correlations.length > 0}
+<section class="correlation-section">
+	<h2>Supplement-Wellbeing Correlation</h2>
+	<div class="correlation-list">
+		{#each correlations as cor}
+			<div class="correlation-card">
+				<div class="correlation-name">{cor.name}</div>
+				<div class="correlation-metrics">
+					<span class="correlation-metric" class:positive={cor.moodDiff > 0} class:negative={cor.moodDiff < 0}>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+						Mood {cor.moodDiff >= 0 ? '+' : ''}{cor.moodDiff}
+					</span>
+					<span class="correlation-metric" class:positive={cor.energyDiff > 0} class:negative={cor.energyDiff < 0}>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+						Energy {cor.energyDiff >= 0 ? '+' : ''}{cor.energyDiff}
+					</span>
+				</div>
+				<div class="correlation-sample">Based on {cor.takenDays} days taken, {cor.missedDays} days without</div>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+<!-- Stack Timeline (30 days) -->
+{#if timelineData.length > 0}
+<section class="timeline-section">
+	<h2>Stack Timeline (30 days)</h2>
+	<div class="timeline-grid">
+		<div class="timeline-header">
+			<span class="timeline-label-spacer"></span>
+			{#each timelineDays as day}
+				<span class="timeline-day-label">{day.label}</span>
+			{/each}
+		</div>
+		{#each timelineData as row}
+			<div class="timeline-row">
+				<span class="timeline-supp-name">{row.name}</span>
+				{#each row.cells as filled}
+					<span class="timeline-cell" class:filled></span>
+				{/each}
+			</div>
+		{/each}
+	</div>
 </section>
 {/if}
 
@@ -395,7 +616,28 @@
 	}
 	.adherence-item.taken .adherence-check { color: var(--c-done); font-weight: 700; }
 	.adherence-item:not(.taken) .adherence-check { color: var(--c-text-muted); }
-	.adherence-name { font-weight: 500; }
+	.adherence-name { font-weight: 500; flex: 1; }
+
+	/* Take Now Button */
+	.take-now-btn {
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.75rem;
+		padding: 0.2rem 0.5rem;
+		background: var(--c-accent-bg);
+		color: var(--c-accent);
+		border: 1px solid var(--c-accent);
+		border-radius: var(--radius);
+		cursor: pointer;
+		white-space: nowrap;
+		font-weight: 500;
+	}
+	.take-now-btn:hover {
+		background: var(--c-accent);
+		color: #fff;
+	}
 
 	/* Weekly Chart */
 	.chart-section { padding: 0 1rem 1.5rem; }
@@ -430,4 +672,127 @@
 	.top-rank { color: var(--c-text-muted); font-weight: 600; width: 1.5rem; }
 	.top-name { flex: 1; text-transform: capitalize; }
 	.top-count { color: var(--c-accent); font-weight: 600; }
+
+	/* Supplement Stats */
+	.stats-section { padding: 0 1rem 1rem; }
+	.stats-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.5rem;
+	}
+	.stat-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 0.75rem 0.5rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		text-align: center;
+	}
+	.stat-value {
+		font-size: 1.4rem;
+		font-weight: 700;
+		color: var(--c-accent);
+		line-height: 1.2;
+	}
+	.stat-label {
+		font-size: 0.72rem;
+		color: var(--c-text-muted);
+		margin-top: 0.25rem;
+		line-height: 1.3;
+	}
+
+	/* Correlation */
+	.correlation-section { padding: 0 1rem 1rem; }
+	.correlation-list { display: flex; flex-direction: column; gap: 0.4rem; }
+	.correlation-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.6rem 0.75rem;
+	}
+	.correlation-name {
+		font-weight: 600;
+		font-size: 0.9rem;
+		margin-bottom: 0.3rem;
+	}
+	.correlation-metrics {
+		display: flex;
+		gap: 1rem;
+		margin-bottom: 0.25rem;
+	}
+	.correlation-metric {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.85rem;
+		font-weight: 500;
+	}
+	.correlation-metric.positive { color: var(--c-done); }
+	.correlation-metric.negative { color: var(--c-cancel, #e53e3e); }
+	.correlation-sample {
+		font-size: 0.72rem;
+		color: var(--c-text-muted);
+	}
+
+	/* Stack Timeline */
+	.timeline-section { padding: 0 1rem 1rem; }
+	.timeline-grid {
+		overflow-x: auto;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.5rem;
+	}
+	.timeline-header, .timeline-row {
+		display: flex;
+		align-items: center;
+		gap: 0;
+	}
+	.timeline-header {
+		margin-bottom: 0.2rem;
+	}
+	.timeline-label-spacer {
+		width: 5rem;
+		flex-shrink: 0;
+	}
+	.timeline-day-label {
+		width: 1.1rem;
+		flex-shrink: 0;
+		text-align: center;
+		font-size: 0.55rem;
+		color: var(--c-text-muted);
+	}
+	.timeline-supp-name {
+		width: 5rem;
+		flex-shrink: 0;
+		font-size: 0.75rem;
+		font-weight: 500;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.timeline-row {
+		margin-bottom: 0.15rem;
+	}
+	.timeline-cell {
+		width: 1.1rem;
+		height: 0.9rem;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.timeline-cell::after {
+		content: '';
+		display: block;
+		width: 0.7rem;
+		height: 0.7rem;
+		border-radius: 2px;
+		background: var(--c-border);
+	}
+	.timeline-cell.filled::after {
+		background: var(--c-done);
+	}
 </style>

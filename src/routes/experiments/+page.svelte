@@ -6,6 +6,7 @@
 	import type { Entry } from '$lib/db';
 
 	const store = useEntries('experiment');
+	const checkinStore = useEntries('checkin');
 
 	let hypothesis = $state('');
 	let variable = $state('');
@@ -77,6 +78,100 @@
 		};
 	});
 
+	/* --- Before/After Check-in Comparison for Active Experiments --- */
+	const beforeAfterMap = $derived.by(() => {
+		const checkins = checkinStore.items;
+		const map = new Map<string, { beforeMood: number; afterMood: number; beforeEnergy: number; afterEnergy: number }>();
+		for (const exp of store.items.filter((e) => e.data.status === 'active')) {
+			const startMs = new Date(exp.createdAt).getTime();
+			const nowMs = Date.now();
+			const elapsedMs = nowMs - startMs;
+			if (elapsedMs < 86400000) continue;
+			const beforeStart = startMs - elapsedMs;
+			const beforeCheckins = checkins.filter((c) => {
+				const t = new Date(c.createdAt).getTime();
+				return t >= beforeStart && t < startMs;
+			});
+			const afterCheckins = checkins.filter((c) => {
+				const t = new Date(c.createdAt).getTime();
+				return t >= startMs && t <= nowMs;
+			});
+			if (beforeCheckins.length < 2 || afterCheckins.length < 2) continue;
+			const avgMoodBefore = beforeCheckins.reduce((s, c) => s + Number(c.data.mood ?? 0), 0) / beforeCheckins.length;
+			const avgMoodAfter = afterCheckins.reduce((s, c) => s + Number(c.data.mood ?? 0), 0) / afterCheckins.length;
+			const avgEnergyBefore = beforeCheckins.reduce((s, c) => s + Number(c.data.energy ?? 0), 0) / beforeCheckins.length;
+			const avgEnergyAfter = afterCheckins.reduce((s, c) => s + Number(c.data.energy ?? 0), 0) / afterCheckins.length;
+			map.set(exp.id, {
+				beforeMood: Math.round(avgMoodBefore * 10) / 10,
+				afterMood: Math.round(avgMoodAfter * 10) / 10,
+				beforeEnergy: Math.round(avgEnergyBefore * 10) / 10,
+				afterEnergy: Math.round(avgEnergyAfter * 10) / 10
+			});
+		}
+		return map;
+	});
+
+	/* --- Outcome Tag Classification --- */
+	function classifyOutcome(resultText: string): { label: string; cls: string } {
+		const lower = resultText.toLowerCase();
+		const positiveWords = ['improved', 'better', 'increased', 'successful', 'works'];
+		const negativeWords = ['worse', 'failed', 'no effect', 'no change', 'decreased'];
+		if (positiveWords.some((w) => lower.includes(w))) return { label: 'Positive', cls: 'tag-positive' };
+		if (negativeWords.some((w) => lower.includes(w))) return { label: 'Negative', cls: 'tag-negative' };
+		return { label: 'Neutral', cls: 'tag-neutral' };
+	}
+
+	/* --- Experiment Duration Stats --- */
+	const durationStats = $derived.by(() => {
+		const completed = store.items.filter((e) => e.data.status === 'completed');
+		if (completed.length === 0) return null;
+		const durations = completed.map((e) => {
+			const created = new Date(e.createdAt).getTime();
+			const updated = new Date(e.updatedAt).getTime();
+			return Math.max(0, Math.floor((updated - created) / 86400000));
+		});
+		const avg = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+		const longest = Math.max(...durations);
+		return { avg, longest };
+	});
+
+	/* --- Experiment Timeline Data --- */
+	const timelineData = $derived.by(() => {
+		const items = store.items;
+		if (items.length === 0) return null;
+		const now = Date.now();
+		const entries = items.map((e) => {
+			const start = new Date(e.createdAt).getTime();
+			const st = e.data.status as string;
+			let end: number;
+			if (st === 'active') {
+				end = now;
+			} else {
+				end = new Date(e.updatedAt).getTime();
+			}
+			return {
+				id: e.id,
+				hypothesis: (e.data.hypothesis as string) ?? '',
+				status: st,
+				start,
+				end: Math.max(end, start + 86400000)
+			};
+		});
+		const minStart = Math.min(...entries.map((e) => e.start));
+		const maxEnd = Math.max(...entries.map((e) => e.end));
+		const span = maxEnd - minStart || 1;
+		return {
+			entries: entries.map((e) => ({
+				...e,
+				leftPct: ((e.start - minStart) / span) * 100,
+				widthPct: Math.max(2, ((e.end - e.start) / span) * 100),
+				hypothesisTrunc: e.hypothesis.length > 40 ? e.hypothesis.slice(0, 37) + '...' : e.hypothesis
+			})),
+			minDate: new Date(minStart).toLocaleDateString(),
+			maxDate: new Date(maxEnd).toLocaleDateString()
+		};
+	});
+
 	function submit() {
 		if (!hypothesis.trim()) return;
 		entries.add('experiment', {
@@ -140,6 +235,16 @@
 		<span class="metric-val">{statusCounts.total}</span>
 		<span class="metric-lbl">Total</span>
 	</div>
+	{#if durationStats}
+	<div class="metric-card done">
+		<span class="metric-val">{durationStats.avg}d</span>
+		<span class="metric-lbl">Avg Duration</span>
+	</div>
+	<div class="metric-card">
+		<span class="metric-val">{durationStats.longest}d</span>
+		<span class="metric-lbl">Longest</span>
+	</div>
+	{/if}
 </section>
 {/if}
 
@@ -163,6 +268,34 @@
 			</div>
 			<span class="progress-label">{clamped}% of {exp.durDays} days</span>
 			{/if}
+			{#if beforeAfterMap.has(exp.id)}
+			{@const ba = beforeAfterMap.get(exp.id)!}
+			<div class="ba-card">
+				<span class="ba-title">Before / After</span>
+				<div class="ba-row">
+					<span class="ba-label">Mood</span>
+					<span class="ba-val">{ba.beforeMood}</span>
+					<svg class="ba-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+					<span class="ba-val" class:ba-up={ba.afterMood > ba.beforeMood} class:ba-down={ba.afterMood < ba.beforeMood}>{ba.afterMood}</span>
+					{#if ba.afterMood > ba.beforeMood}
+					<svg class="ba-indicator up" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+					{:else if ba.afterMood < ba.beforeMood}
+					<svg class="ba-indicator down" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+					{/if}
+				</div>
+				<div class="ba-row">
+					<span class="ba-label">Energy</span>
+					<span class="ba-val">{ba.beforeEnergy}</span>
+					<svg class="ba-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+					<span class="ba-val" class:ba-up={ba.afterEnergy > ba.beforeEnergy} class:ba-down={ba.afterEnergy < ba.beforeEnergy}>{ba.afterEnergy}</span>
+					{#if ba.afterEnergy > ba.beforeEnergy}
+					<svg class="ba-indicator up" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+					{:else if ba.afterEnergy < ba.beforeEnergy}
+					<svg class="ba-indicator down" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+					{/if}
+				</div>
+			</div>
+			{/if}
 		</div>
 		{/each}
 	</div>
@@ -175,8 +308,12 @@
 	<h2>Completed results</h2>
 	<div class="results-list">
 		{#each completedExperiments as exp}
+		{@const outcome = classifyOutcome(exp.result)}
 		<div class="timeline-card border-completed">
-			<strong>{exp.hypothesis}</strong>
+			<div class="completed-header">
+				<strong>{exp.hypothesis}</strong>
+				<span class="outcome-tag {outcome.cls}">{outcome.label}</span>
+			</div>
 			{#if exp.result}
 			<div class="result-text">{exp.result}</div>
 			{:else}
@@ -205,6 +342,34 @@
 		{/if}
 		<span class="success-pct">{successRate.pct}%</span>
 		<span class="success-detail">{successRate.withResult} of {successRate.total} completed experiments have recorded results</span>
+	</div>
+</section>
+{/if}
+
+<!-- Experiment Timeline -->
+{#if timelineData}
+<section class="timeline-visual-section">
+	<h2>Timeline</h2>
+	<div class="tl-axis">
+		<span class="tl-date">{timelineData.minDate}</span>
+		<span class="tl-date">{timelineData.maxDate}</span>
+	</div>
+	<div class="tl-chart">
+		{#each timelineData.entries as bar}
+		<div class="tl-row">
+			<div class="tl-bar-wrap">
+				<div
+					class="tl-bar"
+					class:tl-active={bar.status === 'active'}
+					class:tl-completed={bar.status === 'completed'}
+					class:tl-abandoned={bar.status === 'abandoned'}
+					style="left: {bar.leftPct}%; width: {bar.widthPct}%"
+					title={bar.hypothesis}
+				></div>
+			</div>
+			<span class="tl-label">{bar.hypothesisTrunc}</span>
+		</div>
+		{/each}
 	</div>
 </section>
 {/if}
@@ -275,7 +440,7 @@
 	/* Status Overview Cards */
 	.overview-cards {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 		gap: 0.5rem;
 		padding: 1rem;
 	}
@@ -403,9 +568,148 @@
 		color: var(--c-text-muted);
 	}
 
+	/* Before/After Card */
+	.ba-card {
+		margin-top: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		background: var(--c-accent-bg);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+	}
+	.ba-title {
+		font-size: 0.7rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--c-text-muted);
+		display: block;
+		margin-bottom: 0.35rem;
+	}
+	.ba-row {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.82rem;
+		margin-bottom: 0.15rem;
+	}
+	.ba-label {
+		color: var(--c-text-muted);
+		min-width: 3.2rem;
+	}
+	.ba-val {
+		font-weight: 600;
+	}
+	.ba-val.ba-up { color: var(--c-done); }
+	.ba-val.ba-down { color: var(--c-cancel); }
+	.ba-arrow {
+		color: var(--c-text-muted);
+		flex-shrink: 0;
+	}
+	.ba-indicator {
+		flex-shrink: 0;
+	}
+	.ba-indicator.up { color: var(--c-done); }
+	.ba-indicator.down { color: var(--c-cancel); }
+
+	/* Outcome Tags */
+	.completed-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 0.25rem;
+	}
+	.completed-header strong {
+		flex: 1;
+		margin-bottom: 0;
+	}
+	.outcome-tag {
+		font-size: 0.7rem;
+		font-weight: 600;
+		padding: 0.15rem 0.5rem;
+		border-radius: 12px;
+		flex-shrink: 0;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+	.tag-positive {
+		background: var(--c-done);
+		color: #fff;
+	}
+	.tag-negative {
+		background: var(--c-cancel);
+		color: #fff;
+	}
+	.tag-neutral {
+		background: var(--c-border);
+		color: var(--c-text-muted);
+	}
+
+	/* Timeline Visual */
+	.timeline-visual-section {
+		padding: 0 1rem 1rem;
+	}
+	.timeline-visual-section h2 {
+		font-size: 0.9rem;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+	.tl-axis {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+		margin-bottom: 0.35rem;
+	}
+	.tl-date {
+		font-variant-numeric: tabular-nums;
+	}
+	.tl-chart {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+	.tl-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.tl-bar-wrap {
+		flex: 1;
+		position: relative;
+		height: 14px;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: 3px;
+		overflow: hidden;
+	}
+	.tl-bar {
+		position: absolute;
+		top: 1px;
+		bottom: 1px;
+		border-radius: 2px;
+	}
+	.tl-bar.tl-active { background: #4aa3ff; }
+	.tl-bar.tl-completed { background: #2e8b57; }
+	.tl-bar.tl-abandoned { background: #e53e3e; }
+	.tl-label {
+		font-size: 0.72rem;
+		color: var(--c-text-muted);
+		max-width: 10rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		flex-shrink: 0;
+	}
+
 	@media (max-width: 400px) {
 		.overview-cards {
 			grid-template-columns: repeat(2, 1fr);
+		}
+		.tl-label {
+			max-width: 5rem;
 		}
 	}
 </style>
