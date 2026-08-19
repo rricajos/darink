@@ -1,9 +1,12 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
+	import { findRelevantSupplements, findSuggestedSupplements } from '$lib/utils/marker-supplement-map';
 
 	const store = useEntries('bloodwork');
 
@@ -89,6 +92,16 @@
 		resetForm();
 		toast.show('Blood work logged');
 	}
+
+	/* --- Supplement stack (loaded from ui store) --- */
+	let supplementStack = $state<Array<{ name: string }>>([]);
+
+	onMount(() => {
+		const saved = ui.get();
+		if (Array.isArray(saved.supplementStack)) {
+			supplementStack = saved.supplementStack as Array<{ name: string }>;
+		}
+	});
 
 	/* --- Sorted entries (oldest first for charts) --- */
 	const sorted = $derived(
@@ -248,6 +261,9 @@
 	<h2>Latest Results</h2>
 	<div class="results-grid">
 		{#each latestResults as r}
+			{@const outOfRange = r.value < r.marker.min || r.value > r.marker.max}
+			{@const taking = outOfRange ? findRelevantSupplements(r.marker.key, supplementStack) : []}
+			{@const suggested = outOfRange ? findSuggestedSupplements(r.marker.key).filter((s) => !taking.map((t) => t.toLowerCase()).some((t) => t.includes(s))).slice(0, 2) : []}
 			<div class="result-card" style="border-left: 3px solid {rangeColor(r.value, r.marker.min, r.marker.max)}">
 				<div class="result-header">
 					<span class="result-name">{r.marker.label}</span>
@@ -256,6 +272,22 @@
 				<div class="result-value" style="color: {rangeColor(r.value, r.marker.min, r.marker.max)}">{r.value} <span class="result-unit">{r.marker.unit}</span></div>
 				<div class="result-ref">Ref: {r.marker.min}-{r.marker.max} {r.marker.unit}</div>
 				<div class="result-date">{r.date}</div>
+				{#if outOfRange && (taking.length > 0 || suggested.length > 0)}
+					<div class="result-supplement">
+						{#each taking as name}
+							<div class="result-supplement-taking">
+								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M12 4v16"/><path d="M3 12h18"/></svg>
+								Taking: {name}
+							</div>
+						{/each}
+						{#each suggested as name}
+							<div class="result-supplement-consider">
+								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+								Consider: {name}
+							</div>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		{/each}
 	</div>
@@ -532,6 +564,29 @@
 	}
 	.result-date {
 		font-size: 0.6rem;
+		color: var(--c-text-muted);
+	}
+	.result-supplement {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		margin-top: 0.25rem;
+		padding-top: 0.25rem;
+		border-top: 1px solid var(--c-border);
+	}
+	.result-supplement-taking {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.65rem;
+		color: var(--c-done);
+		font-weight: 500;
+	}
+	.result-supplement-consider {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.65rem;
 		color: var(--c-text-muted);
 	}
 

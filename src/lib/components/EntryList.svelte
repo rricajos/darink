@@ -50,9 +50,9 @@
 </script>
 
 {#if sorted.length > 0}
-	<ul class="entry-list">
+	<ul class="entry-list" role="list">
 		{#each sorted as item (item.id)}
-			<li class:editing={editingId === item.id}>
+			<li role="listitem" class:editing={editingId === item.id}>
 				<div class="row">
 					<div class="content">
 						{@render row(item)}
@@ -62,13 +62,13 @@
 							{#if editingId === item.id}
 								<button class="edit-btn" onclick={stopEdit} aria-label="Cancel edit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
 							{:else}
-								<button class="edit-btn" onclick={() => startEdit(item.id)} aria-label="Edit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+								<button class="edit-btn" onclick={() => startEdit(item.id)} aria-label="Edit entry"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
 							{/if}
 						{/if}
 						{#if confirmDeleteId === item.id}
-							<button class="del confirming" onclick={() => remove(item.id)} aria-label="Confirm delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+							<button class="del confirming" onclick={() => remove(item.id)} aria-label="Confirm delete"><span role="status" aria-live="polite"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></button>
 						{:else}
-							<button class="del" onclick={() => remove(item.id)} aria-label="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+							<button class="del" onclick={() => remove(item.id)} aria-label="Delete entry"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
 						{/if}
 					</div>
 				</div>
@@ -129,6 +129,11 @@
 		color: var(--c-accent);
 	}
 
+	.edit-btn:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 2px;
+	}
+
 	.del {
 		border: none;
 		background: none;
@@ -142,6 +147,11 @@
 	.del:hover {
 		background: none;
 		color: #d00;
+	}
+
+	.del:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 2px;
 	}
 
 	.del.confirming {

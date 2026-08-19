@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { useEntries } from '$lib/stores/entries.svelte';
+	import { useEntries, entries } from '$lib/stores/entries.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
 
@@ -77,6 +78,91 @@
 		const stack = ui.get().supplementStack;
 		return Array.isArray(stack) ? stack as Array<{name: string}> : [];
 	});
+
+	/* --- Medication regimen --- */
+	interface MedItem {
+		name: string;
+		dose: string;
+		frequency: 'daily' | '2x_daily' | '3x_daily' | 'weekly' | 'as_needed';
+		prescriber: string;
+		refillDate: string;
+	}
+
+	const medicationRegimen = $derived.by(() => {
+		const saved = ui.get().medicationRegimen;
+		return Array.isArray(saved) ? saved as MedItem[] : [];
+	});
+
+	function doseSlotsForFreq(freq: string): string[] {
+		if (freq === 'daily') return ['morning'];
+		if (freq === '2x_daily') return ['morning', 'evening'];
+		if (freq === '3x_daily') return ['morning', 'noon', 'evening'];
+		if (freq === 'weekly') return ['morning'];
+		return [];
+	}
+
+	const timeLabels: Record<string, string> = {
+		morning: 'Morning',
+		noon: 'Noon',
+		evening: 'Evening',
+		night: 'Night'
+	};
+
+	const scheduledMeds = $derived(
+		medicationRegimen.filter((m) => m.frequency !== 'as_needed')
+	);
+
+	const todayMedEntries = $derived(
+		store.items.filter((e) => e.type === 'medication' && dateOf(e) === today)
+	);
+
+	const doseChecklist = $derived.by(() => {
+		return scheduledMeds.map((med) => {
+			const slots = doseSlotsForFreq(med.frequency);
+			const checks = slots.map((slot) => {
+				const taken = todayMedEntries.some(
+					(e) => (e.data.name as string)?.toLowerCase() === med.name.toLowerCase()
+						&& (e.data.time as string) === slot
+				);
+				return { slot, taken };
+			});
+			return { med, checks };
+		});
+	});
+
+	const allDosesTaken = $derived(
+		scheduledMeds.length > 0 && doseChecklist.every((dc) => dc.checks.every((c) => c.taken))
+	);
+
+	const remainingDoses = $derived(
+		doseChecklist.reduce((sum, dc) => sum + dc.checks.filter((c) => !c.taken).length, 0)
+	);
+
+	function logDose(med: MedItem, slot: string) {
+		entries.add('medication', {
+			date: today,
+			name: med.name,
+			dose: med.dose,
+			time: slot,
+			sideEffects: [],
+			severity: 0,
+			notes: ''
+		});
+		toast.show(`${med.name} (${timeLabels[slot] ?? slot}) logged`);
+	}
+
+	/* --- Active symptoms --- */
+	const ongoingSymptoms = $derived(
+		store.items.filter((e) => {
+			return e.type === 'symptom' && dateOf(e) === today && e.data.duration === 'ongoing';
+		})
+	);
+
+	function severityColor(sev: number): string {
+		if (sev <= 3) return 'var(--c-done)';
+		if (sev <= 6) return '#e8a735';
+		return '#e53e3e';
+	}
 
 	/* --- Compute daily score for a given date --- */
 	function computeScore(dateStr: string): { score: number; hasData: boolean } {
@@ -522,6 +608,15 @@
 			});
 		}
 
+		if (scheduledMeds.length > 0 && !allDosesTaken) {
+			items.push({
+				label: `Medications (${remainingDoses} dose${remainingDoses !== 1 ? 's' : ''} remaining)`,
+				hint: 'Log your scheduled doses',
+				href: '/medications',
+				icon: 'medication'
+			});
+		}
+
 		if (todayJournal.length === 0) {
 			items.push({
 				label: 'Journal',
@@ -709,6 +804,71 @@
 			</div>
 		{/if}
 
+		<!-- Medications -->
+		{#if scheduledMeds.length > 0}
+			<div class="meds-section">
+				<h2>Medications</h2>
+				{#if allDosesTaken}
+					<div class="meds-alldone">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+						<span>All doses taken</span>
+					</div>
+				{:else}
+					<div class="meds-list">
+						{#each doseChecklist as { med, checks }}
+							<div class="med-card">
+								<div class="med-card-header">
+									<span class="med-card-name">{med.name}</span>
+									{#if med.dose}
+										<span class="med-card-dose">{med.dose}</span>
+									{/if}
+								</div>
+								<div class="med-card-dots">
+									{#each checks as { slot, taken }}
+										{#if taken}
+											<span class="dose-dot dose-dot-taken" title="{timeLabels[slot] ?? slot} - taken">
+												<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--c-done)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
+											</span>
+										{:else}
+											<button
+												class="dose-dot dose-dot-pending"
+												title="{timeLabels[slot] ?? slot} - tap to log"
+												onclick={() => logDose(med, slot)}
+											>
+												<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
+											</button>
+										{/if}
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Active Symptoms -->
+		{#if ongoingSymptoms.length > 0}
+			<div class="symptoms-section">
+				<h2>Active Symptoms</h2>
+				<a href="/symptoms" class="symptoms-banner">
+					<div class="symptoms-items">
+						{#each ongoingSymptoms.slice(0, 3) as entry}
+							{@const sev = Number(entry.data.severity) || 0}
+							<span class="symptom-tag">
+								<span class="symptom-dot" style="background:{severityColor(sev)}"></span>
+								<span class="symptom-name">{entry.data.symptom}</span>
+							</span>
+						{/each}
+						{#if ongoingSymptoms.length > 3}
+							<span class="symptom-more">+{ongoingSymptoms.length - 3} more</span>
+						{/if}
+					</div>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+				</a>
+			</div>
+		{/if}
+
 		<!-- What's missing today -->
 		<div class="missing-section">
 			<h2>Today's progress</h2>
@@ -733,6 +893,8 @@
 								{:else if item.icon === 'habit'}
 									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
 								{:else if item.icon === 'supplement'}
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+								{:else if item.icon === 'medication'}
 									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
 								{:else if item.icon === 'journal'}
 									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
@@ -1111,5 +1273,149 @@
 		font-size: 0.85rem;
 		color: var(--c-text-muted) !important;
 		font-weight: 400 !important;
+	}
+
+	/* Medications section */
+	.meds-section {
+		padding: 0.75rem 0;
+	}
+
+	.meds-alldone {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.6rem 0.75rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-done);
+		border-radius: var(--radius);
+		color: var(--c-done);
+		font-weight: 600;
+		font-size: 0.85rem;
+	}
+
+	.meds-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+	}
+
+	.med-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.5rem 0.75rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+	}
+
+	.med-card-header {
+		display: flex;
+		align-items: baseline;
+		gap: 0.4rem;
+		min-width: 0;
+		flex: 1;
+	}
+
+	.med-card-name {
+		font-weight: 600;
+		font-size: 0.85rem;
+		color: var(--c-text);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.med-card-dose {
+		font-size: 0.75rem;
+		color: var(--c-text-muted);
+		white-space: nowrap;
+	}
+
+	.med-card-dots {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		flex-shrink: 0;
+	}
+
+	.dose-dot {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+	}
+
+	.dose-dot-pending {
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		border-radius: 50%;
+		transition: transform 0.1s;
+	}
+
+	.dose-dot-pending:hover {
+		transform: scale(1.3);
+	}
+
+	.dose-dot-taken {
+		cursor: default;
+	}
+
+	/* Active Symptoms section */
+	.symptoms-section {
+		padding: 0.75rem 0;
+	}
+
+	.symptoms-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.6rem 0.75rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		text-decoration: none;
+		color: var(--c-text);
+		transition: border-color 0.15s;
+	}
+
+	.symptoms-banner:hover {
+		border-color: var(--c-accent);
+	}
+
+	.symptoms-items {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1;
+		flex-wrap: wrap;
+	}
+
+	.symptom-tag {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.82rem;
+	}
+
+	.symptom-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.symptom-name {
+		text-transform: capitalize;
+	}
+
+	.symptom-more {
+		font-size: 0.75rem;
+		color: var(--c-text-muted);
+		font-weight: 500;
 	}
 </style>

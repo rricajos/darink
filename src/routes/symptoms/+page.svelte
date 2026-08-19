@@ -1,11 +1,15 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
+	import { computeMedSymptomCorrelations, getMedicationNamesFromRegimen } from '$lib/utils/cross-links';
 
 	const store = useEntries('symptom');
+	const allStore = useEntries();
 
 	/* --- Regions & symptoms map --- */
 	const regions = ['Head', 'Eyes', 'Ears', 'Throat', 'Chest', 'Stomach', 'Back', 'Left arm', 'Right arm', 'Left leg', 'Right leg', 'Joints', 'Skin', 'General'] as const;
@@ -115,7 +119,33 @@
 			.map(([trigger, count]) => ({ trigger, count }));
 	});
 
+	/* --- Medication regimen chips --- */
+	let medRegimen: Array<{ name: string }> = $state([]);
+	onMount(() => {
+		const saved = ui.get();
+		if (Array.isArray(saved.medicationRegimen)) {
+			medRegimen = saved.medicationRegimen as Array<{ name: string }>;
+		}
+	});
+	const medNames = $derived(getMedicationNamesFromRegimen(medRegimen));
+
+	/* --- Medication correlations --- */
+	const correlations = $derived(computeMedSymptomCorrelations(allStore.items));
+	const significantCorrelations = $derived(correlations.filter((c) => c.coOccurrences >= 3));
+
 	/* --- Actions --- */
+	function appendTrigger(name: string) {
+		const current = triggersInput.trim();
+		if (current) {
+			// Check if already present
+			const existing = current.split(',').map((t) => t.trim().toLowerCase());
+			if (existing.includes(name.toLowerCase())) return;
+			triggersInput = current + ', ' + name;
+		} else {
+			triggersInput = name;
+		}
+	}
+
 	function selectRegion(r: string) {
 		region = r;
 	}
@@ -232,6 +262,16 @@
 	<label>Possible triggers
 		<input type="text" bind:value={triggersInput} placeholder="stress, food, weather... (comma-separated)" />
 	</label>
+	{#if medNames.length > 0}
+		<div class="med-chips-row">
+			{#each medNames as med}
+				<button class="med-chip" type="button" onclick={() => appendTrigger(med)}>
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+					{med}
+				</button>
+			{/each}
+		</div>
+	{/if}
 	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
 	<button class="primary" onclick={submit}>Log symptom</button>
 </section>
@@ -327,6 +367,33 @@
 				{/each}
 			</div>
 		{/if}
+	</section>
+{/if}
+
+<!-- Medication correlations -->
+{#if significantCorrelations.length > 0}
+	<section class="section">
+		<h2>Medication Correlations</h2>
+		<div class="corr-list">
+			{#each significantCorrelations as c}
+				{@const pct = Math.round(c.correlation * 100)}
+				<div class="corr-item">
+					<div class="corr-header">
+						<span class="corr-med">
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+							{c.medication}
+						</span>
+						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+						<span class="corr-sym">{c.symptom}</span>
+						<span class="corr-count">{c.coOccurrences}x</span>
+					</div>
+					<div class="corr-bar-track">
+						<div class="corr-bar-fill" style="width: {pct}%"></div>
+						<span class="corr-pct">{pct}%</span>
+					</div>
+				</div>
+			{/each}
+		</div>
 	</section>
 {/if}
 
@@ -633,4 +700,99 @@
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
+
+	/* Medication chips row (triggers) */
+	.med-chips-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+		margin-top: -0.5rem;
+	}
+
+	.med-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.2rem 0.55rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: 14px;
+		font-size: 0.75rem;
+		color: var(--c-text-muted);
+		cursor: pointer;
+		transition: border-color 0.15s, color 0.15s;
+	}
+
+	.med-chip:hover {
+		border-color: var(--c-accent);
+		color: var(--c-accent);
+	}
+
+	/* Medication correlations */
+	.corr-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.corr-item {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.5rem 0.65rem;
+	}
+
+	.corr-header {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.85rem;
+		margin-bottom: 0.35rem;
+		flex-wrap: wrap;
+	}
+
+	.corr-med {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-weight: 600;
+		text-transform: capitalize;
+		color: var(--c-accent);
+	}
+
+	.corr-sym {
+		text-transform: capitalize;
+		color: var(--c-text);
+	}
+
+	.corr-count {
+		margin-left: auto;
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--c-text-muted);
+	}
+
+	.corr-bar-track {
+		position: relative;
+		height: 0.4rem;
+		background: var(--c-border);
+		border-radius: 4px;
+		overflow: visible;
+	}
+
+	.corr-bar-fill {
+		height: 100%;
+		background: var(--c-accent);
+		border-radius: 4px;
+		min-width: 2px;
+		transition: width 0.3s ease;
+	}
+
+	.corr-pct {
+		position: absolute;
+		right: 0;
+		top: -1.1rem;
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+	}
 </style>

@@ -39,19 +39,29 @@ function migrateLegacy(arr: Record<string, unknown>[]): Entry[] {
 	});
 }
 
+let _cache: Entry[] | null = null;
+let _cacheRaw: string | null = null;
+
 function loadAll(): Entry[] {
 	if (typeof localStorage === 'undefined') return [];
-	const raw = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-	if (Array.isArray(raw) && isLegacy(raw)) {
-		const migrated = migrateLegacy(raw);
+	const raw = localStorage.getItem(DB_KEY) || '[]';
+	if (raw === _cacheRaw && _cache !== null) return _cache;
+	const parsed = JSON.parse(raw);
+	if (Array.isArray(parsed) && isLegacy(parsed)) {
+		const migrated = migrateLegacy(parsed);
 		saveAll(migrated);
-		return migrated;
+		return _cache!;
 	}
-	return raw;
+	_cache = parsed;
+	_cacheRaw = raw;
+	return parsed;
 }
 
 function saveAll(entries: Entry[]): void {
-	localStorage.setItem(DB_KEY, JSON.stringify(entries));
+	const serialized = JSON.stringify(entries);
+	localStorage.setItem(DB_KEY, serialized);
+	_cache = entries;
+	_cacheRaw = serialized;
 }
 
 export const db = {
@@ -95,8 +105,18 @@ export const db = {
 		saveAll(loadAll().filter((e) => !set.has(e.id)));
 	},
 
+	count(): number {
+		return loadAll().length;
+	},
+
+	countByType(type: string): number {
+		return loadAll().filter((e) => e.type === type).length;
+	},
+
 	clear(): void {
 		localStorage.removeItem(DB_KEY);
+		_cache = null;
+		_cacheRaw = null;
 	},
 
 	exportJSON(): string {
