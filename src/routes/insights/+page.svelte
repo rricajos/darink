@@ -571,6 +571,55 @@
 
 		return { longestGoodStreak, loggingStreak, mostConsistent, missing };
 	});
+
+	const anomalies = $derived.by(() => {
+		const checkins = store.items.filter(e => e.type === 'checkin').toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
+		if (checkins.length < 14) return [];
+		const alerts: { type: 'warning' | 'positive'; metric: string; message: string }[] = [];
+		const metrics = ['mood', 'energy', 'stress'] as const;
+		for (const metric of metrics) {
+			const values = checkins.map(e => Number(e.data[metric]) || 5);
+			const last7 = values.slice(-7);
+			const prev7 = values.slice(-14, -7);
+			if (last7.length < 3 || prev7.length < 3) continue;
+			const avgLast = last7.reduce((s, v) => s + v, 0) / last7.length;
+			const avgPrev = prev7.reduce((s, v) => s + v, 0) / prev7.length;
+			const change = avgLast - avgPrev;
+			const pctChange = avgPrev > 0 ? Math.abs(change / avgPrev) * 100 : 0;
+			if (pctChange >= 20) {
+				const direction = change > 0 ? 'increased' : 'decreased';
+				const isGood = metric === 'stress' ? change < 0 : change > 0;
+				alerts.push({
+					type: isGood ? 'positive' : 'warning',
+					metric: metric.charAt(0).toUpperCase() + metric.slice(1),
+					message: `${metric.charAt(0).toUpperCase() + metric.slice(1)} ${direction} ${pctChange.toFixed(0)}% (${avgPrev.toFixed(1)} → ${avgLast.toFixed(1)})`
+				});
+			}
+		}
+		return alerts;
+	});
+
+	const recommendations = $derived.by(() => {
+		const checkins = store.items.filter(e => e.type === 'checkin');
+		if (checkins.length < 7) return [];
+		const recs: { icon: string; text: string; priority: 'high' | 'medium' | 'low' }[] = [];
+		const recent7 = checkins.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 7);
+		const avgMood = recent7.reduce((s, e) => s + Number(e.data.mood), 0) / recent7.length;
+		const avgEnergy = recent7.reduce((s, e) => s + Number(e.data.energy), 0) / recent7.length;
+		const avgStress = recent7.reduce((s, e) => s + Number(e.data.stress), 0) / recent7.length;
+		const sleeps = store.items.filter(e => e.type === 'signal.sleep').toSorted((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 7);
+		const avgSleep = sleeps.length > 0 ? sleeps.reduce((s, e) => s + Number(e.data.hours), 0) / sleeps.length : 0;
+		if (avgMood < 5) recs.push({ icon: '💡', text: 'Mood has been low — try journaling or a walk outdoors', priority: 'high' });
+		if (avgEnergy < 5) recs.push({ icon: '⚡', text: 'Energy is low — check sleep quality and hydration', priority: 'high' });
+		if (avgStress > 7) recs.push({ icon: '🧘', text: 'High stress — consider meditation or breathing exercises', priority: 'high' });
+		if (avgSleep > 0 && avgSleep < 6.5) recs.push({ icon: '😴', text: `Averaging ${avgSleep.toFixed(1)}h sleep — aim for 7-8h`, priority: 'medium' });
+		const trainings = store.items.filter(e => e.type.startsWith('training.'));
+		const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+		const recentTraining = trainings.filter(e => e.createdAt >= weekAgo);
+		if (recentTraining.length === 0 && trainings.length > 0) recs.push({ icon: '🏋️', text: 'No training this week — staying active boosts mood', priority: 'medium' });
+		if (recs.length === 0 && avgMood >= 7) recs.push({ icon: '✅', text: 'All metrics look good — keep it up!', priority: 'low' });
+		return recs;
+	});
 </script>
 
 <svelte:head>
@@ -893,6 +942,30 @@
 	</div>
 	{/if}
 </section>
+
+{#if anomalies.length > 0}
+<section class="anomaly-section">
+	<h2>Anomaly Alerts</h2>
+	{#each anomalies as alert}
+		<div class="anomaly-card {alert.type}">
+			<span class="anomaly-icon">{alert.type === 'warning' ? '⚠️' : '✅'}</span>
+			<span class="anomaly-text">{alert.message}</span>
+		</div>
+	{/each}
+</section>
+{/if}
+
+{#if recommendations.length > 0}
+<section class="rec-section">
+	<h2>Recommendations</h2>
+	{#each recommendations as rec}
+		<div class="rec-card {rec.priority}">
+			<span class="rec-icon">{rec.icon}</span>
+			<span class="rec-text">{rec.text}</span>
+		</div>
+	{/each}
+</section>
+{/if}
 
 {/if}
 
@@ -1273,4 +1346,18 @@
 			height: 160px;
 		}
 	}
+
+	.anomaly-section { padding: 1.5rem 1rem 0; }
+	.anomaly-card { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); margin-bottom: 0.5rem; }
+	.anomaly-card.warning { border-left: 3px solid #e8a735; }
+	.anomaly-card.positive { border-left: 3px solid #38a169; }
+	.anomaly-icon { font-size: 1.2rem; }
+	.anomaly-text { font-size: 0.85rem; }
+	.rec-section { padding: 1.5rem 1rem 0; }
+	.rec-card { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); margin-bottom: 0.5rem; }
+	.rec-card.high { border-left: 3px solid #e53e3e; }
+	.rec-card.medium { border-left: 3px solid #e8a735; }
+	.rec-card.low { border-left: 3px solid #38a169; }
+	.rec-icon { font-size: 1.2rem; }
+	.rec-text { font-size: 0.85rem; }
 </style>

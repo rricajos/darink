@@ -51,6 +51,54 @@
 		toast.show('Check-in saved');
 	}
 
+	const dayOfWeekPattern = $derived.by(() => {
+		if (store.items.length < 7) return null;
+		const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+		const buckets: { mood: number[]; energy: number[]; stress: number[] }[] = Array.from({ length: 7 }, () => ({ mood: [], energy: [], stress: [] }));
+		for (const e of store.items) {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			const day = (new Date(d + 'T12:00:00').getDay() + 6) % 7;
+			buckets[day].mood.push(Number(e.data.mood) || 5);
+			buckets[day].energy.push(Number(e.data.energy) || 5);
+			buckets[day].stress.push(Number(e.data.stress) || 3);
+		}
+		const avg = (a: number[]) => a.length ? +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1) : 0;
+		return dayNames.map((name, i) => ({
+			name,
+			mood: avg(buckets[i].mood),
+			energy: avg(buckets[i].energy),
+			stress: avg(buckets[i].stress),
+			count: buckets[i].mood.length
+		}));
+	});
+
+	const moodEnergyCorrelation = $derived.by(() => {
+		if (store.items.length < 10) return null;
+		const pairs = store.items.map(e => ({ mood: Number(e.data.mood) || 5, energy: Number(e.data.energy) || 5 }));
+		const n = pairs.length;
+		const sumM = pairs.reduce((s, p) => s + p.mood, 0);
+		const sumE = pairs.reduce((s, p) => s + p.energy, 0);
+		const sumME = pairs.reduce((s, p) => s + p.mood * p.energy, 0);
+		const sumM2 = pairs.reduce((s, p) => s + p.mood * p.mood, 0);
+		const sumE2 = pairs.reduce((s, p) => s + p.energy * p.energy, 0);
+		const num = n * sumME - sumM * sumE;
+		const den = Math.sqrt((n * sumM2 - sumM * sumM) * (n * sumE2 - sumE * sumE));
+		const r = den > 0 ? +(num / den).toFixed(2) : 0;
+		const label = Math.abs(r) >= 0.7 ? 'Strong' : Math.abs(r) >= 0.4 ? 'Moderate' : 'Weak';
+		return { r, label, n };
+	});
+
+	const consistencyScore = $derived.by(() => {
+		if (store.items.length < 14) return null;
+		const last14 = store.items.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 14);
+		const moods = last14.map(e => Number(e.data.mood) || 5);
+		const avg = moods.reduce((s, v) => s + v, 0) / moods.length;
+		const variance = moods.reduce((s, v) => s + (v - avg) ** 2, 0) / moods.length;
+		const stdDev = +Math.sqrt(variance).toFixed(1);
+		const score = Math.max(0, Math.min(10, +(10 - stdDev * 2).toFixed(1)));
+		return { stdDev, score, label: score >= 7 ? 'Stable' : score >= 4 ? 'Variable' : 'Volatile' };
+	});
+
 	function repeatLast() {
 		const last = store.items.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
 		if (!last) return;
@@ -305,6 +353,53 @@
 	{/if}
 {/if}
 
+{#if dayOfWeekPattern}
+<section class="analytics">
+	<h2>Day of Week Pattern</h2>
+	<div class="dow-table">
+		<div class="dow-header">
+			<span>Day</span><span style="color:#4aa3ff">Mood</span><span style="color:#2e8b57">Energy</span><span style="color:#e53e3e">Stress</span><span>#</span>
+		</div>
+		{#each dayOfWeekPattern as day}
+			<div class="dow-row">
+				<span class="dow-name">{day.name}</span>
+				<span style="font-weight:{day.mood >= 7 ? 700 : 400}">{day.mood}</span>
+				<span style="font-weight:{day.energy >= 7 ? 700 : 400}">{day.energy}</span>
+				<span style="font-weight:{day.stress <= 4 ? 700 : 400}">{day.stress}</span>
+				<span class="dow-count">{day.count}</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+{#if moodEnergyCorrelation}
+<section class="analytics">
+	<h2>Mood–Energy Correlation</h2>
+	<div class="corr-card">
+		<span class="corr-r" style="color:{Math.abs(moodEnergyCorrelation.r) >= 0.7 ? 'var(--c-done)' : Math.abs(moodEnergyCorrelation.r) >= 0.4 ? '#e8a735' : 'var(--c-text-muted)'}">r = {moodEnergyCorrelation.r}</span>
+		<span class="corr-label">{moodEnergyCorrelation.label} {moodEnergyCorrelation.r >= 0 ? 'positive' : 'negative'} correlation</span>
+		<span class="corr-hint">Based on {moodEnergyCorrelation.n} check-ins</span>
+	</div>
+</section>
+{/if}
+
+{#if consistencyScore}
+<section class="analytics">
+	<h2>Mood Consistency (14d)</h2>
+	<div class="consistency-row">
+		<div class="consistency-card">
+			<span class="consistency-value" style="color:{consistencyScore.score >= 7 ? 'var(--c-done)' : consistencyScore.score >= 4 ? '#e8a735' : '#e53e3e'}">{consistencyScore.score}/10</span>
+			<span class="consistency-label">{consistencyScore.label}</span>
+		</div>
+		<div class="consistency-card">
+			<span class="consistency-value">{consistencyScore.stdDev}</span>
+			<span class="consistency-label">Std deviation</span>
+		</div>
+	</div>
+</section>
+{/if}
+
 <style>
 	.field-error { font-size: 0.75rem; color: var(--c-cancel); margin-top: 0.15rem; display: block; }
 	.field-has-error { color: var(--c-cancel); }
@@ -357,4 +452,20 @@
 	.period-header { display: flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; }
 	.period-value { font-size: 1.4rem; font-weight: 700; }
 	.period-count { font-size: 0.65rem; color: var(--c-text-muted); }
+
+	.analytics { padding: 1.5rem 1rem 0; }
+	.dow-table { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); overflow: hidden; }
+	.dow-header, .dow-row { display: grid; grid-template-columns: 2.5rem 1fr 1fr 1fr 2rem; padding: 0.4rem 0.75rem; font-size: 0.8rem; text-align: center; }
+	.dow-header { font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; font-size: 0.7rem; border-bottom: 1px solid var(--c-border); }
+	.dow-row:not(:last-child) { border-bottom: 1px solid var(--c-border); }
+	.dow-name { text-align: left; font-weight: 600; color: var(--c-text-muted); }
+	.dow-count { font-size: 0.7rem; color: var(--c-text-muted); }
+	.corr-card { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 1rem; text-align: center; display: flex; flex-direction: column; gap: 0.25rem; }
+	.corr-r { font-size: 1.8rem; font-weight: 700; }
+	.corr-label { font-size: 0.85rem; }
+	.corr-hint { font-size: 0.75rem; color: var(--c-text-muted); }
+	.consistency-row { display: flex; gap: 0.75rem; }
+	.consistency-card { flex: 1; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
+	.consistency-value { font-size: 1.4rem; font-weight: 700; }
+	.consistency-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; }
 </style>

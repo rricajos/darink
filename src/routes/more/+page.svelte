@@ -1,6 +1,36 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
 
+	let search = $state('');
+
+	const allItems = [
+		{ href: '/signals', label: 'Signals', desc: 'Body signal monitoring', group: 'Health Tracking' },
+		{ href: '/habits', label: 'Habits', desc: 'Daily habits and streaks', group: 'Health Tracking' },
+		{ href: '/supplements', label: 'Supplements', desc: 'Stack and adherence', group: 'Health Tracking' },
+		{ href: '/hydration', label: 'Hydration', desc: 'Water and fluid tracking', group: 'Health Tracking' },
+		{ href: '/measurements', label: 'Measurements', desc: 'Body measurements over time', group: 'Health Tracking' },
+		{ href: '/bloodwork', label: 'Blood Work', desc: 'Lab results and reference ranges', group: 'Health Tracking' },
+		{ href: '/medications', label: 'Medications', desc: 'Prescriptions, doses, side effects', group: 'Health Tracking' },
+		{ href: '/symptoms', label: 'Symptoms', desc: 'Pain and symptom tracking', group: 'Health Tracking' },
+		{ href: '/journal', label: 'Journal', desc: 'Freeform notes', group: 'Health Tracking' },
+		{ href: '/timeline', label: 'Timeline', desc: 'Activity feed', group: 'Insights' },
+		{ href: '/goals', label: 'Goals', desc: 'Targets and progress', group: 'Insights' },
+		{ href: '/experiments', label: 'Experiments', desc: 'n=1 testing', group: 'Insights' },
+		{ href: '/records', label: 'Records', desc: 'Personal bests and milestones', group: 'Insights' },
+		{ href: '/report', label: 'Report', desc: 'Weekly summary for review', group: 'Insights' },
+		{ href: '/insights', label: 'Insights', desc: 'Deep dive analytics and patterns', group: 'Insights' },
+		{ href: '/profile', label: 'Profile', desc: 'Body metrics and targets', group: 'Settings' },
+		{ href: '/reminders', label: 'Reminders', desc: 'Notification reminders', group: 'Settings' },
+		{ href: '/data', label: 'Data', desc: 'Search, export, import', group: 'Settings' },
+		{ href: '/ref', label: 'Reference', desc: 'Health knowledge base', group: 'Settings' }
+	];
+
+	const filtered = $derived.by(() => {
+		const q = search.trim().toLowerCase();
+		if (!q) return null;
+		return allItems.filter(i => i.label.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q));
+	});
+
 	const groups = [
 		{
 			title: 'Health Tracking',
@@ -45,6 +75,26 @@
 
 <PageHeader title="More" />
 
+<div class="search-wrap">
+	<input type="search" class="search-input" placeholder="Search pages..." bind:value={search} />
+</div>
+
+{#if filtered}
+	{#if filtered.length === 0}
+		<p class="no-results">No pages matching "{search}"</p>
+	{:else}
+		<section class="grid" style="padding:0 1rem">
+			{#each filtered as s}
+				<a href={s.href} class="card">
+					<strong>{s.label}</strong>
+					<span>{s.desc}</span>
+					<span class="card-group">{s.group}</span>
+				</a>
+			{/each}
+		</section>
+	{/if}
+{:else}
+
 {#each groups as group}
 	<h2>{group.title}</h2>
 	<section class="grid">
@@ -60,6 +110,8 @@
 <footer class="version">
 	Darink v1.0.0
 </footer>
+
+{/if}
 
 <style>
 	.version {
@@ -118,5 +170,38 @@
 	.card span {
 		font-size: 0.85rem;
 		color: var(--c-text-muted);
+	}
+
+	.search-wrap {
+		padding: 0 1rem 0.5rem;
+	}
+
+	.search-input {
+		width: 100%;
+		padding: 0.6rem 0.75rem;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		background: var(--c-bg-card);
+		color: var(--c-text);
+		font-size: 0.9rem;
+	}
+
+	.search-input:focus {
+		outline: 2px solid var(--c-accent);
+		outline-offset: -1px;
+	}
+
+	.no-results {
+		padding: 2rem 1rem;
+		text-align: center;
+		color: var(--c-text-muted);
+		font-size: 0.9rem;
+	}
+
+	.card-group {
+		font-size: 0.7rem !important;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-top: 0.25rem;
 	}
 </style>

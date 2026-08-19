@@ -454,6 +454,76 @@
 
 		return { dots, trendline };
 	});
+
+	const weightMoodLink = $derived.by(() => {
+		const weights = store.items.filter(e => e.type === 'weight').toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
+		const checkins = store.items.filter(e => e.type === 'checkin');
+		if (weights.length < 5 || checkins.length < 5) return null;
+		const moodByDate: Record<string, number> = {};
+		for (const c of checkins) {
+			const d = (c.data.date as string) ?? c.createdAt.slice(0, 10);
+			moodByDate[d] = Number(c.data.mood);
+		}
+		const pairs: { w: number; m: number }[] = [];
+		for (const e of weights) {
+			const d = e.createdAt.slice(0, 10);
+			if (moodByDate[d] !== undefined) pairs.push({ w: Number(e.data.weight), m: moodByDate[d] });
+		}
+		if (pairs.length < 3) return null;
+		const last5 = weights.slice(-5);
+		const first5 = weights.slice(0, 5);
+		const avgLast = +(last5.reduce((s, e) => s + Number(e.data.weight), 0) / last5.length).toFixed(1);
+		const avgFirst = +(first5.reduce((s, e) => s + Number(e.data.weight), 0) / first5.length).toFixed(1);
+		const trend = avgLast > avgFirst ? 'gaining' : avgLast < avgFirst ? 'losing' : 'stable';
+		return { pairs: pairs.length, trend, avgFirst, avgLast, change: +(avgLast - avgFirst).toFixed(1) };
+	});
+
+	const seasonalPattern = $derived.by(() => {
+		const checkins = store.items.filter(e => e.type === 'checkin');
+		if (checkins.length < 30) return null;
+		const months: Record<string, { moods: number[]; energies: number[] }> = {};
+		for (const c of checkins) {
+			const d = (c.data.date as string) ?? c.createdAt.slice(0, 10);
+			const m = d.slice(0, 7);
+			if (!months[m]) months[m] = { moods: [], energies: [] };
+			months[m].moods.push(Number(c.data.mood));
+			months[m].energies.push(Number(c.data.energy));
+		}
+		const sorted = Object.keys(months).toSorted().slice(-6);
+		if (sorted.length < 3) return null;
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		const data = sorted.map(m => ({
+			month: new Date(m + '-15').toLocaleDateString('en', { month: 'short' }),
+			mood: avg(months[m].moods),
+			energy: avg(months[m].energies),
+			n: months[m].moods.length
+		}));
+		const maxVal = Math.max(...data.flatMap(d => [d.mood, d.energy]), 1);
+		return { data, maxVal };
+	});
+
+	const healthIndex = $derived.by(() => {
+		const now = new Date();
+		const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
+		const recent = store.items.filter(e => e.createdAt >= weekAgo);
+		const checkins = recent.filter(e => e.type === 'checkin');
+		const habits = recent.filter(e => e.type === 'habit');
+		const trainings = recent.filter(e => e.type.startsWith('training.'));
+		const supplements = recent.filter(e => e.type === 'supplement');
+		if (checkins.length === 0) return null;
+		const avg = (arr: number[]) => arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+		const moodScore = avg(checkins.map(e => Number(e.data.mood))) / 10;
+		const energyScore = avg(checkins.map(e => Number(e.data.energy))) / 10;
+		const stressScore = 1 - avg(checkins.map(e => Number(e.data.stress))) / 10;
+		const habitDays = new Set(habits.map(e => (e.data.date as string) ?? e.createdAt.slice(0, 10))).size;
+		const habitScore = Math.min(habitDays / 7, 1);
+		const trainingDays = new Set(trainings.map(e => e.createdAt.slice(0, 10))).size;
+		const trainingScore = Math.min(trainingDays / 4, 1);
+		const suppDays = new Set(supplements.map(e => (e.data.date as string) ?? e.createdAt.slice(0, 10))).size;
+		const suppScore = Math.min(suppDays / 7, 1);
+		const composite = +((moodScore * 0.25 + energyScore * 0.2 + stressScore * 0.15 + habitScore * 0.15 + trainingScore * 0.15 + suppScore * 0.1) * 100).toFixed(0);
+		return { composite, moodScore: +(moodScore * 100).toFixed(0), energyScore: +(energyScore * 100).toFixed(0), stressScore: +(stressScore * 100).toFixed(0), habitScore: +(habitScore * 100).toFixed(0), trainingScore: +(trainingScore * 100).toFixed(0) };
+	});
 </script>
 
 <svelte:head>
@@ -863,6 +933,72 @@
 	<div class="stat"><span class="value">{stats.experiments}</span><span class="label">Experiments</span></div>
 	<div class="stat total"><span class="value">{stats.total}</span><span class="label">Total entries</span></div>
 </section>
+
+{#if healthIndex}
+<section class="hi-section">
+	<h2>Health Index (7d)</h2>
+	<div class="hi-gauge">
+		<span class="hi-value" style="color:{healthIndex.composite >= 70 ? '#38a169' : healthIndex.composite >= 40 ? '#e8a735' : '#e53e3e'}">{healthIndex.composite}</span>
+		<span class="hi-max">/100</span>
+	</div>
+	<div class="hi-breakdown">
+		{#each [
+			{ label: 'Mood', val: healthIndex.moodScore },
+			{ label: 'Energy', val: healthIndex.energyScore },
+			{ label: 'Stress', val: healthIndex.stressScore },
+			{ label: 'Habits', val: healthIndex.habitScore },
+			{ label: 'Training', val: healthIndex.trainingScore }
+		] as metric}
+			<div class="hi-row">
+				<span class="hi-label">{metric.label}</span>
+				<div class="hi-bar-bg"><div class="hi-bar-fill" style="width:{metric.val}%;background:{metric.val >= 70 ? '#38a169' : metric.val >= 40 ? '#e8a735' : '#e53e3e'}"></div></div>
+				<span class="hi-val">{metric.val}</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+{#if seasonalPattern}
+<section class="seasonal-section">
+	<h2>Seasonal Pattern (last 6 months)</h2>
+	<div class="seasonal-chart">
+		{#each seasonalPattern.data as m}
+			<div class="seasonal-col">
+				<div class="seasonal-bars">
+					<div class="seasonal-bar mood" style="height:{(m.mood / seasonalPattern.maxVal) * 100}%"></div>
+					<div class="seasonal-bar energy" style="height:{(m.energy / seasonalPattern.maxVal) * 100}%"></div>
+				</div>
+				<span class="seasonal-label">{m.month}</span>
+			</div>
+		{/each}
+	</div>
+	<div class="seasonal-legend">
+		<span><span class="dot" style="background:#4aa3ff"></span> Mood</span>
+		<span><span class="dot" style="background:#2e8b57"></span> Energy</span>
+	</div>
+</section>
+{/if}
+
+{#if weightMoodLink}
+<section class="wm-section">
+	<h2>Weight Trajectory</h2>
+	<div class="wm-cards">
+		<div class="wm-card">
+			<span class="wm-value">{weightMoodLink.avgFirst}kg</span>
+			<span class="wm-label">First 5 avg</span>
+		</div>
+		<div class="wm-card">
+			<span class="wm-value">{weightMoodLink.avgLast}kg</span>
+			<span class="wm-label">Last 5 avg</span>
+		</div>
+		<div class="wm-card">
+			<span class="wm-value" style="color:{weightMoodLink.change === 0 ? 'var(--c-text-muted)' : weightMoodLink.change > 0 ? '#e8a735' : '#38a169'}">{weightMoodLink.change > 0 ? '+' : ''}{weightMoodLink.change}kg</span>
+			<span class="wm-label">{weightMoodLink.trend}</span>
+		</div>
+	</div>
+</section>
+{/if}
 
 {/if}
 
@@ -1304,4 +1440,35 @@
 		.stats { grid-template-columns: 1fr; }
 		.stat.highlight, .stat.total { grid-column: auto; }
 	}
+
+	/* Health Index */
+	.hi-section { padding: 1.5rem 1rem 0; }
+	.hi-gauge { text-align: center; margin-bottom: 0.75rem; }
+	.hi-value { font-size: 3rem; font-weight: 700; }
+	.hi-max { font-size: 1rem; color: var(--c-text-muted); }
+	.hi-breakdown { display: flex; flex-direction: column; gap: 0.4rem; }
+	.hi-row { display: flex; align-items: center; gap: 0.5rem; }
+	.hi-label { width: 4rem; font-size: 0.75rem; color: var(--c-text-muted); text-align: right; }
+	.hi-bar-bg { flex: 1; height: 10px; background: var(--c-border); border-radius: 5px; overflow: hidden; }
+	.hi-bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s; }
+	.hi-val { width: 2rem; font-size: 0.8rem; font-weight: 600; }
+
+	/* Seasonal */
+	.seasonal-section { padding: 1.5rem 1rem 0; }
+	.seasonal-chart { display: flex; align-items: flex-end; gap: 0.5rem; height: 120px; padding: 0.5rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); }
+	.seasonal-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+	.seasonal-bars { display: flex; gap: 2px; align-items: flex-end; width: 100%; height: 100%; }
+	.seasonal-bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 4px; transition: height 0.3s; }
+	.seasonal-bar.mood { background: #4aa3ff; }
+	.seasonal-bar.energy { background: #2e8b57; }
+	.seasonal-label { font-size: 0.65rem; color: var(--c-text-muted); margin-top: 4px; }
+	.seasonal-legend { display: flex; gap: 1rem; font-size: 0.75rem; color: var(--c-text-muted); margin-top: 0.25rem; }
+	.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+
+	/* Weight-mood */
+	.wm-section { padding: 1.5rem 1rem 0; }
+	.wm-cards { display: flex; gap: 0.5rem; }
+	.wm-card { flex: 1; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
+	.wm-value { font-size: 1.3rem; font-weight: 700; }
+	.wm-label { font-size: 0.7rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; }
 </style>
