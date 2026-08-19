@@ -14,6 +14,7 @@
 	let wakeTarget = $state('06:00');
 	let notes = $state('');
 	let activityLevel = $state(1.55);
+	let targetWeight = $state(0);
 
 	const activityOptions = [
 		{ value: 1.2, label: 'Sedentary', desc: 'Desk job, little exercise' },
@@ -24,6 +25,7 @@
 	] as const;
 
 	const weightStore = useEntries('weight');
+	const intakeStore = useEntries('intake');
 	const measurementStore = useEntries('measurement');
 
 	const latestMeasurement = $derived.by(() => {
@@ -48,6 +50,7 @@
 			wakeTarget = profile.wakeTarget ?? wakeTarget;
 			notes = profile.notes ?? notes;
 			activityLevel = profile.activityLevel ?? activityLevel;
+			targetWeight = profile.targetWeight ?? targetWeight;
 		}
 	});
 
@@ -65,7 +68,7 @@
 	const tdee = $derived(bmr > 0 ? Math.round(bmr * activityLevel) : 0);
 	const activityLabel = $derived(activityOptions.find((o) => o.value === activityLevel)?.label ?? 'Moderate');
 
-	// Weight history (last 30 entries)
+	// Weight history (last 30 entries for existing charts)
 	const weightHistory = $derived.by(() => {
 		return weightStore.items
 			.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt))
@@ -77,9 +80,125 @@
 			}));
 	});
 
+	// Extended weight history (last 60 entries for body composition timeline)
+	const weightHistory60 = $derived.by(() => {
+		return weightStore.items
+			.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt))
+			.slice(-60)
+			.map((e) => ({
+				date: (e.data.date as string) ?? e.createdAt.slice(0, 10),
+				weight: e.data.weight as number,
+				bodyFat: (e.data.bodyFat as number) ?? null
+			}));
+	});
+
+	// Goal progress calculations
+	const goalProgress = $derived.by(() => {
+		if (targetWeight <= 0 || weightHistory.length < 2) return null;
+		const currentW = weightHistory[weightHistory.length - 1].weight;
+		const firstW = weightHistory[0].weight;
+		const firstDate = new Date(weightHistory[0].date);
+		const lastDate = new Date(weightHistory[weightHistory.length - 1].date);
+		const daysDiff = Math.max((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24), 1);
+		const weeksDiff = daysDiff / 7;
+		const ratePerWeek = weeksDiff > 0 ? +((currentW - firstW) / weeksDiff).toFixed(2) : 0;
+		const remaining = targetWeight - currentW;
+		const weeksToGoal = ratePerWeek !== 0 ? remaining / ratePerWeek : null;
+		let estimatedDate: string | null = null;
+		if (weeksToGoal !== null && weeksToGoal > 0 && weeksToGoal < 520) {
+			const est = new Date(lastDate.getTime() + weeksToGoal * 7 * 24 * 60 * 60 * 1000);
+			estimatedDate = est.toISOString().slice(0, 10);
+		}
+		// Determine starting point for progress calculation
+		const startW = firstW;
+		const totalChange = targetWeight - startW;
+		const currentChange = currentW - startW;
+		const progressPct = totalChange !== 0 ? Math.min(Math.max((currentChange / totalChange) * 100, 0), 100) : 0;
+		// Status: green if moving toward goal, yellow if stalling, red if moving away
+		let status: 'green' | 'yellow' | 'red' = 'yellow';
+		if (targetWeight < startW) {
+			// Trying to lose weight
+			if (ratePerWeek < -0.1) status = 'green';
+			else if (ratePerWeek > 0.1) status = 'red';
+		} else {
+			// Trying to gain weight
+			if (ratePerWeek > 0.1) status = 'green';
+			else if (ratePerWeek < -0.1) status = 'red';
+		}
+		return { currentW, targetWeight, progressPct, ratePerWeek, estimatedDate, status, remaining };
+	});
+
+	// Daily average calories from intake entries (last 30 days)
+	const dailyAvgCalories = $derived.by(() => {
+		const items = intakeStore.items;
+		if (items.length === 0) return null;
+		// Check if any intake has a calories field
+		const withCalories = items.filter((e) => typeof e.data.calories === 'number' && (e.data.calories as number) > 0);
+		if (withCalories.length === 0) return null;
+		const now = new Date();
+		const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+		const recent = withCalories.filter((e) => {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			return d >= thirtyDaysAgo;
+		});
+		if (recent.length === 0) return null;
+		// Group by day and sum
+		const byDay = new Map<string, number>();
+		for (const e of recent) {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			byDay.set(d, (byDay.get(d) ?? 0) + (e.data.calories as number));
+		}
+		const days = byDay.size;
+		const total = [...byDay.values()].reduce((s, v) => s + v, 0);
+		return days > 0 ? Math.round(total / days) : null;
+	});
+
+	// Body metrics summary cards data
+	const metricsCards = $derived.by(() => {
+		const cards: Array<{ label: string; value: string; sub: string; trend: string; color: string }> = [];
+		// BMI
+		const bmiColor = bmi < 18.5 ? 'var(--c-accent)' : bmi < 25 ? '#38a169' : bmi < 30 ? '#e8a735' : '#e53e3e';
+		cards.push({ label: 'BMI', value: bmi > 0 ? String(bmi) : '--', sub: bmiCategory, trend: '', color: bmiColor });
+		// BMR
+		cards.push({ label: 'BMR', value: bmr > 0 ? `${bmr}` : '--', sub: 'kcal/day', trend: '', color: 'var(--c-text)' });
+		// TDEE
+		cards.push({ label: 'TDEE', value: tdee > 0 ? `${tdee}` : '--', sub: 'kcal/day', trend: '', color: 'var(--c-text)' });
+		// Weight change (last 30 days)
+		if (weightHistory.length >= 2) {
+			const first = weightHistory[0].weight;
+			const last = weightHistory[weightHistory.length - 1].weight;
+			const diff = +(last - first).toFixed(1);
+			const arrow = diff > 0.1 ? '↑' : diff < -0.1 ? '↓' : '→';
+			const col = diff > 0.1 ? '#e53e3e' : diff < -0.1 ? '#38a169' : '#e8a735';
+			cards.push({ label: 'Weight Δ', value: `${diff > 0 ? '+' : ''}${diff} kg`, sub: 'last 30 entries', trend: arrow, color: col });
+		} else {
+			cards.push({ label: 'Weight Δ', value: '--', sub: 'last 30 entries', trend: '→', color: 'var(--c-text-muted)' });
+		}
+		// Body fat change (last 30 days)
+		const bfEntries = weightHistory.filter((p) => p.bodyFat != null);
+		if (bfEntries.length >= 2) {
+			const firstBf = bfEntries[0].bodyFat!;
+			const lastBf = bfEntries[bfEntries.length - 1].bodyFat!;
+			const diff = +(lastBf - firstBf).toFixed(1);
+			const arrow = diff > 0.1 ? '↑' : diff < -0.1 ? '↓' : '→';
+			const col = diff > 0.1 ? '#e53e3e' : diff < -0.1 ? '#38a169' : '#e8a735';
+			cards.push({ label: 'Body Fat Δ', value: `${diff > 0 ? '+' : ''}${diff}%`, sub: 'last 30 entries', trend: arrow, color: col });
+		} else {
+			cards.push({ label: 'Body Fat Δ', value: '--', sub: 'last 30 entries', trend: '→', color: 'var(--c-text-muted)' });
+		}
+		// Lean mass estimate
+		if (weight > 0 && bodyFat > 0 && bodyFat < 100) {
+			const lean = +(weight * (1 - bodyFat / 100)).toFixed(1);
+			cards.push({ label: 'Lean Mass', value: `${lean} kg`, sub: `at ${bodyFat}% BF`, trend: '', color: 'var(--c-text)' });
+		} else {
+			cards.push({ label: 'Lean Mass', value: '--', sub: 'need BF%', trend: '', color: 'var(--c-text-muted)' });
+		}
+		return cards;
+	});
+
 	function save() {
 		ui.patch({
-			profile: { height, weight, age, bodyFat, stressBaseline, sleepTarget, wakeTarget, notes, activityLevel }
+			profile: { height, weight, age, bodyFat, stressBaseline, sleepTarget, wakeTarget, notes, activityLevel, targetWeight }
 		});
 		entries.add('weight', { weight, bodyFat, date: new Date().toISOString().slice(0, 10) });
 		toast.show('Profile saved');
