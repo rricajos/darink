@@ -103,7 +103,7 @@
   <title>{t.genital.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title={t.genital.genitalSignals} back="/signals" />
+<PageHeader title={t.genital.genitalSignals} back="/signals" breadcrumbs={[{ href: "/signals", label: t.more.signals }]} />
 
 <section class="form">
 	<label>{t.genital.morningErection} ({morningErection}/3) <input type="range" min="0" max="3" bind:value={morningErection} /></label>

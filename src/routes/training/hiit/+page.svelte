@@ -189,7 +189,7 @@
   <title>{t.training.hiit} | Darink</title>
 </svelte:head>
 
-<PageHeader title={t.training.hiit} back="/training" />
+<PageHeader title={t.training.hiit} back="/training" breadcrumbs={[{ href: "/training", label: t.training.title }]} />
 
 {#if quickWorkouts.length > 0}
 <section class="quick-add">

@@ -527,6 +527,68 @@
 		return { composite, moodScore: +(moodScore * 100).toFixed(0), energyScore: +(energyScore * 100).toFixed(0), stressScore: +(stressScore * 100).toFixed(0), habitScore: +(habitScore * 100).toFixed(0), trainingScore: +(trainingScore * 100).toFixed(0) };
 	});
 
+	/* --- 14-day entry breakdown by type --- */
+	const BREAKDOWN_TYPES = ['checkin', 'intake', 'training', 'habit', 'supplement', 'journal'] as const;
+	const BREAKDOWN_COLORS: Record<string, string> = {
+		checkin: '#4aa3ff', intake: '#e8a735', training: '#e53e3e',
+		habit: '#2e8b57', supplement: '#9b59b6', journal: '#f97316'
+	};
+	const BREAKDOWN_LABELS = $derived.by(() => ({
+		checkin: t.dashboard.checkins, intake: t.dashboard.intakes, training: t.dashboard.training,
+		habit: t.dashboard.habits, supplement: t.dashboard.supplements, journal: t.more.journal
+	} as Record<string, string>));
+
+	const entryBreakdown14 = $derived.by(() => {
+		const days: { key: string; label: string; byType: Record<string, number>; total: number }[] = [];
+		for (let i = 13; i >= 0; i--) {
+			const d = new Date();
+			d.setDate(d.getDate() - i);
+			const key = d.toISOString().slice(0, 10);
+			const label = d.toLocaleDateString(locale, { weekday: 'narrow' });
+			const byType: Record<string, number> = {};
+			for (const bt of BREAKDOWN_TYPES) byType[bt] = 0;
+			days.push({ key, label, byType, total: 0 });
+		}
+		for (const e of store.items) {
+			const key = e.createdAt.slice(0, 10);
+			const day = days.find(d => d.key === key);
+			if (!day) continue;
+			for (const bt of BREAKDOWN_TYPES) {
+				if (bt === 'training' ? e.type.startsWith('training.') : e.type === bt) {
+					day.byType[bt]++;
+					day.total++;
+				}
+			}
+		}
+		return days;
+	});
+
+	const breakdownMax = $derived(Math.max(1, ...entryBreakdown14.map(d => d.total)));
+
+	/* --- Weekly consistency score --- */
+	const consistencyData = $derived.by(() => {
+		const categories = ['checkin', 'intake', 'training', 'habit', 'supplement', 'journal'] as const;
+		const days: { label: string; cats: Set<string> }[] = [];
+		for (let i = 6; i >= 0; i--) {
+			const d = new Date();
+			d.setDate(d.getDate() - i);
+			const key = d.toISOString().slice(0, 10);
+			const label = d.toLocaleDateString(locale, { weekday: 'narrow' });
+			const cats = new Set<string>();
+			for (const e of store.items) {
+				if (!e.createdAt.startsWith(key)) continue;
+				for (const c of categories) {
+					if (c === 'training' ? e.type.startsWith('training.') : e.type === c) cats.add(c);
+				}
+			}
+			days.push({ label, cats });
+		}
+		const totalPossible = 7 * categories.length;
+		const totalActual = days.reduce((s, d) => s + d.cats.size, 0);
+		const score = totalPossible > 0 ? Math.round((totalActual / totalPossible) * 100) : 0;
+		return { days, score, maxCats: categories.length };
+	});
+
 	const radarData = $derived.by(() => {
 		if (!healthIndex) return null;
 		const CX = 100, CY = 100, R = 75;
@@ -822,6 +884,37 @@
 </section>
 {/if}
 
+{#if entryBreakdown14.some(d => d.total > 0)}
+<section class="breakdown-section">
+	<h2>{t.dashboard.entryBreakdown14d}</h2>
+	<div class="breakdown-wrap">
+		<svg viewBox="0 0 280 100" class="breakdown-chart">
+			{#each entryBreakdown14 as day, i}
+				{@const barW = 280 / 14 - 2}
+				{@const x = i * (280 / 14) + 1}
+				{#each BREAKDOWN_TYPES as bt, ti}
+					{@const segH = (day.byType[bt] / breakdownMax) * 85}
+					{@const prevH = BREAKDOWN_TYPES.slice(0, ti).reduce((s, pt) => s + (day.byType[pt] / breakdownMax) * 85, 0)}
+					{#if day.byType[bt] > 0}
+						<rect x={x} y={95 - prevH - segH} width={barW} height={segH} rx="1" fill={BREAKDOWN_COLORS[bt]} opacity="0.85" />
+					{/if}
+				{/each}
+			{/each}
+		</svg>
+		<div class="breakdown-labels">
+			{#each entryBreakdown14 as day}
+				<span class="breakdown-day">{day.label}</span>
+			{/each}
+		</div>
+		<div class="breakdown-legend">
+			{#each BREAKDOWN_TYPES as bt}
+				<span class="legend-item"><span class="dot" style="background:{BREAKDOWN_COLORS[bt]}"></span> {BREAKDOWN_LABELS[bt]}</span>
+			{/each}
+		</div>
+	</div>
+</section>
+{/if}
+
 {#if todayLog.length > 0}
 <section class="today-log">
 	<h2>{t.dashboard.todayLog}</h2>
@@ -997,6 +1090,29 @@
 				<span class="hi-val">{metric.val}</span>
 			</div>
 		{/each}
+	</div>
+</section>
+{/if}
+
+{#if consistencyData.score > 0}
+<section class="consistency-section">
+	<h2>{t.dashboard.consistency}</h2>
+	<div class="consistency-card">
+		<div class="consistency-header">
+			<span class="consistency-score" style="color:{consistencyData.score >= 70 ? '#38a169' : consistencyData.score >= 40 ? '#e8a735' : '#e53e3e'}">{consistencyData.score}%</span>
+			<span class="consistency-label">{t.dashboard.consistencyScore}</span>
+		</div>
+		<div class="consistency-grid">
+			{#each consistencyData.days as day}
+				<div class="consistency-col">
+					<div class="consistency-bar-bg">
+						<div class="consistency-bar-fill" style="height:{(day.cats.size / consistencyData.maxCats) * 100}%;background:{day.cats.size >= 4 ? '#38a169' : day.cats.size >= 2 ? '#e8a735' : 'var(--c-border)'}"></div>
+					</div>
+					<span class="consistency-day">{day.label}</span>
+					<span class="consistency-count">{day.cats.size}</span>
+				</div>
+			{/each}
+		</div>
 	</div>
 </section>
 {/if}
@@ -1285,6 +1401,35 @@
 	.dot.mood { background: var(--c-accent); }
 	.dot.energy { background: var(--c-done); }
 
+	/* Entry Breakdown */
+	.breakdown-section { padding: 0 1rem 1.5rem; }
+	.breakdown-wrap {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.5rem;
+	}
+	.breakdown-chart { width: 100%; height: auto; display: block; }
+	.breakdown-labels {
+		display: flex;
+		justify-content: space-between;
+		padding-top: 0.2rem;
+	}
+	.breakdown-day {
+		font-size: 0.6rem;
+		color: var(--c-text-muted);
+		text-align: center;
+		flex: 1;
+	}
+	.breakdown-legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+		margin-top: 0.4rem;
+	}
+
 	/* Today's Log */
 	.today-log {
 		padding: 0 1rem 1rem;
@@ -1496,6 +1641,50 @@
 	.hi-val { width: 2rem; font-size: 0.8rem; font-weight: 600; }
 	.hi-radar { display: flex; justify-content: center; margin: 0.5rem 0; }
 	.radar-svg { width: 220px; height: 220px; }
+
+	/* Consistency */
+	.consistency-section { padding: 1.5rem 1rem 0; }
+	.consistency-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem 1rem;
+	}
+	.consistency-header {
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+		margin-bottom: 0.75rem;
+	}
+	.consistency-score { font-size: 1.5rem; font-weight: 800; }
+	.consistency-label { font-size: 0.8rem; color: var(--c-text-muted); }
+	.consistency-grid {
+		display: flex;
+		gap: 4px;
+	}
+	.consistency-col {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+	}
+	.consistency-bar-bg {
+		width: 100%;
+		height: 50px;
+		background: var(--c-border);
+		border-radius: 3px;
+		display: flex;
+		align-items: flex-end;
+		overflow: hidden;
+	}
+	.consistency-bar-fill {
+		width: 100%;
+		border-radius: 3px 3px 0 0;
+		transition: height 0.3s;
+	}
+	.consistency-day { font-size: 0.6rem; color: var(--c-text-muted); font-weight: 600; text-transform: uppercase; }
+	.consistency-count { font-size: 0.65rem; font-weight: 700; }
 
 	/* Seasonal */
 	.seasonal-section { padding: 1.5rem 1rem 0; }

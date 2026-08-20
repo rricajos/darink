@@ -136,7 +136,7 @@
   <title>{t.training.rings} | Darink</title>
 </svelte:head>
 
-<PageHeader title={t.training.rings} back="/training" />
+<PageHeader title={t.training.rings} back="/training" breadcrumbs={[{ href: "/training", label: t.training.title }]} />
 
 <section class="form">
 	<label>{t.common.date} <input type="date" bind:value={date} /></label>

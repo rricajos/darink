@@ -221,7 +221,7 @@
   <title>{t.training.strength} | Darink</title>
 </svelte:head>
 
-<PageHeader title={t.training.strength} back="/training" />
+<PageHeader title={t.training.strength} back="/training" breadcrumbs={[{ href: "/training", label: t.training.title }]} />
 
 {#if quickExercises.length > 0}
 <section class="quick-add">

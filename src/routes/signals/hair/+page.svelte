@@ -100,7 +100,7 @@
   <title>{t.hair.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title={t.hair.title} back="/signals" />
+<PageHeader title={t.hair.title} back="/signals" breadcrumbs={[{ href: "/signals", label: t.more.signals }]} />
 
 <section class="form">
 	<label>{t.hair.zone} <input type="text" bind:value={zone} placeholder={t.hair.zonePlaceholder} /></label>

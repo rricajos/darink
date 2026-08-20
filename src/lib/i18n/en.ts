@@ -70,7 +70,18 @@ const en = {
 		negative: 'negative',
 		correlation: 'correlation',
 		weeksAgo: 'w ago',
-		daysAgo: 'd ago'
+		daysAgo: 'd ago',
+		deleted: 'Deleted',
+		undo: 'Undo',
+		hoursAgo: 'h ago',
+		justNow: 'just now',
+		never: 'never',
+		confirmDelete: 'Tap again to delete',
+		swipeToDelete: 'Swipe to delete'
+	},
+	error: {
+		resetApp: 'Reset app',
+		somethingWentWrong: 'Something went wrong'
 	},
 	days: {
 		mon: 'Mon',
@@ -138,7 +149,15 @@ const en = {
 		setGoal: 'Set a goal',
 		setGoalDesc: 'Create targets to work towards',
 		logged: 'logged',
-		more: 'more'
+		more: 'more',
+		suggested: 'Suggested',
+		enoughDataFor: 'You have enough data for',
+		tryInsights: 'deep pattern analysis',
+		tryCorrelations: 'supplement correlations',
+		completion: 'Completion',
+		bestRecentDay: 'Your best recent day',
+		hereIsWhat: "Here's what you did",
+		replicateIt: 'Try to replicate it!'
 	},
 	checkin: {
 		title: 'Check-in',
@@ -363,7 +382,11 @@ const en = {
 		negativeAssist: 'Negative',
 		noneAssist: 'None',
 		best: 'best',
-		sess: 'sess.'
+		sess: 'sess.',
+		fuelInsight: 'Fuel & Performance',
+		preWorkoutMeal: 'Pre-workout meal days',
+		noPreWorkout: 'No pre-workout meal days',
+		moodHigherWith: 'mood when fueled before training'
 	},
 	dashboard: {
 		title: 'Dashboard',
@@ -434,7 +457,11 @@ const en = {
 		training: 'Training',
 		hydration: 'Hydration',
 		seasonalLast6: 'Seasonal Pattern (last 6 months)',
-		activity: 'Activity'
+		activity: 'Activity',
+		entryBreakdown14d: 'Entry Breakdown (14 days)',
+		consistency: 'Consistency',
+		consistencyScore: 'Consistency Score',
+		activeCategories: 'active categories'
 	},
 	more: {
 		title: 'More',
@@ -481,7 +508,8 @@ const en = {
 		data: 'Data',
 		dataDesc: 'Search, export, import',
 		ref: 'Reference',
-		refDesc: 'Health knowledge base'
+		refDesc: 'Health knowledge base',
+		lastLogged: 'Last'
 	},
 	habits: {
 		title: 'Habits',

@@ -2,10 +2,42 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { useLocale } from '$lib/stores/locale.svelte';
 	import { useFavorites } from '$lib/stores/favorites.svelte';
+	import { useEntries } from '$lib/stores/entries.svelte';
 	const { t } = useLocale();
 	const favs = useFavorites();
+	const allEntries = useEntries();
 
 	let search = $state('');
+
+	const hrefTypeMap: Record<string, string> = {
+		'/signals': 'checkin', '/habits': 'habit', '/supplements': 'supplement',
+		'/hydration': 'hydration', '/measurements': 'measurement', '/bloodwork': 'bloodwork',
+		'/medications': 'medication', '/symptoms': 'symptom', '/journal': 'journal',
+		'/timeline': '', '/goals': 'goal', '/experiments': 'experiment',
+		'/records': '', '/report': '', '/insights': '',
+		'/profile': 'weight', '/reminders': '', '/data': '',
+		'/ref': '', '/checkin': 'checkin'
+	};
+
+	const lastLoggedMap = $derived.by(() => {
+		const map = new Map<string, string>();
+		const now = Date.now();
+		for (const [href, type] of Object.entries(hrefTypeMap)) {
+			if (!type) continue;
+			const latest = allEntries.items
+				.filter(e => e.type === type)
+				.reduce((best, e) => e.createdAt > best ? e.createdAt : best, '');
+			if (!latest) continue;
+			const diff = now - new Date(latest).getTime();
+			const hours = Math.floor(diff / 3600000);
+			const days = Math.floor(diff / 86400000);
+			if (hours < 1) map.set(href, t.common.justNow);
+			else if (hours < 24) map.set(href, `${hours}${t.common.hoursAgo}`);
+			else if (days < 30) map.set(href, `${days}${t.common.daysAgo}`);
+			else map.set(href, `${Math.floor(days / 7)}${t.common.weeksAgo}`);
+		}
+		return map;
+	});
 
 	const allItems = $derived.by(() => [
 		{ href: '/signals', label: t.more.signals, desc: t.more.signalsDesc, group: t.more.healthTracking },
@@ -112,6 +144,9 @@
 				<a href={s.href} class="card">
 					<strong>{s.label}</strong>
 					<span>{s.desc}</span>
+					{#if lastLoggedMap.has(s.href)}
+						<span class="last-logged">{t.more.lastLogged}: {lastLoggedMap.get(s.href)}</span>
+					{/if}
 				</a>
 				<button class="star-btn" class:starred={favs.has(s.href)} onclick={() => favs.toggle(s.href)} aria-label="Pin">
 					<svg width="16" height="16" viewBox="0 0 24 24" fill={favs.has(s.href) ? 'var(--c-accent)' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -217,6 +252,13 @@
 
 	.star-btn.starred {
 		color: var(--c-accent);
+	}
+
+	.last-logged {
+		font-size: 0.7rem !important;
+		color: var(--c-accent) !important;
+		font-weight: 500;
+		margin-top: 0.15rem;
 	}
 
 	.search-wrap {

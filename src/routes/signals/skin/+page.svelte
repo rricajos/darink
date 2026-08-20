@@ -92,7 +92,7 @@
   <title>{t.skin.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title={t.skin.title} back="/signals" />
+<PageHeader title={t.skin.title} back="/signals" breadcrumbs={[{ href: "/signals", label: t.more.signals }]} />
 
 <section class="form">
 	<label>{t.skin.acneZone} <input type="text" bind:value={acneZone} placeholder={t.skin.acnePlaceholder} /></label>

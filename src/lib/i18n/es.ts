@@ -70,7 +70,18 @@ const es: typeof import('./en').default = {
 		negative: 'negativa',
 		correlation: 'correlación',
 		weeksAgo: 'sem atrás',
-		daysAgo: 'd atrás'
+		daysAgo: 'd atrás',
+		deleted: 'Eliminado',
+		undo: 'Deshacer',
+		hoursAgo: 'h atrás',
+		justNow: 'ahora',
+		never: 'nunca',
+		confirmDelete: 'Toca otra vez para eliminar',
+		swipeToDelete: 'Desliza para eliminar'
+	},
+	error: {
+		resetApp: 'Reiniciar app',
+		somethingWentWrong: 'Algo salió mal'
 	},
 	days: {
 		mon: 'Lun',
@@ -138,7 +149,15 @@ const es: typeof import('./en').default = {
 		setGoal: 'Establece un objetivo',
 		setGoalDesc: 'Crea metas para trabajar',
 		logged: 'registrado',
-		more: 'más'
+		more: 'más',
+		suggested: 'Sugerido',
+		enoughDataFor: 'Tienes datos suficientes para',
+		tryInsights: 'análisis profundo de patrones',
+		tryCorrelations: 'correlaciones de suplementos',
+		completion: 'Completado',
+		bestRecentDay: 'Tu mejor día reciente',
+		hereIsWhat: 'Esto es lo que hiciste',
+		replicateIt: '¡Intenta replicarlo!'
 	},
 	checkin: {
 		title: 'Check-in',
@@ -363,7 +382,11 @@ const es: typeof import('./en').default = {
 		negativeAssist: 'Negativa',
 		noneAssist: 'Ninguna',
 		best: 'mejor',
-		sess: 'ses.'
+		sess: 'ses.',
+		fuelInsight: 'Combustible y rendimiento',
+		preWorkoutMeal: 'Días con comida pre-entreno',
+		noPreWorkout: 'Días sin comida pre-entreno',
+		moodHigherWith: 'ánimo cuando comes antes de entrenar'
 	},
 	dashboard: {
 		title: 'Panel',
@@ -434,7 +457,11 @@ const es: typeof import('./en').default = {
 		training: 'Entreno',
 		hydration: 'Hidratación',
 		seasonalLast6: 'Patrón estacional (últimos 6 meses)',
-		activity: 'Actividad'
+		activity: 'Actividad',
+		entryBreakdown14d: 'Desglose de registros (14 días)',
+		consistency: 'Constancia',
+		consistencyScore: 'Puntuación de constancia',
+		activeCategories: 'categorías activas'
 	},
 	more: {
 		title: 'Más',
@@ -481,7 +508,8 @@ const es: typeof import('./en').default = {
 		data: 'Datos',
 		dataDesc: 'Buscar, exportar, importar',
 		ref: 'Referencia',
-		refDesc: 'Base de conocimiento de salud'
+		refDesc: 'Base de conocimiento de salud',
+		lastLogged: 'Último'
 	},
 	habits: {
 		title: 'Hábitos',

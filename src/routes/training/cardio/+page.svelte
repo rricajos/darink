@@ -198,7 +198,7 @@
   <title>{t.training.cardio} | Darink</title>
 </svelte:head>
 
-<PageHeader title={t.training.cardio} back="/training" />
+<PageHeader title={t.training.cardio} back="/training" breadcrumbs={[{ href: "/training", label: t.training.title }]} />
 
 {#if quickActivities.length > 0}
 <section class="quick-add">

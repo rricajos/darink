@@ -9,9 +9,13 @@
 	import { theme, ui } from '$lib/db';
 	import { useLocale } from '$lib/stores/locale.svelte';
 
-	const { t } = useLocale();
+	const { t, locale } = useLocale();
 
 	let { children } = $props();
+
+	$effect(() => {
+		document.documentElement.lang = locale;
+	});
 
 	let installEvent = $state<Event | null>(null);
 	let showInstallBanner = $state(false);

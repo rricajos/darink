@@ -299,6 +299,51 @@
 		Math.max(1, ...monthlyVolumeData.map((w) => w.total))
 	);
 
+	// --- 9. Fuel & Performance (intake before training → mood) ---
+	const intakeStore = useEntries('intake');
+
+	const fuelInsight = $derived.by(() => {
+		if (trainingEntries.length < 5 || checkinStore.items.length < 5) return null;
+
+		const trainingByDate = new Map<string, string>();
+		for (const e of trainingEntries) {
+			const key = dateKey(e.createdAt);
+			if (!trainingByDate.has(key)) trainingByDate.set(key, e.createdAt);
+		}
+
+		const intakeByDate = new Map<string, boolean>();
+		for (const e of intakeStore.items) {
+			const key = (e.data.date as string) ?? dateKey(e.createdAt);
+			intakeByDate.set(key, true);
+		}
+
+		const checkinByDate = new Map<string, number>();
+		for (const e of checkinStore.items) {
+			const key = dateKey(e.createdAt);
+			const mood = Number(e.data.mood);
+			if (mood > 0) checkinByDate.set(key, mood);
+		}
+
+		const withMeal: number[] = [];
+		const withoutMeal: number[] = [];
+
+		for (const [date] of trainingByDate) {
+			const mood = checkinByDate.get(date);
+			if (mood === undefined) continue;
+			if (intakeByDate.has(date)) withMeal.push(mood);
+			else withoutMeal.push(mood);
+		}
+
+		if (withMeal.length < 3 || withoutMeal.length < 3) return null;
+
+		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
+		const avgWith = avg(withMeal);
+		const avgWithout = avg(withoutMeal);
+		const diff = +(avgWith - avgWithout).toFixed(1);
+
+		return { avgWith, avgWithout, diff, withCount: withMeal.length, withoutCount: withoutMeal.length };
+	});
+
 	// --- SVG chart helpers ---
 	function polylinePoints(
 		data: { x: number; y: number }[],
@@ -582,6 +627,38 @@
 			</div>
 		</section>
 	{/if}
+	<!-- 9. Fuel & Performance -->
+	{#if fuelInsight}
+		<section class="analytics">
+			<h2>{t.training.fuelInsight}</h2>
+			<div class="fuel-card">
+				<div class="fuel-bars">
+					<div class="fuel-row">
+						<span class="fuel-label">{t.training.preWorkoutMeal}</span>
+						<div class="fuel-bar-track">
+							<div class="fuel-bar-fill" style="width:{(fuelInsight.avgWith / 10) * 100}%;background:var(--c-accent)"></div>
+						</div>
+						<span class="fuel-val">{fuelInsight.avgWith}</span>
+					</div>
+					<div class="fuel-row">
+						<span class="fuel-label">{t.training.noPreWorkout}</span>
+						<div class="fuel-bar-track">
+							<div class="fuel-bar-fill" style="width:{(fuelInsight.avgWithout / 10) * 100}%;background:var(--c-text-muted)"></div>
+						</div>
+						<span class="fuel-val">{fuelInsight.avgWithout}</span>
+					</div>
+				</div>
+				{#if fuelInsight.diff !== 0}
+					<div class="fuel-diff">
+						<span class="diff-value" class:positive={fuelInsight.diff > 0} class:negative={fuelInsight.diff < 0}>
+							{fuelInsight.diff > 0 ? '+' : ''}{fuelInsight.diff}
+						</span>
+						<span class="diff-label">{t.training.moodHigherWith}</span>
+					</div>
+				{/if}
+			</div>
+		</section>
+	{/if}
 {/if}
 
 <style>
@@ -798,6 +875,29 @@
 	.diff-label {
 		color: var(--c-text-muted);
 		font-size: 0.75rem;
+	}
+
+	/* Fuel insight */
+	.fuel-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem 1rem;
+	}
+	.fuel-bars { display: flex; flex-direction: column; gap: 0.5rem; }
+	.fuel-row { display: flex; align-items: center; gap: 0.5rem; }
+	.fuel-label { font-size: 0.75rem; color: var(--c-text-muted); min-width: 100px; flex-shrink: 0; }
+	.fuel-bar-track { flex: 1; height: 8px; background: var(--c-border); border-radius: 4px; overflow: hidden; }
+	.fuel-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+	.fuel-val { font-size: 0.8rem; font-weight: 700; min-width: 24px; text-align: right; }
+	.fuel-diff {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin-top: 0.5rem;
+		padding-top: 0.5rem;
+		border-top: 1px solid var(--c-border);
+		font-size: 0.8rem;
 	}
 
 	/* Metric unit */

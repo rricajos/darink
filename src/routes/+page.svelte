@@ -518,6 +518,81 @@
 		return result.slice(0, 4);
 	});
 
+	/* --- Daily completion donut --- */
+	const completionData = $derived.by(() => {
+		const total = 6;
+		let done = 0;
+		if (todayCheckins.length > 0) done++;
+		if (todayTraining.length > 0) done++;
+		if (todayHabits.length > 0) done++;
+		if (todaySupplements.length > 0) done++;
+		if (scheduledMeds.length > 0 && allDosesTaken) done++;
+		else if (scheduledMeds.length === 0) { done++; }
+		if (todayJournal.length > 0) done++;
+		const pct = Math.round((done / total) * 100);
+		const r = 36;
+		const circ = 2 * Math.PI * r;
+		const offset = circ - (pct / 100) * circ;
+		return { done, total, pct, r, circ, offset };
+	});
+
+	/* --- Best recent day --- */
+	const bestDay = $derived.by(() => {
+		const scores: { date: string; score: number }[] = [];
+		for (let i = 1; i <= 30; i++) {
+			const d = isoForDaysAgo(i);
+			const result = computeScore(d);
+			if (result.hasData) scores.push({ date: d, score: result.score });
+		}
+		if (scores.length < 3) return null;
+		const best = scores.reduce((a, b) => b.score > a.score ? b : a);
+		if (best.score < 50) return null;
+
+		const dayItems = store.items.filter(e => {
+			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+			return d === best.date;
+		});
+		const activities: string[] = [];
+		if (dayItems.some(e => e.type === 'checkin')) activities.push(t.today_page.checkin);
+		if (dayItems.some(e => e.type.startsWith('training.'))) activities.push(t.today_page.training);
+		if (dayItems.some(e => e.type === 'habit')) activities.push(t.today_page.habits);
+		if (dayItems.some(e => e.type === 'supplement')) activities.push(t.today_page.supplements);
+		if (dayItems.some(e => e.type === 'journal')) activities.push(t.today_page.journal);
+
+		const label = new Date(best.date + 'T12:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'es-ES', { weekday: 'long', month: 'short', day: 'numeric' });
+		return { ...best, label, activities };
+	});
+
+	/* --- Suggested pages --- */
+	const suggestedPages = $derived.by(() => {
+		const items = store.items;
+		const suggestions: { href: string; label: string; reason: string }[] = [];
+
+		const checkins = items.filter(e => e.type === 'checkin');
+		const supplements = items.filter(e => e.type === 'supplement');
+		const habits = items.filter(e => e.type === 'habit');
+		const trainings = items.filter(e => e.type.startsWith('training.'));
+		const symptoms = items.filter(e => e.type === 'symptom');
+
+		if (checkins.length >= 14 && supplements.length >= 7) {
+			suggestions.push({ href: '/insights', label: t.more.insights, reason: `${t.today_page.enoughDataFor} ${t.today_page.tryCorrelations}` });
+		}
+		if (checkins.length >= 30) {
+			suggestions.push({ href: '/timeline', label: t.more.timeline, reason: `${t.today_page.enoughDataFor} ${t.today_page.tryInsights}` });
+		}
+		if (trainings.length >= 10 && checkins.length >= 10) {
+			suggestions.push({ href: '/report', label: t.more.report, reason: `${t.today_page.enoughDataFor} ${t.today_page.tryInsights}` });
+		}
+		if (habits.length >= 14 && checkins.length >= 14) {
+			suggestions.push({ href: '/experiments', label: t.more.experiments, reason: `${t.today_page.enoughDataFor} ${t.today_page.tryInsights}` });
+		}
+		if (symptoms.length >= 5) {
+			suggestions.push({ href: '/symptoms', label: t.more.symptoms, reason: `${symptoms.length} ${t.common.entries}` });
+		}
+
+		return suggestions.slice(0, 3);
+	});
+
 	/* --- Onboarding --- */
 	interface OnboardingStep {
 		id: string;
@@ -766,6 +841,24 @@
 			{/if}
 		</div>
 
+		<!-- Daily completion donut -->
+		<div class="completion-section">
+			<h2>{t.today_page.completion}</h2>
+			<div class="completion-wrap">
+				<svg viewBox="0 0 90 90" class="donut-svg">
+					<circle cx="45" cy="45" r={completionData.r} fill="none" stroke="var(--c-border)" stroke-width="7" />
+					<circle cx="45" cy="45" r={completionData.r} fill="none"
+						stroke={completionData.pct === 100 ? 'var(--c-done)' : 'var(--c-accent)'}
+						stroke-width="7" stroke-linecap="round"
+						stroke-dasharray={completionData.circ}
+						stroke-dashoffset={completionData.offset}
+						transform="rotate(-90 45 45)" />
+					<text x="45" y="43" text-anchor="middle" dominant-baseline="central" class="donut-pct" fill="var(--c-text)">{completionData.pct}%</text>
+					<text x="45" y="56" text-anchor="middle" class="donut-label" fill="var(--c-text-muted)">{completionData.done}/{completionData.total}</text>
+				</svg>
+			</div>
+		</div>
+
 		<!-- 7-day trend sparkline -->
 		{#if weekWithData.length >= 2}
 			<div class="trend-section">
@@ -910,6 +1003,44 @@
 			</div>
 		{/if}
 
+		<!-- Best recent day -->
+		{#if bestDay}
+			<div class="best-day-section">
+				<h2>{t.today_page.bestRecentDay}</h2>
+				<div class="best-day-card">
+					<div class="best-day-header">
+						<span class="best-day-score" style="color:{scoreColor(bestDay.score)}">{bestDay.score}</span>
+						<span class="best-day-date">{bestDay.label}</span>
+					</div>
+					<p class="best-day-hint">{t.today_page.hereIsWhat}</p>
+					<div class="best-day-activities">
+						{#each bestDay.activities as act}
+							<span class="best-day-chip">{act}</span>
+						{/each}
+					</div>
+					<p class="best-day-cta">{t.today_page.replicateIt}</p>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Suggested pages -->
+		{#if suggestedPages.length > 0}
+			<div class="suggested-section">
+				<h2>{t.today_page.suggested}</h2>
+				<div class="suggested-list">
+					{#each suggestedPages as s}
+						<a href={s.href} class="suggested-card">
+							<span class="suggested-info">
+								<span class="suggested-label">{s.label}</span>
+								<span class="suggested-reason">{s.reason}</span>
+							</span>
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+						</a>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
 		<!-- What's missing today -->
 		<div class="missing-section">
 			<h2>{t.today_page.todayProgress}</h2>
@@ -1013,6 +1144,31 @@
 		color: var(--c-text-muted);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+	}
+
+	/* Completion donut */
+	.completion-section {
+		padding: 0 0 0.5rem;
+	}
+
+	.completion-wrap {
+		display: flex;
+		justify-content: center;
+	}
+
+	.donut-svg {
+		width: 100px;
+		height: 100px;
+	}
+
+	.donut-pct {
+		font-size: 14px;
+		font-weight: 700;
+	}
+
+	.donut-label {
+		font-size: 8px;
+		font-weight: 500;
 	}
 
 	/* 7-day trend */
@@ -1330,6 +1486,111 @@
 		font-size: 0.85rem;
 		color: var(--c-text-muted) !important;
 		font-weight: 400 !important;
+	}
+
+	/* Best day */
+	.best-day-section {
+		padding: 0.75rem 0;
+	}
+
+	.best-day-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.75rem 1rem;
+	}
+
+	.best-day-header {
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+		margin-bottom: 0.25rem;
+	}
+
+	.best-day-score {
+		font-size: 1.5rem;
+		font-weight: 800;
+	}
+
+	.best-day-date {
+		font-size: 0.85rem;
+		color: var(--c-text-muted);
+		text-transform: capitalize;
+	}
+
+	.best-day-hint {
+		font-size: 0.8rem;
+		color: var(--c-text-muted);
+		margin: 0.25rem 0;
+	}
+
+	.best-day-activities {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+		margin: 0.4rem 0;
+	}
+
+	.best-day-chip {
+		font-size: 0.75rem;
+		font-weight: 500;
+		padding: 0.2rem 0.5rem;
+		background: var(--c-accent-bg);
+		color: var(--c-accent);
+		border-radius: 12px;
+	}
+
+	.best-day-cta {
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: var(--c-accent);
+		margin: 0.25rem 0 0;
+	}
+
+	/* Suggested pages */
+	.suggested-section {
+		padding: 0.75rem 0;
+	}
+
+	.suggested-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+	}
+
+	.suggested-card {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.6rem 0.75rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-left: 3px solid var(--c-accent);
+		border-radius: var(--radius);
+		text-decoration: none;
+		color: var(--c-text);
+		transition: border-color 0.15s;
+	}
+
+	.suggested-card:hover {
+		border-color: var(--c-accent);
+	}
+
+	.suggested-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+	}
+
+	.suggested-label {
+		font-weight: 600;
+		font-size: 0.85rem;
+	}
+
+	.suggested-reason {
+		font-size: 0.72rem;
+		color: var(--c-text-muted);
 	}
 
 	/* Medications section */

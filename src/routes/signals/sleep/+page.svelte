@@ -113,7 +113,7 @@
   <title>{t.sleep.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title={t.sleep.title} back="/signals" />
+<PageHeader title={t.sleep.title} back="/signals" breadcrumbs={[{ href: "/signals", label: t.more.signals }]} />
 
 <section class="form">
 	<label>{t.common.date} <input type="date" bind:value={date} /></label>

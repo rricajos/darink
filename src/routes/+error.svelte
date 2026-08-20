@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { useLocale } from '$lib/stores/locale.svelte';
+
+	const { t } = useLocale();
 
 	function recover() {
 		if ('serviceWorker' in navigator) {
@@ -22,7 +25,7 @@
 <div class="error">
 	<h1>{page.status}</h1>
 	<p>{page.error?.message}</p>
-	<button onclick={recover}>Reiniciar app</button>
+	<button onclick={recover}>{t.error.resetApp}</button>
 </div>
 
 <style>
