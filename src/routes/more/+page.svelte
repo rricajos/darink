@@ -10,13 +10,14 @@
 	let search = $state('');
 
 	const hrefTypeMap: Record<string, string> = {
+		'/checkin': 'checkin', '/intake': 'intake', '/training': '', '/dashboard': '',
 		'/signals': 'checkin', '/habits': 'habit', '/supplements': 'supplement',
 		'/hydration': 'hydration', '/measurements': 'measurement', '/bloodwork': 'bloodwork',
 		'/medications': 'medication', '/symptoms': 'symptom', '/journal': 'journal',
 		'/timeline': '', '/goals': 'goal', '/experiments': 'experiment',
 		'/records': '', '/report': '', '/insights': '',
 		'/profile': 'weight', '/reminders': '', '/data': '',
-		'/ref': '', '/checkin': 'checkin'
+		'/ref': ''
 	};
 
 	const lastLoggedMap = $derived.by(() => {
@@ -40,6 +41,9 @@
 	});
 
 	const allItems = $derived.by(() => [
+		{ href: '/checkin', label: t.more.checkin, desc: t.more.checkinDesc, group: t.more.healthTracking },
+		{ href: '/intake', label: t.more.intake, desc: t.more.intakeDesc, group: t.more.healthTracking },
+		{ href: '/training', label: t.more.training, desc: t.more.trainingDesc, group: t.more.healthTracking },
 		{ href: '/signals', label: t.more.signals, desc: t.more.signalsDesc, group: t.more.healthTracking },
 		{ href: '/habits', label: t.more.habits, desc: t.more.habitsDesc, group: t.more.healthTracking },
 		{ href: '/supplements', label: t.more.supplements, desc: t.more.supplementsDesc, group: t.more.healthTracking },
@@ -49,6 +53,7 @@
 		{ href: '/medications', label: t.more.medications, desc: t.more.medicationsDesc, group: t.more.healthTracking },
 		{ href: '/symptoms', label: t.more.symptoms, desc: t.more.symptomsDesc, group: t.more.healthTracking },
 		{ href: '/journal', label: t.more.journal, desc: t.more.journalDesc, group: t.more.healthTracking },
+		{ href: '/dashboard', label: t.more.dashboard, desc: t.more.dashboardDesc, group: t.more.insightsGroup },
 		{ href: '/timeline', label: t.more.timeline, desc: t.more.timelineDesc, group: t.more.insightsGroup },
 		{ href: '/goals', label: t.more.goals, desc: t.more.goalsDesc, group: t.more.insightsGroup },
 		{ href: '/experiments', label: t.more.experiments, desc: t.more.experimentsDesc, group: t.more.insightsGroup },
@@ -71,6 +76,9 @@
 		{
 			title: t.more.healthTracking,
 			items: [
+				{ href: '/checkin', label: t.more.checkin, desc: t.more.checkinDesc },
+				{ href: '/intake', label: t.more.intake, desc: t.more.intakeDesc },
+				{ href: '/training', label: t.more.training, desc: t.more.trainingDesc },
 				{ href: '/signals', label: t.more.signals, desc: t.more.signalsDesc },
 				{ href: '/habits', label: t.more.habits, desc: t.more.habitsDesc },
 				{ href: '/supplements', label: t.more.supplements, desc: t.more.supplementsDesc },
@@ -85,6 +93,7 @@
 		{
 			title: t.more.insightsGroup,
 			items: [
+				{ href: '/dashboard', label: t.more.dashboard, desc: t.more.dashboardDesc },
 				{ href: '/timeline', label: t.more.timeline, desc: t.more.timelineDesc },
 				{ href: '/goals', label: t.more.goals, desc: t.more.goalsDesc },
 				{ href: '/experiments', label: t.more.experiments, desc: t.more.experimentsDesc },

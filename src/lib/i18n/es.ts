@@ -509,6 +509,14 @@ const es: typeof import('./en').default = {
 		dataDesc: 'Buscar, exportar, importar',
 		ref: 'Referencia',
 		refDesc: 'Base de conocimiento de salud',
+		checkin: 'Check-in',
+		checkinDesc: 'Check-in diario y señales',
+		intake: 'Ingesta',
+		intakeDesc: 'Alimentación, comidas y nutrición',
+		training: 'Entreno',
+		trainingDesc: 'Entrenamientos y ejercicio',
+		dashboard: 'Panel',
+		dashboardDesc: 'Resumen y analíticas',
 		lastLogged: 'Último'
 	},
 	habits: {

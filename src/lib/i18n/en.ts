@@ -509,6 +509,14 @@ const en = {
 		dataDesc: 'Search, export, import',
 		ref: 'Reference',
 		refDesc: 'Health knowledge base',
+		checkin: 'Check-in',
+		checkinDesc: 'Daily check-in and signals',
+		intake: 'Intake',
+		intakeDesc: 'Food, meals and nutrition',
+		training: 'Training',
+		trainingDesc: 'Workouts and exercise',
+		dashboard: 'Dashboard',
+		dashboardDesc: 'Overview and analytics',
 		lastLogged: 'Last'
 	},
 	habits: {
