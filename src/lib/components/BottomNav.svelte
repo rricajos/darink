@@ -3,9 +3,11 @@
 	import { theme } from '$lib/db';
 	import { onMount } from 'svelte';
 	import { useLocale, setLocale, initLocale } from '$lib/stores/locale.svelte';
+	import { useFavorites } from '$lib/stores/favorites.svelte';
 	import type { Locale } from '$lib/stores/locale.svelte';
 
 	const { t, locale } = useLocale();
+	const favs = useFavorites();
 
 	const tabKeys: Array<{ href: string; key: keyof typeof t.nav; icon: string }> = [
 		{ href: '/', key: 'today', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
@@ -16,6 +18,29 @@
 	];
 
 	const morePaths = ['/checkin', '/signals', '/habits', '/supplements', '/experiments', '/profile', '/data', '/ref', '/timeline', '/goals', '/journal', '/report', '/reminders', '/records', '/hydration', '/measurements', '/bloodwork', '/medications', '/symptoms', '/insights'];
+
+	const favLabelMap = $derived.by(() => ({
+		'/signals': t.more.signals,
+		'/habits': t.more.habits,
+		'/supplements': t.more.supplements,
+		'/hydration': t.more.hydration,
+		'/measurements': t.more.measurements,
+		'/bloodwork': t.more.bloodwork,
+		'/medications': t.more.medications,
+		'/symptoms': t.more.symptoms,
+		'/journal': t.more.journal,
+		'/timeline': t.more.timeline,
+		'/goals': t.more.goals,
+		'/experiments': t.more.experiments,
+		'/records': t.more.records,
+		'/report': t.more.report,
+		'/insights': t.more.insights,
+		'/profile': t.more.profile,
+		'/reminders': t.more.reminders,
+		'/data': t.more.data,
+		'/ref': t.more.ref,
+		'/checkin': t.nav.today
+	}) as Record<string, string>);
 
 	let isDark = $state(false);
 
@@ -69,6 +94,17 @@
 			<span class="label">{t.nav[tab.key]}</span>
 		</a>
 	{/each}
+	{#if favs.items.length > 0}
+		<div class="fav-divider"></div>
+		{#each favs.items as href}
+			<a href={href} class="fav-link" class:active={page.url.pathname === href || page.url.pathname.startsWith(href + '/')}>
+				<span class="icon">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--c-accent)" stroke="var(--c-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+				</span>
+				<span class="label">{favLabelMap[href] ?? href.slice(1)}</span>
+			</a>
+		{/each}
+	{/if}
 	<div class="nav-controls">
 		<button class="locale-toggle" onclick={toggleLocale} aria-label={t.nav.language}>
 			{locale === 'en' ? 'ES' : 'EN'}
@@ -160,6 +196,14 @@
 		letter-spacing: 0.03em;
 	}
 
+	.fav-divider {
+		display: none;
+	}
+
+	.fav-link {
+		display: none;
+	}
+
 	@media (min-width: 900px) {
 		.brand {
 			display: block;
@@ -222,6 +266,51 @@
 
 		.theme-toggle, .locale-toggle {
 			padding: 0.5rem;
+		}
+
+		.fav-divider {
+			display: block;
+			height: 1px;
+			background: var(--c-border);
+			margin: 0.35rem 1rem;
+		}
+
+		.fav-link {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: flex-start;
+			gap: 0.75rem;
+			padding: 0.5rem 1rem;
+			font-size: 0.8rem;
+			text-decoration: none;
+			color: var(--c-text-muted);
+			border-radius: 0;
+			transition: color 0.15s, background 0.15s;
+		}
+
+		.fav-link:hover {
+			background: var(--c-accent-bg);
+			color: var(--c-text);
+		}
+
+		.fav-link.active {
+			color: var(--c-accent);
+			font-weight: 600;
+			background: var(--c-accent-bg);
+			border-right: 3px solid var(--c-accent);
+		}
+
+		.fav-link .icon {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 1.5rem;
+		}
+
+		.fav-link .icon svg {
+			width: 14px;
+			height: 14px;
 		}
 	}
 </style>

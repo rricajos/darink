@@ -1,7 +1,9 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { useLocale } from '$lib/stores/locale.svelte';
+	import { useFavorites } from '$lib/stores/favorites.svelte';
 	const { t } = useLocale();
+	const favs = useFavorites();
 
 	let search = $state('');
 
@@ -87,11 +89,16 @@
 	{:else}
 		<section class="grid" style="padding:0 1rem">
 			{#each filtered as s}
-				<a href={s.href} class="card">
-					<strong>{s.label}</strong>
-					<span>{s.desc}</span>
-					<span class="card-group">{s.group}</span>
-				</a>
+				<div class="card-wrap">
+					<a href={s.href} class="card">
+						<strong>{s.label}</strong>
+						<span>{s.desc}</span>
+						<span class="card-group">{s.group}</span>
+					</a>
+					<button class="star-btn" class:starred={favs.has(s.href)} onclick={() => favs.toggle(s.href)} aria-label="Pin">
+						<svg width="16" height="16" viewBox="0 0 24 24" fill={favs.has(s.href) ? 'var(--c-accent)' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+					</button>
+				</div>
 			{/each}
 		</section>
 	{/if}
@@ -101,10 +108,15 @@
 	<h2>{group.title}</h2>
 	<section class="grid">
 		{#each group.items as s}
-			<a href={s.href} class="card">
-				<strong>{s.label}</strong>
-				<span>{s.desc}</span>
-			</a>
+			<div class="card-wrap">
+				<a href={s.href} class="card">
+					<strong>{s.label}</strong>
+					<span>{s.desc}</span>
+				</a>
+				<button class="star-btn" class:starred={favs.has(s.href)} onclick={() => favs.toggle(s.href)} aria-label="Pin">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill={favs.has(s.href) ? 'var(--c-accent)' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+				</button>
+			</div>
 		{/each}
 	</section>
 {/each}
@@ -153,25 +165,58 @@
 		.grid { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
 	}
 
+	.card-wrap {
+		position: relative;
+		display: flex;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		transition: border-color 0.15s;
+	}
+
+	.card-wrap:hover {
+		border-color: var(--c-accent);
+	}
+
 	.card {
 		display: flex;
 		flex-direction: column;
 		padding: 1rem;
-		background: var(--c-bg-card);
-		border: 1px solid var(--c-border);
-		border-radius: var(--radius);
+		padding-right: 2.5rem;
+		flex: 1;
 		text-decoration: none;
 		color: var(--c-text);
-		transition: border-color 0.15s;
-	}
-
-	.card:hover {
-		border-color: var(--c-accent);
+		min-width: 0;
 	}
 
 	.card span {
 		font-size: 0.85rem;
 		color: var(--c-text-muted);
+	}
+
+	.star-btn {
+		position: absolute;
+		top: 0.6rem;
+		right: 0.5rem;
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: var(--c-border);
+		padding: 0.25rem;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: color 0.15s, transform 0.15s;
+	}
+
+	.star-btn:hover {
+		color: var(--c-accent);
+		transform: scale(1.15);
+	}
+
+	.star-btn.starred {
+		color: var(--c-accent);
 	}
 
 	.search-wrap {
