@@ -9,6 +9,7 @@
 	--c-accent-bg: #0080ff15;
 	--c-cancel: #ff4a4a;
 	--c-done: #2e8b57;
+	--c-warning: #e8a735;
 	--radius: 8px;
 	--nav-height: 56px;
 	--sidebar-width: 200px;
@@ -24,6 +25,7 @@
 	--c-accent: #4aa3ff;
 	--c-accent-bg: #005b9c20;
 	--c-done: #58b66a;
+	--c-warning: #f0b429;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,6 +38,7 @@
 		--c-accent: #4aa3ff;
 		--c-accent-bg: #005b9c20;
 		--c-done: #58b66a;
+		--c-warning: #f0b429;
 	}
 }
 

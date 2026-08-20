@@ -593,6 +593,55 @@
 		return suggestions.slice(0, 3);
 	});
 
+	/* --- Current streak --- */
+	const streakData = $derived.by(() => {
+		const daySet = new Set<string>();
+		for (const e of store.items) daySet.add(dateOf(e));
+		let current = 0;
+		let d = new Date();
+		const todayStr = d.toISOString().slice(0, 10);
+		if (!daySet.has(todayStr)) {
+			d.setDate(d.getDate() - 1);
+		}
+		while (daySet.has(d.toISOString().slice(0, 10))) {
+			current++;
+			d.setDate(d.getDate() - 1);
+		}
+		let longest = 0;
+		let run = 0;
+		const sorted = [...daySet].toSorted();
+		for (let i = 0; i < sorted.length; i++) {
+			if (i === 0) { run = 1; } else {
+				const prev = new Date(sorted[i - 1] + 'T12:00:00');
+				const cur = new Date(sorted[i] + 'T12:00:00');
+				run = (cur.getTime() - prev.getTime()) <= 86400000 * 1.5 ? run + 1 : 1;
+			}
+			if (run > longest) longest = run;
+		}
+		return { current, longest };
+	});
+
+	/* --- Yesterday vs Today --- */
+	const yesterdayComparison = $derived.by(() => {
+		const yesterdayStr = isoForDaysAgo(1);
+		const yCheckins = store.items.filter(e => e.type === 'checkin' && dateOf(e) === yesterdayStr);
+		const tCheckins = store.items.filter(e => e.type === 'checkin' && dateOf(e) === today);
+		if (yCheckins.length === 0) return null;
+		const avg = (arr: Entry[], key: string) => {
+			const vals = arr.map(e => Number(e.data[key]) || 0).filter(v => v > 0);
+			return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+		};
+		const metrics = ['mood', 'energy', 'sleep', 'stress'] as const;
+		const result: Array<{ key: string; label: string; yesterday: number; today: number; delta: number }> = [];
+		const labels = { mood: t.common.mood, energy: t.common.energy, sleep: t.common.sleep, stress: t.common.stress };
+		for (const m of metrics) {
+			const y = avg(yCheckins, m);
+			const tVal = tCheckins.length ? avg(tCheckins, m) : 0;
+			result.push({ key: m, label: labels[m], yesterday: Math.round(y * 10) / 10, today: Math.round(tVal * 10) / 10, delta: Math.round((tVal - y) * 10) / 10 });
+		}
+		return { metrics: result, hasTodayData: tCheckins.length > 0 };
+	});
+
 	/* --- Onboarding --- */
 	interface OnboardingStep {
 		id: string;
@@ -1000,6 +1049,48 @@
 					</div>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
 				</a>
+			</div>
+		{/if}
+
+		<!-- Streak counter -->
+		{#if streakData.current > 0}
+			<div class="streak-section">
+				<div class="streak-card">
+					<div class="streak-flame">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--c-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14 0-5.5 2.5-7 .5 2 1.5 3 3 4.5s2 3.56 2 5.5a6.987 6.987 0 0 1-11.5 5.34"/><path d="M11.5 18.5a2.5 2.5 0 0 0 5 0c0-1.2-.53-2-1.17-3"/></svg>
+					</div>
+					<div class="streak-info">
+						<span class="streak-count">{streakData.current} {t.today_page.daysInARow}</span>
+						<span class="streak-label">{t.today_page.currentStreak}</span>
+					</div>
+					{#if streakData.longest > streakData.current}
+						<span class="streak-best">{t.today_page.longestStreak}: {streakData.longest}</span>
+					{/if}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Yesterday vs Today -->
+		{#if yesterdayComparison}
+			<div class="yesterday-section">
+				<h2>{t.today_page.yesterdayVsToday}</h2>
+				<div class="yesterday-grid">
+					{#each yesterdayComparison.metrics as m}
+						<div class="yesterday-metric">
+							<span class="ym-label">{m.label}</span>
+							<div class="ym-values">
+								<span class="ym-yesterday">{m.yesterday || '—'}</span>
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+								<span class="ym-today" class:ym-empty={!yesterdayComparison.hasTodayData}>{yesterdayComparison.hasTodayData ? m.today || '—' : '—'}</span>
+							</div>
+							{#if yesterdayComparison.hasTodayData && m.delta !== 0}
+								<span class="ym-delta" class:positive={m.key === 'stress' ? m.delta < 0 : m.delta > 0} class:negative={m.key === 'stress' ? m.delta > 0 : m.delta < 0}>
+									{m.delta > 0 ? '+' : ''}{m.delta}
+								</span>
+							{/if}
+						</div>
+					{/each}
+				</div>
 			</div>
 		{/if}
 
@@ -1546,6 +1637,57 @@
 		color: var(--c-accent);
 		margin: 0.25rem 0 0;
 	}
+
+	/* Streak */
+	.streak-section { padding: 0 1rem; }
+	.streak-card {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+	}
+	.streak-flame { display: flex; flex-shrink: 0; }
+	.streak-info { display: flex; flex-direction: column; flex: 1; }
+	.streak-count { font-size: 1rem; font-weight: 700; }
+	.streak-label { font-size: 0.75rem; color: var(--c-text-muted); }
+	.streak-best {
+		font-size: 0.7rem;
+		color: var(--c-text-muted);
+		background: var(--c-accent-bg);
+		padding: 0.2rem 0.5rem;
+		border-radius: 12px;
+		white-space: nowrap;
+	}
+
+	/* Yesterday vs Today */
+	.yesterday-section { padding: 0 1rem; margin-top: 1rem; }
+	.yesterday-section h2 { font-size: 0.9rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+	.yesterday-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 0.5rem;
+	}
+	.yesterday-metric {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 0.6rem 0.25rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		gap: 0.15rem;
+	}
+	.ym-label { font-size: 0.65rem; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+	.ym-values { display: flex; align-items: center; gap: 0.2rem; }
+	.ym-yesterday { font-size: 0.85rem; color: var(--c-text-muted); }
+	.ym-today { font-size: 0.85rem; font-weight: 600; }
+	.ym-empty { opacity: 0.3; }
+	.ym-delta { font-size: 0.7rem; font-weight: 600; }
+	.ym-delta.positive { color: var(--c-done); }
+	.ym-delta.negative { color: var(--c-cancel); }
 
 	/* Suggested pages */
 	.suggested-section {

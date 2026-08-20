@@ -24,9 +24,10 @@ export function bumpEntries() {
 }
 
 export const entries = {
-	add(type: string, data: Record<string, unknown>) {
-		db.add(type, data);
+	add(type: string, data: Record<string, unknown>): Entry {
+		const entry = db.add(type, data);
 		bump();
+		return entry;
 	},
 	restore(entry: Entry) {
 		db.restore(entry);

@@ -12,7 +12,8 @@ const es: typeof import('./en').default = {
 		installBanner: 'Instala Darink para acceso sin conexión',
 		install: 'Instalar',
 		dismiss: 'Cerrar',
-		skipToContent: 'Ir al contenido'
+		skipToContent: 'Ir al contenido',
+		offline: 'Sin conexión — cambios guardados localmente'
 	},
 	common: {
 		save: 'Guardar',
@@ -157,7 +158,14 @@ const es: typeof import('./en').default = {
 		completion: 'Completado',
 		bestRecentDay: 'Tu mejor día reciente',
 		hereIsWhat: 'Esto es lo que hiciste',
-		replicateIt: '¡Intenta replicarlo!'
+		replicateIt: '¡Intenta replicarlo!',
+		currentStreak: 'Racha actual',
+		longestStreak: 'Mejor',
+		daysInARow: 'días seguidos',
+		yesterdayVsToday: 'Ayer vs Hoy',
+		noYesterdayData: 'Sin datos de ayer',
+		storageUsed: 'Almacenamiento usado',
+		storageOf: 'de ~5 MB'
 	},
 	checkin: {
 		title: 'Check-in',
@@ -1452,7 +1460,9 @@ const es: typeof import('./en').default = {
 		closeQuickLog: 'Cerrar registro rápido',
 		quickCheckinLogged: 'Check-in rápido registrado',
 		journalSaved: 'Entrada de diario guardada',
-		logged: 'registrado'
+		logged: 'registrado',
+		quickWater: 'Registrar agua',
+		waterLogged: '250ml de agua registrado'
 	},
 	heatmap: {
 		months: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'] as readonly string[],

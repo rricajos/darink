@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { entries } from '$lib/stores/entries.svelte';
+	import { entries, useEntries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ui } from '$lib/db';
 	import { page } from '$app/state';
@@ -7,6 +7,7 @@
 	import { useLocale } from '$lib/stores/locale.svelte';
 
 	const { t } = useLocale();
+	const allEntries = useEntries();
 
 	const defaultHabits = $derived.by(() => [
 		{ id: 'cold', label: t.habits.cold },
@@ -23,6 +24,11 @@
 	let mounted = $state(false);
 
 	const isHome = $derived(page.url.pathname === '/');
+
+	const todayEntryCount = $derived.by(() => {
+		const todayStr = today();
+		return allEntries.items.filter(e => e.createdAt.startsWith(todayStr)).length;
+	});
 
 	const allHabits = $derived.by(() => {
 		const stored = ui.get().customHabits;
@@ -66,29 +72,39 @@
 		return new Date().toISOString().slice(0, 10);
 	}
 
+	function undoAction(id: string) {
+		entries.remove(id);
+	}
+
 	function quickCheckin() {
-		entries.add('checkin', { mood: 5, energy: 5, stress: 5, sleep: 7, date: today() });
-		toast.show(t.quickLog.quickCheckinLogged);
+		const e = entries.add('checkin', { mood: 5, energy: 5, stress: 5, sleep: 7, date: today() });
+		toast.show(t.quickLog.quickCheckinLogged, { label: t.common.undo, fn: () => undoAction(e.id) });
+		close();
+	}
+
+	function quickWater() {
+		const e = entries.add('hydration', { date: today(), amount: 250, unit: 'ml' });
+		toast.show(t.quickLog.waterLogged, { label: t.common.undo, fn: () => undoAction(e.id) });
 		close();
 	}
 
 	function logHabit(id: string, label: string) {
-		entries.add('habit', { date: today(), habit: id, duration: 0, notes: '' });
-		toast.show(`${label} ${t.quickLog.logged}`);
+		const e = entries.add('habit', { date: today(), habit: id, duration: 0, notes: '' });
+		toast.show(`${label} ${t.quickLog.logged}`, { label: t.common.undo, fn: () => undoAction(e.id) });
 		close();
 	}
 
 	function logSupplement(item: { name: string; dose: string; timing: string }) {
-		entries.add('supplement', { date: today(), name: item.name, dose: item.dose, timing: item.timing, notes: '' });
-		toast.show(`${item.name} ${t.quickLog.logged}`);
+		const e = entries.add('supplement', { date: today(), name: item.name, dose: item.dose, timing: item.timing, notes: '' });
+		toast.show(`${item.name} ${t.quickLog.logged}`, { label: t.common.undo, fn: () => undoAction(e.id) });
 		close();
 	}
 
 	function saveJournal() {
 		const text = journalText.trim();
 		if (!text) return;
-		entries.add('journal', { date: today(), text, mood: 5 });
-		toast.show(t.quickLog.journalSaved);
+		const e = entries.add('journal', { date: today(), text, mood: 5 });
+		toast.show(t.quickLog.journalSaved, { label: t.common.undo, fn: () => undoAction(e.id) });
 		close();
 	}
 </script>
@@ -110,6 +126,13 @@
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>
 						</span>
 						<span class="ql-action-label">{t.quickLog.quickCheckin}</span>
+					</button>
+
+					<button class="ql-action" onclick={quickWater}>
+						<span class="ql-action-icon">
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+						</span>
+						<span class="ql-action-label">{t.quickLog.quickWater}</span>
 					</button>
 
 					<button class="ql-action" onclick={() => panel = 'habits'}>
@@ -189,6 +212,9 @@
 		<!-- FAB button -->
 		<button class="ql-fab" class:open onclick={toggle} aria-label={open ? t.quickLog.closeQuickLog : t.quickLog.openQuickLog}>
 			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+			{#if todayEntryCount > 0 && !open}
+				<span class="ql-badge">{todayEntryCount}</span>
+			{/if}
 		</button>
 	</div>
 {/if}
@@ -246,6 +272,24 @@
 		transform: rotate(45deg) scale(1.08);
 	}
 
+	.ql-badge {
+		position: absolute;
+		top: -4px;
+		right: -4px;
+		background: var(--c-done);
+		color: #fff;
+		font-size: 0.6rem;
+		font-weight: 700;
+		min-width: 18px;
+		height: 18px;
+		border-radius: 9px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0 4px;
+		pointer-events: none;
+	}
+
 	/* Menu */
 	.ql-menu {
 		display: flex;
@@ -268,9 +312,10 @@
 	}
 
 	.ql-action:nth-child(1) { animation-delay: 0.02s; }
-	.ql-action:nth-child(2) { animation-delay: 0.06s; }
-	.ql-action:nth-child(3) { animation-delay: 0.1s; }
-	.ql-action:nth-child(4) { animation-delay: 0.14s; }
+	.ql-action:nth-child(2) { animation-delay: 0.05s; }
+	.ql-action:nth-child(3) { animation-delay: 0.08s; }
+	.ql-action:nth-child(4) { animation-delay: 0.11s; }
+	.ql-action:nth-child(5) { animation-delay: 0.14s; }
 
 	.ql-action-icon {
 		width: 40px;

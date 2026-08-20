@@ -19,6 +19,7 @@
 
 	let installEvent = $state<Event | null>(null);
 	let showInstallBanner = $state(false);
+	let isOnline = $state(true);
 
 	onNavigate((navigation) => {
 		if (!document.startViewTransition) return;
@@ -59,6 +60,12 @@
 			});
 		}
 
+		isOnline = navigator.onLine;
+		const goOnline = () => { isOnline = true; };
+		const goOffline = () => { isOnline = false; };
+		window.addEventListener('online', goOnline);
+		window.addEventListener('offline', goOffline);
+
 		function handleKeydown(e: KeyboardEvent) {
 			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
 			switch(e.key) {
@@ -70,7 +77,11 @@
 			}
 		}
 		window.addEventListener('keydown', handleKeydown);
-		return () => window.removeEventListener('keydown', handleKeydown);
+		return () => {
+			window.removeEventListener('keydown', handleKeydown);
+			window.removeEventListener('online', goOnline);
+			window.removeEventListener('offline', goOffline);
+		};
 	});
 
 	function installApp() {
@@ -87,6 +98,13 @@
 </script>
 
 <a href="#main-content" class="skip-link">{t.layout.skipToContent}</a>
+
+{#if !isOnline}
+	<div class="offline-banner">
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 2 20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/><circle cx="12" cy="20" r="1"/></svg>
+		<span>{t.layout.offline}</span>
+	</div>
+{/if}
 
 {#if showInstallBanner}
 	<div class="install-banner">
@@ -109,6 +127,17 @@
 <Toast />
 
 <style>
+	.offline-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: var(--c-warning);
+		color: #fff;
+		font-size: 0.8rem;
+		font-weight: 600;
+	}
+
 	.install-banner {
 		display: flex;
 		align-items: center;

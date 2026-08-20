@@ -12,7 +12,8 @@ const en = {
 		installBanner: 'Install Darink for offline access',
 		install: 'Install',
 		dismiss: 'Dismiss',
-		skipToContent: 'Skip to content'
+		skipToContent: 'Skip to content',
+		offline: 'Offline — changes saved locally'
 	},
 	common: {
 		save: 'Save',
@@ -157,7 +158,14 @@ const en = {
 		completion: 'Completion',
 		bestRecentDay: 'Your best recent day',
 		hereIsWhat: "Here's what you did",
-		replicateIt: 'Try to replicate it!'
+		replicateIt: 'Try to replicate it!',
+		currentStreak: 'Current streak',
+		longestStreak: 'Longest',
+		daysInARow: 'days in a row',
+		yesterdayVsToday: 'Yesterday vs Today',
+		noYesterdayData: 'No data from yesterday',
+		storageUsed: 'Storage used',
+		storageOf: 'of ~5 MB'
 	},
 	checkin: {
 		title: 'Check-in',
@@ -1457,7 +1465,9 @@ const en = {
 		closeQuickLog: 'Close quick log',
 		quickCheckinLogged: 'Quick check-in logged',
 		journalSaved: 'Journal entry saved',
-		logged: 'logged'
+		logged: 'logged',
+		quickWater: 'Log Water',
+		waterLogged: '250ml water logged'
 	},
 	heatmap: {
 		months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as readonly string[],
