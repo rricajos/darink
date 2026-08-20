@@ -3,7 +3,9 @@
 	import { useEntries } from '$lib/stores/entries.svelte';
 	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries();
 
 	/* ---------- Period selector ---------- */
@@ -54,7 +56,7 @@
 
 	function formatDate(dateStr: string): string {
 		const d = new Date(dateStr + 'T12:00:00');
-		return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+		return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 	}
 
 	/* ---------- Sufficient data check ---------- */
@@ -206,16 +208,16 @@
 
 	/* ---------- 2. Multi-Correlation Matrix ---------- */
 
-	const matrixMetrics = [
-		{ id: 'sleep', label: 'Sleep' },
-		{ id: 'mood', label: 'Mood' },
-		{ id: 'energy', label: 'Energy' },
-		{ id: 'stress', label: 'Stress' },
-		{ id: 'training', label: 'Training' },
-		{ id: 'habits', label: 'Habits' },
-		{ id: 'supplements', label: 'Suppl.' },
-		{ id: 'hydration', label: 'Hydration' }
-	];
+	const matrixMetrics = $derived.by(() => [
+		{ id: 'sleep', label: t.insights.sleepMetric },
+		{ id: 'mood', label: t.insights.moodMetric },
+		{ id: 'energy', label: t.insights.energyMetric },
+		{ id: 'stress', label: t.insights.stressMetric },
+		{ id: 'training', label: t.insights.trainingMetric },
+		{ id: 'habits', label: t.insights.habitsMetric },
+		{ id: 'supplements', label: t.insights.supplMetric },
+		{ id: 'hydration', label: t.insights.hydrationMetric }
+	]);
 
 	function extractMetric(metricId: string): Map<string, number> {
 		const all = store.items;
@@ -535,16 +537,16 @@
 		const checkins = store.items.filter((e) => e.type === 'checkin');
 
 		const moods = checkins.map((e) => Number(e.data.mood)).filter((v) => !isNaN(v));
-		if (moods.length > 2) metricArrays.push({ name: 'Mood', values: moods });
+		if (moods.length > 2) metricArrays.push({ name: t.common.mood, values: moods });
 
 		const energies = checkins.map((e) => Number(e.data.energy)).filter((v) => !isNaN(v));
-		if (energies.length > 2) metricArrays.push({ name: 'Energy', values: energies });
+		if (energies.length > 2) metricArrays.push({ name: t.common.energy, values: energies });
 
 		const sleeps = checkins.map((e) => Number(e.data.sleep)).filter((v) => !isNaN(v));
-		if (sleeps.length > 2) metricArrays.push({ name: 'Sleep', values: sleeps });
+		if (sleeps.length > 2) metricArrays.push({ name: t.common.sleep, values: sleeps });
 
 		const stresses = checkins.map((e) => Number(e.data.stress)).filter((v) => !isNaN(v));
-		if (stresses.length > 2) metricArrays.push({ name: 'Stress', values: stresses });
+		if (stresses.length > 2) metricArrays.push({ name: t.common.stress, values: stresses });
 
 		let mostConsistent = '';
 		let lowestCV = Infinity;
@@ -560,12 +562,12 @@
 		const weekAgo = daysAgo(7);
 		const recentEntries = store.items.filter((e) => e.createdAt >= weekAgo + 'T00:00:00');
 		const categories = [
-			{ name: 'Check-in', hasData: recentEntries.some((e) => e.type === 'checkin') },
-			{ name: 'Habits', hasData: recentEntries.some((e) => e.type === 'habit') },
-			{ name: 'Supplements', hasData: recentEntries.some((e) => e.type === 'supplement') },
-			{ name: 'Training', hasData: recentEntries.some((e) => e.type.startsWith('training.')) },
-			{ name: 'Hydration', hasData: recentEntries.some((e) => e.type === 'hydration') },
-			{ name: 'Journal', hasData: recentEntries.some((e) => e.type === 'journal') }
+			{ name: t.timeline.checkin, hasData: recentEntries.some((e) => e.type === 'checkin') },
+			{ name: t.insights.habitsMetric, hasData: recentEntries.some((e) => e.type === 'habit') },
+			{ name: t.insights.supplMetric, hasData: recentEntries.some((e) => e.type === 'supplement') },
+			{ name: t.insights.trainingMetric, hasData: recentEntries.some((e) => e.type.startsWith('training.')) },
+			{ name: t.insights.hydrationMetric, hasData: recentEntries.some((e) => e.type === 'hydration') },
+			{ name: t.report.journal, hasData: recentEntries.some((e) => e.type === 'journal') }
 		];
 		const missing = categories.filter((c) => !c.hasData).map((c) => c.name);
 
@@ -623,33 +625,33 @@
 </script>
 
 <svelte:head>
-	<title>Insights | Darink</title>
+	<title>{t.insights.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Insights" />
+<PageHeader title={t.insights.title} />
 
 {#if uniqueDays < 7}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-	<p>Not enough data yet</p>
-	<p class="empty-hint">Log entries for at least 7 different days to unlock insights and analysis.</p>
+	<p>{t.insights.notEnoughData}</p>
+	<p class="empty-hint">{t.insights.notEnoughDataHint}</p>
 </div>
 {:else}
 
 <!-- Period Selector -->
 <section class="period-selector">
-	<button class="period-chip" class:active={period === 30} onclick={() => period = 30}>30 days</button>
-	<button class="period-chip" class:active={period === 60} onclick={() => period = 60}>60 days</button>
-	<button class="period-chip" class:active={period === 90} onclick={() => period = 90}>90 days</button>
+	<button class="period-chip" class:active={period === 30} onclick={() => period = 30}>{t.insights.days30}</button>
+	<button class="period-chip" class:active={period === 60} onclick={() => period = 60}>{t.insights.days60}</button>
+	<button class="period-chip" class:active={period === 90} onclick={() => period = 90}>{t.insights.days90}</button>
 </section>
 
 <!-- 1. Score Breakdown Timeline -->
 <section class="section">
-	<h2>Health Score Timeline</h2>
+	<h2>{t.insights.healthScoreTimeline}</h2>
 	{#if dailyScores.length > 0}
 	<div class="avg-score" style="color: {scoreColor(avgScore)}">
 		<span class="avg-val">{avgScore}</span>
-		<span class="avg-label">avg score ({period}d)</span>
+		<span class="avg-label">{t.insights.avgScore} ({period}d)</span>
 	</div>
 	{#if dailyScores.length >= 2}
 	<div class="chart-wrap">
@@ -669,19 +671,19 @@
 		</svg>
 	</div>
 	<div class="legend">
-		<span class="legend-item"><span class="ldot" style="background:#22c55e"></span> Good (>70)</span>
-		<span class="legend-item"><span class="ldot" style="background:#f59e0b"></span> Fair (40-70)</span>
-		<span class="legend-item"><span class="ldot" style="background:#ef4444"></span> Low (&lt;40)</span>
+		<span class="legend-item"><span class="ldot" style="background:#22c55e"></span> {t.insights.good}</span>
+		<span class="legend-item"><span class="ldot" style="background:#f59e0b"></span> {t.insights.fair}</span>
+		<span class="legend-item"><span class="ldot" style="background:#ef4444"></span> {t.insights.low}</span>
 	</div>
 	{/if}
 	{:else}
-	<p class="no-data">No scored days in this period.</p>
+	<p class="no-data">{t.insights.noScoredDays}</p>
 	{/if}
 </section>
 
 <!-- 2. Multi-Correlation Matrix -->
 <section class="section">
-	<h2>Correlation Matrix</h2>
+	<h2>{t.insights.correlationMatrix}</h2>
 	<div class="matrix-scroll">
 		<div class="matrix-grid" style="grid-template-columns: auto repeat({matrixMetrics.length}, 1fr);">
 			<!-- Header row -->
@@ -738,7 +740,7 @@
 
 <!-- 3. Day-of-Week Patterns -->
 <section class="section">
-	<h2>Day-of-Week Patterns</h2>
+	<h2>{t.insights.dayOfWeekPatterns}</h2>
 	{#if dowPatterns.days.some((d) => d.hasData)}
 	<div class="dow-chart-wrap">
 		<svg class="dow-chart" viewBox="0 0 280 140" preserveAspectRatio="xMidYMid meet">
@@ -798,26 +800,26 @@
 				{/if}
 				<!-- Badge -->
 				{#if i === dowPatterns.bestIdx}
-					<text x={i * barW + barW / 2} y="137" text-anchor="middle" font-size="7" fill="#22c55e" font-weight="600">BEST</text>
+					<text x={i * barW + barW / 2} y="137" text-anchor="middle" font-size="7" fill="#22c55e" font-weight="600">{t.insights.bestLabel}</text>
 				{/if}
 				{#if i === dowPatterns.worstIdx}
-					<text x={i * barW + barW / 2} y="137" text-anchor="middle" font-size="7" fill="#ef4444" font-weight="600">WORST</text>
+					<text x={i * barW + barW / 2} y="137" text-anchor="middle" font-size="7" fill="#ef4444" font-weight="600">{t.insights.worstLabel}</text>
 				{/if}
 			{/each}
 		</svg>
 	</div>
 	<div class="legend">
-		<span class="legend-item"><span class="ldot" style="background:var(--c-accent);opacity:0.6"></span> Mood</span>
-		<span class="legend-item"><span class="ldot" style="background:var(--c-done);opacity:0.6"></span> Energy</span>
+		<span class="legend-item"><span class="ldot" style="background:var(--c-accent);opacity:0.6"></span> {t.common.mood}</span>
+		<span class="legend-item"><span class="ldot" style="background:var(--c-done);opacity:0.6"></span> {t.common.energy}</span>
 	</div>
 	{:else}
-	<p class="no-data">No scored days available.</p>
+	<p class="no-data">{t.insights.noScoredAvailable}</p>
 	{/if}
 </section>
 
 <!-- 4. Best & Worst Days -->
 <section class="section">
-	<h2>Best Days</h2>
+	<h2>{t.insights.bestDays}</h2>
 	{#if bestDays.length > 0}
 	<div class="bw-cards">
 		{#each bestDays as day}
@@ -828,21 +830,21 @@
 					<span class="bw-score" style="color:#22c55e">{day.score}</span>
 				</div>
 				<div class="bw-detail">
-					{#if details.mood !== null}<span>Mood {details.mood}</span>{/if}
-					{#if details.sleepHours !== null}<span>Sleep {details.sleepHours}h</span>{/if}
+					{#if details.mood !== null}<span>{t.common.mood} {details.mood}</span>{/if}
+					{#if details.sleepHours !== null}<span>{t.common.sleep} {details.sleepHours}h</span>{/if}
 					{#if details.trainingType}<span>{details.trainingType}</span>{/if}
-					{#if details.habits.length > 0}<span>{details.habits.length} habits</span>{/if}
+					{#if details.habits.length > 0}<span>{details.habits.length} {t.insights.habitsMetric.toLowerCase()}</span>{/if}
 				</div>
 			</div>
 		{/each}
 	</div>
 	{:else}
-	<p class="no-data">No data yet.</p>
+	<p class="no-data">{t.insights.noDataYet}</p>
 	{/if}
 </section>
 
 <section class="section">
-	<h2>Worst Days</h2>
+	<h2>{t.insights.worstDays}</h2>
 	{#if worstDays.length > 0}
 	<div class="bw-cards">
 		{#each worstDays as day}
@@ -853,27 +855,27 @@
 					<span class="bw-score" style="color:#ef4444">{day.score}</span>
 				</div>
 				<div class="bw-detail">
-					{#if details.mood !== null}<span>Mood {details.mood}</span>{/if}
-					{#if details.sleepHours !== null}<span>Sleep {details.sleepHours}h</span>{/if}
+					{#if details.mood !== null}<span>{t.common.mood} {details.mood}</span>{/if}
+					{#if details.sleepHours !== null}<span>{t.common.sleep} {details.sleepHours}h</span>{/if}
 					{#if details.trainingType}<span>{details.trainingType}</span>{/if}
-					{#if details.habits.length > 0}<span>{details.habits.length} habits</span>{/if}
+					{#if details.habits.length > 0}<span>{details.habits.length} {t.insights.habitsMetric.toLowerCase()}</span>{/if}
 				</div>
 			</div>
 		{/each}
 	</div>
 	{:else}
-	<p class="no-data">No data yet.</p>
+	<p class="no-data">{t.insights.noDataYet}</p>
 	{/if}
 </section>
 
 <!-- 5. Rolling Averages -->
 <section class="section">
-	<h2>Rolling Averages (7-day)</h2>
+	<h2>{t.insights.rollingAverages}</h2>
 	<div class="toggle-row">
-		<label class="toggle-label"><input type="checkbox" bind:checked={showScore} /> <span class="ldot" style="background:var(--c-accent)"></span> Score</label>
-		<label class="toggle-label"><input type="checkbox" bind:checked={showMood} /> <span class="ldot" style="background:#a78bfa"></span> Mood</label>
-		<label class="toggle-label"><input type="checkbox" bind:checked={showEnergy} /> <span class="ldot" style="background:var(--c-done)"></span> Energy</label>
-		<label class="toggle-label"><input type="checkbox" bind:checked={showSleep} /> <span class="ldot" style="background:#f59e0b"></span> Sleep</label>
+		<label class="toggle-label"><input type="checkbox" bind:checked={showScore} /> <span class="ldot" style="background:var(--c-accent)"></span> {t.insights.scoreToggle}</label>
+		<label class="toggle-label"><input type="checkbox" bind:checked={showMood} /> <span class="ldot" style="background:#a78bfa"></span> {t.insights.moodToggle}</label>
+		<label class="toggle-label"><input type="checkbox" bind:checked={showEnergy} /> <span class="ldot" style="background:var(--c-done)"></span> {t.insights.energyToggle}</label>
+		<label class="toggle-label"><input type="checkbox" bind:checked={showSleep} /> <span class="ldot" style="background:#f59e0b"></span> {t.insights.sleepToggle}</label>
 	</div>
 	{#if rollingData.length > 1}
 	{#if true}
@@ -901,39 +903,39 @@
 	</div>
 	{/if}
 	{:else}
-	<p class="no-data">Not enough data for rolling averages.</p>
+	<p class="no-data">{t.insights.notEnoughRolling}</p>
 	{/if}
 </section>
 
 <!-- 6. Consistency Panel -->
 <section class="section">
-	<h2>Consistency</h2>
+	<h2>{t.insights.consistencySection}</h2>
 	<div class="consistency-grid">
 		<div class="consist-card">
 			<div class="consist-icon">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
 			</div>
 			<span class="consist-val">{consistency.longestGoodStreak}d</span>
-			<span class="consist-lbl">Best streak (score >= 70)</span>
+			<span class="consist-lbl">{t.insights.bestStreakScore}</span>
 		</div>
 		<div class="consist-card">
 			<div class="consist-icon">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
 			</div>
 			<span class="consist-val">{consistency.loggingStreak}d</span>
-			<span class="consist-lbl">Logging streak</span>
+			<span class="consist-lbl">{t.insights.loggingStreak}</span>
 		</div>
 		<div class="consist-card">
 			<div class="consist-icon">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
 			</div>
 			<span class="consist-val">{consistency.mostConsistent || '--'}</span>
-			<span class="consist-lbl">Most consistent</span>
+			<span class="consist-lbl">{t.insights.mostConsistent}</span>
 		</div>
 	</div>
 	{#if consistency.missing.length > 0}
 	<div class="missing-data">
-		<h3>Missing data (last 7 days)</h3>
+		<h3>{t.insights.missingData}</h3>
 		<div class="missing-chips">
 			{#each consistency.missing as cat}
 				<span class="missing-chip">{cat}</span>
@@ -945,7 +947,7 @@
 
 {#if anomalies.length > 0}
 <section class="anomaly-section">
-	<h2>Anomaly Alerts</h2>
+	<h2>{t.insights.anomalyAlerts}</h2>
 	{#each anomalies as alert}
 		<div class="anomaly-card {alert.type}">
 			<span class="anomaly-icon">{alert.type === 'warning' ? '⚠️' : '✅'}</span>
@@ -957,7 +959,7 @@
 
 {#if recommendations.length > 0}
 <section class="rec-section">
-	<h2>Recommendations</h2>
+	<h2>{t.insights.recommendations}</h2>
 	{#each recommendations as rec}
 		<div class="rec-card {rec.priority}">
 			<span class="rec-icon">{rec.icon}</span>

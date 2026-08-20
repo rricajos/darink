@@ -1,5 +1,7 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
+	const { t } = useLocale();
 
 	let expanded = $state<Set<string>>(new Set());
 
@@ -12,10 +14,10 @@
 </script>
 
 <svelte:head>
-  <title>Reference | Darink</title>
+  <title>{t.ref.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Reference" />
+<PageHeader title={t.ref.title} />
 
 <section class="ref-list">
 
@@ -23,7 +25,7 @@
 	<div class="ref-section">
 		<button class="ref-header" onclick={() => toggle('hormonal')}>
 			<span class="arrow">{#if expanded.has('hormonal')}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>{:else}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>{/if}</span>
-			<span>Hormonal System</span>
+			<span>{t.ref.hormonalSystem}</span>
 		</button>
 		{#if expanded.has('hormonal')}
 			<div class="ref-body">
@@ -112,7 +114,7 @@
 	<div class="ref-section">
 		<button class="ref-header" onclick={() => toggle('neuro')}>
 			<span class="arrow">{#if expanded.has('neuro')}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>{:else}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>{/if}</span>
-			<span>Neurotransmitters</span>
+			<span>{t.ref.neurotransmitters}</span>
 		</button>
 		{#if expanded.has('neuro')}
 			<div class="ref-body">
@@ -167,7 +169,7 @@
 	<div class="ref-section">
 		<button class="ref-header" onclick={() => toggle('protocols')}>
 			<span class="arrow">{#if expanded.has('protocols')}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>{:else}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>{/if}</span>
-			<span>Protocols</span>
+			<span>{t.ref.protocols}</span>
 		</button>
 		{#if expanded.has('protocols')}
 			<div class="ref-body">
@@ -198,7 +200,7 @@
 	<div class="ref-section">
 		<button class="ref-header" onclick={() => toggle('nutrition')}>
 			<span class="arrow">{#if expanded.has('nutrition')}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>{:else}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>{/if}</span>
-			<span>Nutrition</span>
+			<span>{t.ref.nutrition}</span>
 		</button>
 		{#if expanded.has('nutrition')}
 			<div class="ref-body">
@@ -290,7 +292,7 @@
 	<div class="ref-section">
 		<button class="ref-header" onclick={() => toggle('toxins')}>
 			<span class="arrow">{#if expanded.has('toxins')}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>{:else}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>{/if}</span>
-			<span>Toxins & Disruptors</span>
+			<span>{t.ref.toxinsDisruptors}</span>
 		</button>
 		{#if expanded.has('toxins')}
 			<div class="ref-body">
@@ -358,7 +360,7 @@
 	<div class="ref-section">
 		<button class="ref-header" onclick={() => toggle('tissues')}>
 			<span class="arrow">{#if expanded.has('tissues')}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>{:else}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>{/if}</span>
-			<span>Tissues & Body Signals</span>
+			<span>{t.ref.tissuesBodySignals}</span>
 		</button>
 		{#if expanded.has('tissues')}
 			<div class="ref-body">

@@ -2,7 +2,9 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import HeatmapCalendar from '$lib/components/HeatmapCalendar.svelte';
 	import { useEntries } from '$lib/stores/entries.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t, locale } = useLocale();
 	const store = useEntries();
 	const hydrationStore = useEntries('hydration');
 
@@ -62,8 +64,8 @@
 	});
 
 	const periodLabels = $derived({
-		current: period === 'week' ? 'This week' : period === 'month' ? 'This month' : 'This quarter',
-		previous: period === 'week' ? 'Last week' : period === 'month' ? 'Last month' : 'Last quarter'
+		current: period === 'week' ? t.common.thisWeek : period === 'month' ? t.common.thisMonth : t.common.thisQuarter,
+		previous: period === 'week' ? t.common.lastWeek : period === 'month' ? t.common.lastMonth : t.common.lastQuarter
 	});
 
 	const stats = $derived.by(() => {
@@ -147,7 +149,7 @@
 			const d = new Date();
 			d.setDate(d.getDate() - i);
 			const key = d.toISOString().slice(0, 10);
-			const weekday = d.toLocaleDateString('en', { weekday: 'short' });
+			const weekday = d.toLocaleDateString(locale, { weekday: 'short' });
 			days.push({ label: weekday, count: all.filter((e) => e.createdAt.startsWith(key)).length });
 		}
 		return days;
@@ -192,8 +194,8 @@
 		if (checkins.length > 0) {
 			groups.push({
 				key: 'checkins',
-				label: 'Check-ins',
-				items: checkins.map((e) => `Mood ${e.data.mood} · Energy ${e.data.energy}`)
+				label: t.dashboard.checkins,
+				items: checkins.map((e) => `${t.common.mood} ${e.data.mood} · ${t.common.energy} ${e.data.energy}`)
 			});
 		}
 
@@ -201,7 +203,7 @@
 		if (intakes.length > 0) {
 			groups.push({
 				key: 'intakes',
-				label: 'Intakes',
+				label: t.dashboard.intakes,
 				items: intakes.map((e) => e.data.what as string)
 			});
 		}
@@ -210,7 +212,7 @@
 		if (trainings.length > 0) {
 			groups.push({
 				key: 'training',
-				label: 'Training',
+				label: t.dashboard.training,
 				items: trainings.map((e) => {
 					const sub = e.type.replace('training.', '');
 					const name = (e.data.exercise ?? e.data.activity ?? e.data.routine ?? e.data.progression ?? e.data.name ?? sub) as string;
@@ -222,12 +224,12 @@
 		const habits = todayEntries.filter((e) => e.type === 'habit');
 		if (habits.length > 0) {
 			const habitLabels: Record<string, string> = {
-				cold: 'Cold', sun: 'Sun', fasting: 'Fasting',
-				meditation: 'Meditation', wimhof: 'Wim Hof', ejaculation: 'Ejac. control'
+				cold: t.dashboard.cold, sun: t.dashboard.sun, fasting: t.dashboard.fasting,
+				meditation: t.dashboard.meditation, wimhof: t.dashboard.wimhof, ejaculation: t.dashboard.ejacControl
 			};
 			groups.push({
 				key: 'habits',
-				label: 'Habits',
+				label: t.dashboard.habits,
 				items: habits.map((e) => habitLabels[e.data.habit as string] ?? (e.data.habit as string))
 			});
 		}
@@ -236,7 +238,7 @@
 		if (supps.length > 0) {
 			groups.push({
 				key: 'supplements',
-				label: 'Supplements',
+				label: t.dashboard.supplements,
 				items: supps.map((e) => `${e.data.name}${e.data.dose ? ' ' + e.data.dose : ''}`)
 			});
 		}
@@ -245,7 +247,7 @@
 		if (signals.length > 0) {
 			groups.push({
 				key: 'signals',
-				label: 'Signals',
+				label: t.dashboard.signals,
 				items: signals.map((e) => e.type.replace('signal.', ''))
 			});
 		}
@@ -258,8 +260,8 @@
 			const total = todayHydration.reduce((sum, e) => sum + (e.data.amount as number), 0);
 			groups.push({
 				key: 'hydration',
-				label: 'Hydration',
-				items: [`Water ${total}ml`]
+				label: t.dashboard.hydration,
+				items: [`${t.hydration.water} ${total}ml`]
 			});
 		}
 
@@ -272,12 +274,12 @@
 		if (habitEntries.length === 0) return [];
 
 		const habitTypes: { id: string; label: string }[] = [
-			{ id: 'cold', label: 'Cold' },
-			{ id: 'sun', label: 'Sun' },
-			{ id: 'fasting', label: 'Fasting' },
-			{ id: 'meditation', label: 'Meditation' },
-			{ id: 'wimhof', label: 'Wim Hof' },
-			{ id: 'ejaculation', label: 'Ejac. control' }
+			{ id: 'cold', label: t.dashboard.cold },
+			{ id: 'sun', label: t.dashboard.sun },
+			{ id: 'fasting', label: t.dashboard.fasting },
+			{ id: 'meditation', label: t.dashboard.meditation },
+			{ id: 'wimhof', label: t.dashboard.wimhof },
+			{ id: 'ejaculation', label: t.dashboard.ejacControl }
 		];
 
 		const result: { label: string; streak: number }[] = [];
@@ -329,16 +331,16 @@
 	});
 
 	/* --- Multi-Correlation System --- */
-	const corrMetrics = [
-		{ id: 'sleep_hours', label: 'Sleep hours', type: 'signal.sleep', field: 'hours' },
-		{ id: 'sleep_quality', label: 'Sleep quality', type: 'signal.sleep', field: 'quality' },
-		{ id: 'mood', label: 'Mood', type: 'checkin', field: 'mood' },
-		{ id: 'energy', label: 'Energy', type: 'checkin', field: 'energy' },
-		{ id: 'stress', label: 'Stress', type: 'checkin', field: 'stress' },
-		{ id: 'training_vol', label: 'Training sessions', type: 'training', field: '_count' },
-		{ id: 'supplement_count', label: 'Supplements taken', type: 'supplement', field: '_count' },
-		{ id: 'habit_count', label: 'Habits done', type: 'habit', field: '_count' },
-	] as const;
+	const corrMetrics = $derived.by(() => [
+		{ id: 'sleep_hours', label: t.dashboard.sleepHours, type: 'signal.sleep', field: 'hours' },
+		{ id: 'sleep_quality', label: t.dashboard.sleepQuality, type: 'signal.sleep', field: 'quality' },
+		{ id: 'mood', label: t.common.mood, type: 'checkin', field: 'mood' },
+		{ id: 'energy', label: t.common.energy, type: 'checkin', field: 'energy' },
+		{ id: 'stress', label: t.common.stress, type: 'checkin', field: 'stress' },
+		{ id: 'training_vol', label: t.dashboard.trainingSessions, type: 'training', field: '_count' },
+		{ id: 'supplement_count', label: t.dashboard.supplementsTaken, type: 'supplement', field: '_count' },
+		{ id: 'habit_count', label: t.dashboard.habitsDone, type: 'habit', field: '_count' },
+	] as const);
 
 	let metricA = $state('sleep_hours');
 	let metricB = $state('mood');
@@ -380,7 +382,7 @@
 			if (valB !== undefined) pairs.push({ x: valA, y: valB });
 		}
 
-		if (pairs.length < 3) return { r: null, label: 'Not enough data', color: 'gray', pairs, n: pairs.length };
+		if (pairs.length < 3) return { r: null, label: t.dashboard.notEnoughData, color: 'gray', pairs, n: pairs.length };
 
 		const n = pairs.length;
 		let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
@@ -391,7 +393,7 @@
 			sumY2 += p.y * p.y;
 		}
 		const denom = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-		if (denom === 0) return { r: 0, label: 'No variance', color: 'gray', pairs, n };
+		if (denom === 0) return { r: 0, label: t.dashboard.noVariance, color: 'gray', pairs, n };
 
 		const r = +((n * sumXY - sumX * sumY) / denom).toFixed(2);
 
@@ -400,13 +402,13 @@
 		const absR = Math.abs(r);
 		if (absR > 0.5) {
 			color = 'green';
-			label = r > 0 ? 'Strong positive' : 'Strong negative';
+			label = r > 0 ? `${t.common.strong} ${t.common.positive}` : `${t.common.strong} ${t.common.negative}`;
 		} else if (absR > 0.3) {
 			color = 'amber';
-			label = r > 0 ? 'Moderate positive' : 'Moderate negative';
+			label = r > 0 ? `${t.common.moderate} ${t.common.positive}` : `${t.common.moderate} ${t.common.negative}`;
 		} else {
 			color = 'gray';
-			label = 'Weak';
+			label = t.common.weak;
 		}
 
 		return { r, label, color, pairs, n };
@@ -474,7 +476,7 @@
 		const first5 = weights.slice(0, 5);
 		const avgLast = +(last5.reduce((s, e) => s + Number(e.data.weight), 0) / last5.length).toFixed(1);
 		const avgFirst = +(first5.reduce((s, e) => s + Number(e.data.weight), 0) / first5.length).toFixed(1);
-		const trend = avgLast > avgFirst ? 'gaining' : avgLast < avgFirst ? 'losing' : 'stable';
+		const trend = avgLast > avgFirst ? t.dashboard.gaining : avgLast < avgFirst ? t.dashboard.losing : t.dashboard.stable;
 		return { pairs: pairs.length, trend, avgFirst, avgLast, change: +(avgLast - avgFirst).toFixed(1) };
 	});
 
@@ -493,7 +495,7 @@
 		if (sorted.length < 3) return null;
 		const avg = (a: number[]) => +(a.reduce((s, v) => s + v, 0) / a.length).toFixed(1);
 		const data = sorted.map(m => ({
-			month: new Date(m + '-15').toLocaleDateString('en', { month: 'short' }),
+			month: new Date(m + '-15').toLocaleDateString(locale, { month: 'short' }),
 			mood: avg(months[m].moods),
 			energy: avg(months[m].energies),
 			n: months[m].moods.length
@@ -527,49 +529,49 @@
 </script>
 
 <svelte:head>
-  <title>Dashboard | Darink</title>
+  <title>{t.dashboard.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Dashboard" />
+<PageHeader title={t.dashboard.title} />
 
 <section class="period-selector">
-	<button class="period-chip" class:active={period === 'week'} onclick={() => period = 'week'}>Week</button>
-	<button class="period-chip" class:active={period === 'month'} onclick={() => period = 'month'}>Month</button>
-	<button class="period-chip" class:active={period === '3month'} onclick={() => period = '3month'}>3 Months</button>
+	<button class="period-chip" class:active={period === 'week'} onclick={() => period = 'week'}>{t.dashboard.week}</button>
+	<button class="period-chip" class:active={period === 'month'} onclick={() => period = 'month'}>{t.dashboard.month}</button>
+	<button class="period-chip" class:active={period === '3month'} onclick={() => period = '3month'}>{t.dashboard.threeMonths}</button>
 </section>
 
 {#if stats.total === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-	<p>Welcome to Darink!</p>
-	<p class="empty-hint">Start logging to see your dashboard come alive.</p>
+	<p>{t.dashboard.welcome}</p>
+	<p class="empty-hint">{t.dashboard.welcomeHint}</p>
 </div>
 {:else}
 
 {#if weekSummary.entries > 0}
 <section class="summary">
-	<h2>This week</h2>
+	<h2>{t.common.thisWeek}</h2>
 	<div class="summary-row">
-		<div class="chip">{weekSummary.entries} entries</div>
-		{#if weekSummary.avgMood}<div class="chip">Mood {weekSummary.avgMood}</div>{/if}
-		{#if weekSummary.avgEnergy}<div class="chip">Energy {weekSummary.avgEnergy}</div>{/if}
-		{#if weekSummary.avgSleep}<div class="chip">Sleep {weekSummary.avgSleep}h</div>{/if}
+		<div class="chip">{weekSummary.entries} {t.common.entries}</div>
+		{#if weekSummary.avgMood}<div class="chip">{t.common.mood} {weekSummary.avgMood}</div>{/if}
+		{#if weekSummary.avgEnergy}<div class="chip">{t.common.energy} {weekSummary.avgEnergy}</div>{/if}
+		{#if weekSummary.avgSleep}<div class="chip">{t.common.sleep} {weekSummary.avgSleep}h</div>{/if}
 	</div>
 </section>
 {/if}
 
 {#if periodComparison.entries.current > 0 || periodComparison.entries.previous > 0}
 <section class="comparison-section">
-	<h2>Period comparison</h2>
+	<h2>{t.dashboard.periodComparison}</h2>
 	<div class="comparison-grid">
-		<div class="cmp-header">Metric</div>
+		<div class="cmp-header">{t.dashboard.metric}</div>
 		<div class="cmp-header">{periodLabels.current}</div>
 		<div class="cmp-header">{periodLabels.previous}</div>
-		<div class="cmp-header">Delta</div>
+		<div class="cmp-header">{t.dashboard.delta}</div>
 
 		{#if true}
 			{@const eDelta = periodComparison.entries.current - periodComparison.entries.previous}
-			<div class="cmp-metric">Entries</div>
+			<div class="cmp-metric">{t.dashboard.entries}</div>
 			<div class="cmp-val">{periodComparison.entries.current}</div>
 			<div class="cmp-val">{periodComparison.entries.previous}</div>
 			<div class="cmp-delta {eDelta > 0 ? 'positive' : eDelta < 0 ? 'negative' : ''}">
@@ -586,7 +588,7 @@
 			{@const mC = periodComparison.mood.current ?? 0}
 			{@const mP = periodComparison.mood.previous ?? 0}
 			{@const mDelta = +(mC - mP).toFixed(1)}
-			<div class="cmp-metric">Mood</div>
+			<div class="cmp-metric">{t.common.mood}</div>
 			<div class="cmp-val">{periodComparison.mood.current ?? '--'}</div>
 			<div class="cmp-val">{periodComparison.mood.previous ?? '--'}</div>
 			<div class="cmp-delta {mDelta > 0 ? 'positive' : mDelta < 0 ? 'negative' : ''}">
@@ -603,7 +605,7 @@
 			{@const eC = periodComparison.energy.current ?? 0}
 			{@const eP = periodComparison.energy.previous ?? 0}
 			{@const enDelta = +(eC - eP).toFixed(1)}
-			<div class="cmp-metric">Energy</div>
+			<div class="cmp-metric">{t.common.energy}</div>
 			<div class="cmp-val">{periodComparison.energy.current ?? '--'}</div>
 			<div class="cmp-val">{periodComparison.energy.previous ?? '--'}</div>
 			<div class="cmp-delta {enDelta > 0 ? 'positive' : enDelta < 0 ? 'negative' : ''}">
@@ -618,7 +620,7 @@
 
 		{#if true}
 			{@const tDelta = periodComparison.training.current - periodComparison.training.previous}
-			<div class="cmp-metric">Training</div>
+			<div class="cmp-metric">{t.dashboard.training}</div>
 			<div class="cmp-val">{periodComparison.training.current}</div>
 			<div class="cmp-val">{periodComparison.training.previous}</div>
 			<div class="cmp-delta {tDelta > 0 ? 'positive' : tDelta < 0 ? 'negative' : ''}">
@@ -633,7 +635,7 @@
 
 		{#if true}
 			{@const hDelta = periodComparison.habitDays.current - periodComparison.habitDays.previous}
-			<div class="cmp-metric">Habit days</div>
+			<div class="cmp-metric">{t.dashboard.habitDays}</div>
 			<div class="cmp-val">{periodComparison.habitDays.current}</div>
 			<div class="cmp-val">{periodComparison.habitDays.previous}</div>
 			<div class="cmp-delta {hDelta > 0 ? 'positive' : hDelta < 0 ? 'negative' : ''}">
@@ -650,10 +652,10 @@
 {/if}
 
 <section class="year-ago-section">
-	<h2>vs. Last Year</h2>
+	<h2>{t.dashboard.vsLastYear}</h2>
 	{#if !yearAgoComparison.hasData}
 	<div class="year-ago-card year-ago-empty">
-		<p>No data from {yearAgoComparison.yearLabel}</p>
+		<p>{t.dashboard.noDataFrom} {yearAgoComparison.yearLabel}</p>
 	</div>
 	{:else}
 	<div class="year-ago-card">
@@ -663,7 +665,7 @@
 				{@const eYa = yearAgoComparison.entries.yearAgo}
 				{@const ePct = eYa > 0 ? Math.round(((eCur - eYa) / eYa) * 100) : null}
 				<div class="ya-metric">
-					<span class="ya-label">Entries</span>
+					<span class="ya-label">{t.dashboard.entries}</span>
 					<span class="ya-values">
 						{eYa}
 						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -685,7 +687,7 @@
 				{@const mYa = yearAgoComparison.mood.yearAgo ?? 0}
 				{@const mDelta = +(mCur - mYa).toFixed(1)}
 				<div class="ya-metric">
-					<span class="ya-label">Mood</span>
+					<span class="ya-label">{t.common.mood}</span>
 					<span class="ya-values">
 						{yearAgoComparison.mood.yearAgo ?? '--'}
 						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -707,7 +709,7 @@
 				{@const eYa = yearAgoComparison.energy.yearAgo ?? 0}
 				{@const enDelta = +(eCur - eYa).toFixed(1)}
 				<div class="ya-metric">
-					<span class="ya-label">Energy</span>
+					<span class="ya-label">{t.common.energy}</span>
 					<span class="ya-values">
 						{yearAgoComparison.energy.yearAgo ?? '--'}
 						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -727,7 +729,7 @@
 			{#if yearAgoComparison.weight.current != null && yearAgoComparison.weight.yearAgo != null}
 				{@const wDelta = +(yearAgoComparison.weight.current - yearAgoComparison.weight.yearAgo).toFixed(1)}
 				<div class="ya-metric">
-					<span class="ya-label">Weight</span>
+					<span class="ya-label">{t.dashboard.weight}</span>
 					<span class="ya-values">
 						{yearAgoComparison.weight.yearAgo}kg
 						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -743,7 +745,7 @@
 			{#if yearAgoComparison.bodyFat.current != null && yearAgoComparison.bodyFat.yearAgo != null}
 				{@const bfDelta = +(yearAgoComparison.bodyFat.current - yearAgoComparison.bodyFat.yearAgo).toFixed(1)}
 				<div class="ya-metric">
-					<span class="ya-label">Body fat</span>
+					<span class="ya-label">{t.dashboard.bodyFat}</span>
 					<span class="ya-values">
 						{yearAgoComparison.bodyFat.yearAgo}%
 						<svg class="ya-arrow-sep" viewBox="0 0 16 12" width="16" height="12"><path d="M2 6H14M10 2L14 6L10 10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -761,7 +763,7 @@
 </section>
 
 <section class="chart-section">
-	<h2>Activity (7 days)</h2>
+	<h2>{t.dashboard.activity7d}</h2>
 	<div class="bar-chart">
 		{#each weeklyActivity as day}
 			{@const maxAct = Math.max(...weeklyActivity.map((d) => d.count), 1)}
@@ -778,7 +780,7 @@
 {#if moodTrend.length > 1}
 {@const chartW = 280 / Math.max(moodTrend.length - 1, 1)}
 <section class="chart-section">
-	<h2>Mood & Energy (last 14)</h2>
+	<h2>{t.dashboard.moodEnergy14}</h2>
 	<svg class="line-chart" viewBox="0 0 280 100" preserveAspectRatio="none">
 		<polyline
 			fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linejoin="round"
@@ -790,15 +792,15 @@
 		/>
 	</svg>
 	<div class="legend">
-		<span class="dot mood"></span> Mood
-		<span class="dot energy"></span> Energy
+		<span class="dot mood"></span> {t.common.mood}
+		<span class="dot energy"></span> {t.common.energy}
 	</div>
 </section>
 {/if}
 
 {#if todayLog.length > 0}
 <section class="today-log">
-	<h2>Today's log</h2>
+	<h2>{t.dashboard.todayLog}</h2>
 	{#each todayLog as group}
 	<div class="log-group">
 		<h3>{group.label}</h3>
@@ -814,7 +816,7 @@
 
 {#if habitStreaks.length > 0}
 <section class="streaks-summary">
-	<h2>Habit streaks</h2>
+	<h2>{t.dashboard.habitStreaks}</h2>
 	<div class="streaks-row">
 		{#each habitStreaks as hs}
 		<span class="streak-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; display: inline-block; margin-right: 2px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> {hs.label} {hs.streak}d</span>
@@ -825,30 +827,30 @@
 
 {#if sleepCard}
 <section class="sleep-card-section">
-	<h2>Sleep (7 days)</h2>
+	<h2>{t.dashboard.sleep7d}</h2>
 	<div class="sleep-card">
 		<div class="sleep-stat">
 			<span class="sleep-val">{sleepCard.avgHours}h</span>
-			<span class="sleep-lbl">Avg hours</span>
+			<span class="sleep-lbl">{t.dashboard.avgHours}</span>
 		</div>
 		<div class="sleep-stat">
 			<span class="sleep-val">{sleepCard.avgQuality}/10</span>
-			<span class="sleep-lbl">Avg quality</span>
+			<span class="sleep-lbl">{t.dashboard.avgQuality}</span>
 		</div>
 		<div class="sleep-stat">
 			<span class="sleep-val">{sleepCard.lastHours}h</span>
-			<span class="sleep-lbl">Last night</span>
+			<span class="sleep-lbl">{t.dashboard.lastNight}</span>
 		</div>
 		<div class="sleep-stat">
 			<span class="sleep-val">{sleepCard.lastQuality}/10</span>
-			<span class="sleep-lbl">Last quality</span>
+			<span class="sleep-lbl">{t.dashboard.lastQuality}</span>
 		</div>
 	</div>
 </section>
 {/if}
 
 <section class="correlation-section">
-	<h2>Correlation explorer</h2>
+	<h2>{t.dashboard.correlationExplorer}</h2>
 	<div class="corr-selects">
 		<select class="corr-select" bind:value={metricA}>
 			{#each corrMetrics as m}
@@ -870,12 +872,12 @@
 				r = {correlation.r > 0 ? '+' : ''}{correlation.r}
 				<span class="corr-label">({correlation.label})</span>
 			</span>
-			<span class="corr-n">N = {correlation.n} matching days</span>
+			<span class="corr-n">N = {correlation.n} {t.dashboard.matchingDays}</span>
 		</div>
 		{:else}
 		<div class="corr-card corr-gray">
 			<span class="corr-indicator"></span>
-			<span>{correlation.label} (need at least 3 matching days)</span>
+			<span>{correlation.label} ({t.dashboard.needDays})</span>
 		</div>
 		{/if}
 		{#if scatterData.dots.length > 0}
@@ -908,12 +910,12 @@
 </section>
 
 <section class="heatmap-section">
-	<h2>Activity</h2>
+	<h2>{t.dashboard.activity}</h2>
 	<div class="heatmap-filter">
 		<select class="heatmap-select" bind:value={heatmapFilter}>
-			<option value={null}>All</option>
-			{#each heatmapTypes as t}
-				<option value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+			<option value={null}>{t.dashboard.all}</option>
+			{#each heatmapTypes as ht}
+				<option value={ht}>{ht.charAt(0).toUpperCase() + ht.slice(1)}</option>
 			{/each}
 		</select>
 	</div>
@@ -923,31 +925,31 @@
 <section class="stats">
 	<div class="stat highlight">
 		<span class="value">{stats.today}</span>
-		<span class="label">Today</span>
+		<span class="label">{t.common.today}</span>
 	</div>
-	<div class="stat"><span class="value">{stats.checkins}</span><span class="label">Check-ins</span></div>
-	<div class="stat"><span class="value">{stats.intakes}</span><span class="label">Intakes</span></div>
-	<div class="stat"><span class="value">{stats.trainings}</span><span class="label">Training</span></div>
-	<div class="stat"><span class="value">{stats.habits}</span><span class="label">Habits</span></div>
-	<div class="stat"><span class="value">{stats.supplements}</span><span class="label">Supplements</span></div>
-	<div class="stat"><span class="value">{stats.experiments}</span><span class="label">Experiments</span></div>
-	<div class="stat total"><span class="value">{stats.total}</span><span class="label">Total entries</span></div>
+	<div class="stat"><span class="value">{stats.checkins}</span><span class="label">{t.dashboard.checkins}</span></div>
+	<div class="stat"><span class="value">{stats.intakes}</span><span class="label">{t.dashboard.intakes}</span></div>
+	<div class="stat"><span class="value">{stats.trainings}</span><span class="label">{t.dashboard.training}</span></div>
+	<div class="stat"><span class="value">{stats.habits}</span><span class="label">{t.dashboard.habits}</span></div>
+	<div class="stat"><span class="value">{stats.supplements}</span><span class="label">{t.dashboard.supplements}</span></div>
+	<div class="stat"><span class="value">{stats.experiments}</span><span class="label">{t.dashboard.experiments}</span></div>
+	<div class="stat total"><span class="value">{stats.total}</span><span class="label">{t.dashboard.totalEntries}</span></div>
 </section>
 
 {#if healthIndex}
 <section class="hi-section">
-	<h2>Health Index (7d)</h2>
+	<h2>{t.dashboard.healthIndex} (7d)</h2>
 	<div class="hi-gauge">
 		<span class="hi-value" style="color:{healthIndex.composite >= 70 ? '#38a169' : healthIndex.composite >= 40 ? '#e8a735' : '#e53e3e'}">{healthIndex.composite}</span>
 		<span class="hi-max">/100</span>
 	</div>
 	<div class="hi-breakdown">
 		{#each [
-			{ label: 'Mood', val: healthIndex.moodScore },
-			{ label: 'Energy', val: healthIndex.energyScore },
-			{ label: 'Stress', val: healthIndex.stressScore },
-			{ label: 'Habits', val: healthIndex.habitScore },
-			{ label: 'Training', val: healthIndex.trainingScore }
+			{ label: t.common.mood, val: healthIndex.moodScore },
+			{ label: t.common.energy, val: healthIndex.energyScore },
+			{ label: t.common.stress, val: healthIndex.stressScore },
+			{ label: t.dashboard.habitsScore, val: healthIndex.habitScore },
+			{ label: t.dashboard.trainingScore, val: healthIndex.trainingScore }
 		] as metric}
 			<div class="hi-row">
 				<span class="hi-label">{metric.label}</span>
@@ -961,7 +963,7 @@
 
 {#if seasonalPattern}
 <section class="seasonal-section">
-	<h2>Seasonal Pattern (last 6 months)</h2>
+	<h2>{t.dashboard.seasonalLast6}</h2>
 	<div class="seasonal-chart">
 		{#each seasonalPattern.data as m}
 			<div class="seasonal-col">
@@ -974,23 +976,23 @@
 		{/each}
 	</div>
 	<div class="seasonal-legend">
-		<span><span class="dot" style="background:#4aa3ff"></span> Mood</span>
-		<span><span class="dot" style="background:#2e8b57"></span> Energy</span>
+		<span><span class="dot" style="background:#4aa3ff"></span> {t.common.mood}</span>
+		<span><span class="dot" style="background:#2e8b57"></span> {t.common.energy}</span>
 	</div>
 </section>
 {/if}
 
 {#if weightMoodLink}
 <section class="wm-section">
-	<h2>Weight Trajectory</h2>
+	<h2>{t.dashboard.weightTrajectory}</h2>
 	<div class="wm-cards">
 		<div class="wm-card">
 			<span class="wm-value">{weightMoodLink.avgFirst}kg</span>
-			<span class="wm-label">First 5 avg</span>
+			<span class="wm-label">{t.dashboard.first5avg}</span>
 		</div>
 		<div class="wm-card">
 			<span class="wm-value">{weightMoodLink.avgLast}kg</span>
-			<span class="wm-label">Last 5 avg</span>
+			<span class="wm-label">{t.dashboard.last5avg}</span>
 		</div>
 		<div class="wm-card">
 			<span class="wm-value" style="color:{weightMoodLink.change === 0 ? 'var(--c-text-muted)' : weightMoodLink.change > 0 ? '#e8a735' : '#38a169'}">{weightMoodLink.change > 0 ? '+' : ''}{weightMoodLink.change}kg</span>

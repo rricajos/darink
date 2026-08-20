@@ -3,7 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
+
+	const { t } = useLocale();
 
 	const store = useEntries('training.rings');
 
@@ -20,7 +23,7 @@
 		entries.add('training.rings', { date, progression: progression.trim(), holdTime, reps, assistance, level, notes });
 		progression = ''; notes = '';
 		date = new Date().toISOString().slice(0, 10);
-		toast.show('Progression logged');
+		toast.show(t.training.progressionLogged);
 	}
 
 	function repeatLast() {
@@ -32,7 +35,7 @@
 		assistance = (last.data.assistance as string) || 'none';
 		level = last.data.level as number;
 		notes = (last.data.notes as string) || '';
-		toast.show('Fields pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	// --- Analytics ---
@@ -76,7 +79,7 @@
 	const avgHoldTime = $derived(holdTimeTrend.length ? Math.round(holdTimeTrend.reduce((s, v) => s + v, 0) / holdTimeTrend.length * 10) / 10 : 0);
 
 	// Assistance progression per movement
-	const assistanceLabel: Record<string, string> = { band: 'Band', partial: 'Partial', negative: 'Negative', none: 'None' };
+	const assistanceLabel = $derived.by((): Record<string, string> => ({ band: t.training.bandAssist, partial: t.training.partialAssist, negative: t.training.negativeAssist, none: t.training.noneAssist }));
 
 	const assistanceProgress = $derived.by(() => {
 		const map = new Map<string, { first: string; latest: string }>();
@@ -130,32 +133,32 @@
 </script>
 
 <svelte:head>
-  <title>Rings | Darink</title>
+  <title>{t.training.rings} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Rings" back="/training" />
+<PageHeader title={t.training.rings} back="/training" />
 
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Progression <input type="text" bind:value={progression} placeholder="Front lever, Muscle-up..." /></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
+	<label>{t.training.progression} <input type="text" bind:value={progression} placeholder="Front lever, Muscle-up..." /></label>
 	<div class="row">
-		<label>Hold (s) <input type="number" min="0" bind:value={holdTime} /></label>
-		<label>Reps <input type="number" min="1" max="50" bind:value={reps} /></label>
-		<label>Level <input type="number" min="1" max="10" bind:value={level} /></label>
+		<label>{t.training.holdSec} <input type="number" min="0" bind:value={holdTime} /></label>
+		<label>{t.training.reps} <input type="number" min="1" max="50" bind:value={reps} /></label>
+		<label>{t.training.level} <input type="number" min="1" max="10" bind:value={level} /></label>
 	</div>
-	<label>Assistance
+	<label>{t.training.assistance}
 		<select bind:value={assistance}>
-			<option value="none">None</option>
-			<option value="band">Band</option>
-			<option value="partial">Partial</option>
-			<option value="negative">Negative</option>
+			<option value="none">{t.training.noneAssist}</option>
+			<option value="band">{t.training.bandAssist}</option>
+			<option value="partial">{t.training.partialAssist}</option>
+			<option value="negative">{t.training.negativeAssist}</option>
 		</select>
 	</label>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
 	<div class="form-actions">
-		<button class="primary" onclick={submit}>Log progression</button>
+		<button class="primary" onclick={submit}>{t.training.logProgression}</button>
 		{#if store.items.length > 0}
-			<button onclick={repeatLast}>Repeat last</button>
+			<button onclick={repeatLast}>{t.common.repeatLast}</button>
 		{/if}
 	</div>
 </section>
@@ -174,28 +177,28 @@
 			assistance: fd.get('assistance') as string,
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date || ''} /></label>
-		<label>Progression <input type="text" name="progression" value={data.progression} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date || ''} /></label>
+		<label>{t.training.progression} <input type="text" name="progression" value={data.progression} /></label>
 		<div class="row">
-			<label>Hold (s) <input type="number" name="holdTime" min="0" value={data.holdTime} /></label>
-			<label>Reps <input type="number" name="reps" min="1" max="50" value={data.reps} /></label>
-			<label>Level <input type="number" name="level" min="1" max="10" value={data.level} /></label>
+			<label>{t.training.holdSec} <input type="number" name="holdTime" min="0" value={data.holdTime} /></label>
+			<label>{t.training.reps} <input type="number" name="reps" min="1" max="50" value={data.reps} /></label>
+			<label>{t.training.level} <input type="number" name="level" min="1" max="10" value={data.level} /></label>
 		</div>
-		<label>Assistance
+		<label>{t.training.assistance}
 			<select name="assistance">
-				<option value="none" selected={data.assistance === 'none'}>None</option>
-				<option value="band" selected={data.assistance === 'band'}>Band</option>
-				<option value="partial" selected={data.assistance === 'partial'}>Partial</option>
-				<option value="negative" selected={data.assistance === 'negative'}>Negative</option>
+				<option value="none" selected={data.assistance === 'none'}>{t.training.noneAssist}</option>
+				<option value="band" selected={data.assistance === 'band'}>{t.training.bandAssist}</option>
+				<option value="partial" selected={data.assistance === 'partial'}>{t.training.partialAssist}</option>
+				<option value="negative" selected={data.assistance === 'negative'}>{t.training.negativeAssist}</option>
 			</select>
 		</label>
-		<label>Notes <textarea name="notes" rows="2">{data.notes}</textarea></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -213,20 +216,20 @@
 <section class="analytics-section">
 	<h3 class="analytics-title">
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-		Quick Stats
+		{t.training.quickStats}
 	</h3>
 	<div class="stats-row">
 		<div class="stat-card">
 			<span class="stat-value">{totalSessions}</span>
-			<span class="stat-label">Sessions</span>
+			<span class="stat-label">{t.training.sessions}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">L{highestLevel}</span>
-			<span class="stat-label">Highest Level</span>
+			<span class="stat-label">{t.training.highestLevel}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">{bestHoldTime}s</span>
-			<span class="stat-label">Best Hold</span>
+			<span class="stat-label">{t.training.bestHold}</span>
 		</div>
 	</div>
 </section>
@@ -236,7 +239,7 @@
 <section class="analytics-section">
 	<h3 class="analytics-title">
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-		Level Progression
+		{t.training.levelProgression}
 	</h3>
 	<div class="chart-container">
 		<svg viewBox="0 0 280 80" class="chart-svg">
@@ -273,7 +276,7 @@
 <section class="analytics-section">
 	<h3 class="analytics-title">
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-		Hold Time Trend
+		{t.training.holdTimeTrend}
 		<span class="meta" style="margin-left:auto">avg {avgHoldTime}s</span>
 	</h3>
 	<div class="chart-container">
@@ -289,7 +292,7 @@
 			/>
 		</svg>
 	</div>
-	<p class="chart-caption">Last {holdTimeTrend.length} entries</p>
+	<p class="chart-caption">{holdTimeTrend.length} {t.common.entries}</p>
 </section>
 {/if}
 
@@ -298,7 +301,7 @@
 <section class="analytics-section">
 	<h3 class="analytics-title">
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-		Assistance Progression
+		{t.training.assistanceProgression}
 	</h3>
 	<div class="assist-table">
 		{#each assistanceProgress as row}
@@ -320,7 +323,7 @@
 <section class="analytics-section">
 	<h3 class="analytics-title">
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-		Movement Mastery
+		{t.training.movementMastery}
 	</h3>
 	<div class="mastery-grid">
 		{#each masteryGrid as m}
@@ -328,8 +331,8 @@
 				<strong class="mastery-name">{m.name}</strong>
 				<div class="mastery-stats">
 					<span>L{m.currentLevel}</span>
-					<span>{m.bestHold}s best</span>
-					<span>{m.sessions} sess.</span>
+					<span>{m.bestHold}s {t.training.best}</span>
+					<span>{m.sessions} {t.training.sess}</span>
 				</div>
 				<span class="mastery-assist" class:assist-none={m.currentAssistance === 'none'}>
 					{assistanceLabel[m.currentAssistance] || m.currentAssistance}

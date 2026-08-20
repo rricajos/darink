@@ -3,8 +3,11 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import { onMount } from 'svelte';
 	import type { Entry } from '$lib/db';
+
+	const { t } = useLocale();
 
 	const store = useEntries('intake');
 	const checkinStore = useEntries('checkin');
@@ -28,7 +31,7 @@
 
 	function validate(): boolean {
 		const e: Record<string, string> = {};
-		if (!what.trim()) e.what = 'Food or drink name is required';
+		if (!what.trim()) e.what = t.intake.whatRequired;
 		errors = e;
 		return Object.keys(e).length === 0;
 	}
@@ -51,7 +54,7 @@
 		});
 		what = '';
 		errors = {};
-		toast.show('Intake logged');
+		toast.show(t.intake.intakeLogged);
 	}
 
 	function repeatLast() {
@@ -61,7 +64,7 @@
 		amount = String(last.data.amount || 'normal');
 		moodVal = String(last.data.mood || 'verde');
 		meal = String(last.data.meal || 'other');
-		toast.show('Fields pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	const quickItems = $derived.by(() => {
@@ -91,7 +94,7 @@
 		amount = (item.last.amount as string) ?? 'normal';
 		moodVal = (item.last.mood as string) ?? 'verde';
 		meal = (item.last.meal as string) ?? 'other';
-		toast.show('Pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	// --- Quick Stats ---
@@ -133,7 +136,7 @@
 	const freqChart = $derived.by(() => {
 		const now = new Date();
 		const days: { label: string; date: string; count: number; dominant: string }[] = [];
-		const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+		const dayLabels = [t.days.sun, t.days.mon, t.days.tue, t.days.wed, t.days.thu, t.days.fri, t.days.sat];
 		for (let i = 13; i >= 0; i--) {
 			const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
 			const ds = d.toISOString().slice(0, 10);
@@ -157,10 +160,10 @@
 	// --- Meal Timing Patterns ---
 	const timingPatterns = $derived.by(() => {
 		const slots = [
-			{ name: 'Morning', range: [5, 11], count: 0 },
-			{ name: 'Midday', range: [11, 15], count: 0 },
-			{ name: 'Afternoon', range: [15, 19], count: 0 },
-			{ name: 'Evening', range: [19, 29], count: 0 }
+			{ name: t.common.morning, range: [5, 11], count: 0 },
+			{ name: t.common.noon, range: [11, 15], count: 0 },
+			{ name: t.common.afternoon, range: [15, 19], count: 0 },
+			{ name: t.common.evening, range: [19, 29], count: 0 }
 		];
 		let totalWithTime = 0;
 		for (const e of store.items) {
@@ -231,14 +234,14 @@
 </script>
 
 <svelte:head>
-  <title>Intake | Darink</title>
+  <title>{t.intake.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Intake" />
+<PageHeader title={t.intake.title} />
 
 {#if quickItems.length > 0}
 <section class="quick-add">
-	<h2>Quick add</h2>
+	<h2>{t.intake.quickAdd}</h2>
 	<div class="quick-chips">
 		{#each quickItems as item}
 			<button class="quick-chip" onclick={() => prefill(item)}>
@@ -251,44 +254,44 @@
 {/if}
 
 <section class="form">
-	<label class:field-has-error={!!errors.what}>What <input type="text" bind:value={what} placeholder="Food, drink..." oninput={() => clearError('what')} /></label>
+	<label class:field-has-error={!!errors.what}>{t.intake.whatLabel} <input type="text" bind:value={what} placeholder={t.intake.whatPlaceholder} oninput={() => clearError('what')} /></label>
 	{#if errors.what}<span class="field-error">{errors.what}</span>{/if}
 	<div class="row">
 		<label>
-			Amount
+			{t.intake.amount}
 			<select bind:value={amount}>
-				<option value="poco">Small</option>
-				<option value="normal">Normal</option>
-				<option value="mucho">Large</option>
+				<option value="poco">{t.intake.poco}</option>
+				<option value="normal">{t.intake.normal}</option>
+				<option value="mucho">{t.intake.mucho}</option>
 			</select>
 		</label>
 		<label>
-			Mood
+			{t.common.mood}
 			<select bind:value={moodVal}>
-				<option value="verde">Good</option>
-				<option value="ambar">Neutral</option>
-				<option value="rojo">Bad</option>
+				<option value="verde">{t.intake.verde}</option>
+				<option value="ambar">{t.intake.neutral}</option>
+				<option value="rojo">{t.intake.rojo}</option>
 			</select>
 		</label>
 		<label>
-			Meal
+			{t.intake.mealType}
 			<select bind:value={meal}>
-				<option value="breakfast">Breakfast</option>
-				<option value="lunch">Lunch</option>
-				<option value="dinner">Dinner</option>
-				<option value="snack">Snack</option>
-				<option value="other">Other</option>
+				<option value="breakfast">{t.intake.breakfast}</option>
+				<option value="lunch">{t.intake.lunch}</option>
+				<option value="dinner">{t.intake.dinner}</option>
+				<option value="snack">{t.intake.snack}</option>
+				<option value="other">{t.intake.other}</option>
 			</select>
 		</label>
 	</div>
 	<div class="row">
-		<label>Start <input type="time" bind:value={timeStart} /></label>
-		<label>End <input type="time" bind:value={timeEnd} /></label>
+		<label>{t.intake.timeStart} <input type="time" bind:value={timeStart} /></label>
+		<label>{t.intake.timeEnd} <input type="time" bind:value={timeEnd} /></label>
 	</div>
 	<div class="form-actions">
-		<button class="primary" onclick={submit}>Add entry</button>
+		<button class="primary" onclick={submit}>{t.intake.addEntry}</button>
 		{#if store.items.length > 0}
-			<button onclick={repeatLast}>Repeat last</button>
+			<button onclick={repeatLast}>{t.common.repeatLast}</button>
 		{/if}
 	</div>
 </section>
@@ -299,15 +302,15 @@
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value">{quickStats.total}</span>
-			<span class="metric-label">Total meals</span>
+			<span class="metric-label">{t.intake.totalMeals}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{quickStats.avgPerDay}</span>
-			<span class="metric-label">Avg / day (7d)</span>
+			<span class="metric-label">{t.intake.avgPerDay7d}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value qs-food">{quickStats.mostCommon}</span>
-			<span class="metric-label">Most common</span>
+			<span class="metric-label">{t.intake.mostCommon}</span>
 		</div>
 	</div>
 </section>
@@ -318,7 +321,7 @@
 <section class="daily-summary">
 	<h2>
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-		Today — {todaySummary.length} meal{todaySummary.length === 1 ? '' : 's'}
+		{t.common.today} — {todaySummary.length} {todaySummary.length === 1 ? t.intake.meal : t.intake.meals}
 	</h2>
 	<div class="timeline">
 		{#each todaySummary as item}
@@ -328,7 +331,7 @@
 				<span class="timeline-time">{time}</span>
 				<span class="timeline-dot {amtClass}"></span>
 				<span class="timeline-food">{item.data.what}</span>
-				<span class="timeline-amount">{item.data.amount === 'poco' ? 'small' : item.data.amount === 'mucho' ? 'large' : 'normal'}</span>
+				<span class="timeline-amount">{item.data.amount === 'poco' ? t.intake.poco : item.data.amount === 'mucho' ? t.intake.mucho : t.intake.normal}</span>
 			</div>
 		{/each}
 	</div>
@@ -349,45 +352,45 @@
 			whenStart: `${today} ${fd.get('timeStart')}`,
 			whenEnd: `${today} ${fd.get('timeEnd')}`
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>What <input type="text" name="what" value={data.what} /></label>
+		<label>{t.intake.whatLabel} <input type="text" name="what" value={data.what} /></label>
 		<div class="row">
 			<label>
-				Amount
+				{t.intake.amount}
 				<select name="amount">
-					<option value="poco" selected={data.amount === 'poco'}>Small</option>
-					<option value="normal" selected={data.amount === 'normal'}>Normal</option>
-					<option value="mucho" selected={data.amount === 'mucho'}>Large</option>
+					<option value="poco" selected={data.amount === 'poco'}>{t.intake.poco}</option>
+					<option value="normal" selected={data.amount === 'normal'}>{t.intake.normal}</option>
+					<option value="mucho" selected={data.amount === 'mucho'}>{t.intake.mucho}</option>
 				</select>
 			</label>
 			<label>
-				Mood
+				{t.common.mood}
 				<select name="mood">
-					<option value="verde" selected={data.mood === 'verde'}>Good</option>
-					<option value="ambar" selected={data.mood === 'ambar'}>Neutral</option>
-					<option value="rojo" selected={data.mood === 'rojo'}>Bad</option>
+					<option value="verde" selected={data.mood === 'verde'}>{t.intake.verde}</option>
+					<option value="ambar" selected={data.mood === 'ambar'}>{t.intake.neutral}</option>
+					<option value="rojo" selected={data.mood === 'rojo'}>{t.intake.rojo}</option>
 				</select>
 			</label>
 			<label>
-				Meal
+				{t.intake.mealType}
 				<select name="meal">
-					<option value="breakfast" selected={data.meal === 'breakfast'}>Breakfast</option>
-					<option value="lunch" selected={data.meal === 'lunch'}>Lunch</option>
-					<option value="dinner" selected={data.meal === 'dinner'}>Dinner</option>
-					<option value="snack" selected={data.meal === 'snack'}>Snack</option>
-					<option value="other" selected={data.meal === 'other'}>Other</option>
+					<option value="breakfast" selected={data.meal === 'breakfast'}>{t.intake.breakfast}</option>
+					<option value="lunch" selected={data.meal === 'lunch'}>{t.intake.lunch}</option>
+					<option value="dinner" selected={data.meal === 'dinner'}>{t.intake.dinner}</option>
+					<option value="snack" selected={data.meal === 'snack'}>{t.intake.snack}</option>
+					<option value="other" selected={data.meal === 'other'}>{t.intake.other}</option>
 				</select>
 			</label>
 		</div>
 		<div class="row">
-			<label>Start <input type="time" name="timeStart" value={(data.whenStart as string)?.split(' ')[1] ?? ''} /></label>
-			<label>End <input type="time" name="timeEnd" value={(data.whenEnd as string)?.split(' ')[1] ?? ''} /></label>
+			<label>{t.intake.timeStart} <input type="time" name="timeStart" value={(data.whenStart as string)?.split(' ')[1] ?? ''} /></label>
+			<label>{t.intake.timeEnd} <input type="time" name="timeEnd" value={(data.whenEnd as string)?.split(' ')[1] ?? ''} /></label>
 		</div>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -395,8 +398,8 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
-	<p>No intake entries yet</p>
-	<p class="empty-hint">Log what you eat and drink to discover your nutrition patterns.</p>
+	<p>{t.intake.noIntakeEntries}</p>
+	<p class="empty-hint">{t.intake.noIntakeHint}</p>
 </div>
 {/if}
 
@@ -405,7 +408,7 @@
 		<div class="intake-row">
 			<span class="ball {item.data.mood} {item.data.amount === 'poco' ? 'small' : item.data.amount === 'mucho' ? 'large' : ''}"></span>
 			<strong>{item.data.what}</strong>
-			<span class="meal-badge">{item.data.meal ?? 'other'}</span>
+			<span class="meal-badge">{t.intake[item.data.meal as keyof typeof t.intake] ?? t.intake.other}</span>
 			<span class="time">{(item.data.whenStart as string)?.split(' ')[1] ?? ''}</span>
 		</div>
 	{/snippet}
@@ -418,7 +421,7 @@
 	<section class="chart-section">
 		<h2>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-			Meal frequency (14 days)
+			{t.intake.mealFrequency14d}
 		</h2>
 		<svg class="freq-chart" viewBox="0 0 280 80" preserveAspectRatio="xMidYMid meet">
 			{#each fc.days as day, i}
@@ -443,9 +446,9 @@
 			{/each}
 		</svg>
 		<div class="freq-legend">
-			<span class="freq-legend-item"><span class="freq-dot" style="background:#4aa3ff"></span>Normal</span>
-			<span class="freq-legend-item"><span class="freq-dot" style="background:#2e8b57"></span>Light</span>
-			<span class="freq-legend-item"><span class="freq-dot" style="background:#e8a735"></span>Heavy</span>
+			<span class="freq-legend-item"><span class="freq-dot" style="background:#4aa3ff"></span>{t.intake.normal}</span>
+			<span class="freq-legend-item"><span class="freq-dot" style="background:#2e8b57"></span>{t.intake.light}</span>
+			<span class="freq-legend-item"><span class="freq-dot" style="background:#e8a735"></span>{t.intake.heavy}</span>
 		</div>
 	</section>
 {/if}
@@ -456,7 +459,7 @@
 	<section class="metrics">
 		<h2>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4.24 4.24"/><circle cx="12" cy="12" r="10"/></svg>
-			Meal timing patterns
+			{t.intake.mealTimingPatterns}
 		</h2>
 		<div class="mood-bars">
 			{#each tp.slots as slot}
@@ -478,7 +481,7 @@
 	<section class="metrics">
 		<h2>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-			Food-mood correlation
+			{t.intake.foodMoodCorrelation}
 		</h2>
 		<div class="correlation-list">
 			{#each foodMoodCorrelation as item}
@@ -486,12 +489,12 @@
 				{@const colorClass = item.delta >= 0 ? 'corr-positive' : 'corr-negative'}
 				<div class="correlation-row">
 					<span class="corr-food">{item.food}</span>
-					<span class="corr-delta {colorClass}">{sign}{item.delta.toFixed(1)} mood</span>
-					<span class="corr-info">{item.count}d logged</span>
+					<span class="corr-delta {colorClass}">{sign}{item.delta.toFixed(1)} {t.intake.moodWord}</span>
+					<span class="corr-info">{item.count}{t.intake.dLogged}</span>
 				</div>
 			{/each}
 		</div>
-		<p class="corr-note">Compared to average mood across all days</p>
+		<p class="corr-note">{t.intake.comparedToAvg}</p>
 	</section>
 {/if}
 
@@ -510,7 +513,7 @@
 	{@const maxCount = Math.max(1, ...hourCounts.map(h => h.count))}
 	{@const barW = 280 / 18 - 1.5}
 	<section class="chart-section">
-		<h2>Meal timing</h2>
+		<h2>{t.intake.mealTimingChart}</h2>
 		<svg class="line-chart" viewBox="0 0 280 100" preserveAspectRatio="none">
 			{#each hourCounts as slot, i}
 				{@const barH = (slot.count / maxCount) * 80}
@@ -544,24 +547,24 @@
 	{@const pctAmbar = Math.round((ambar / total) * 100)}
 	{@const pctRojo = Math.round((rojo / total) * 100)}
 	<section class="metrics">
-		<h2>Intake mood</h2>
+		<h2>{t.intake.intakeMood}</h2>
 		<div class="mood-bars">
 			<div class="mood-bar-row">
-				<span class="mood-bar-label">Good</span>
+				<span class="mood-bar-label">{t.intake.verde}</span>
 				<div class="mood-bar-track">
 					<div class="mood-bar-fill verde" style="width: {pctVerde}%"></div>
 				</div>
 				<span class="mood-bar-pct">{pctVerde}%</span>
 			</div>
 			<div class="mood-bar-row">
-				<span class="mood-bar-label">Neutral</span>
+				<span class="mood-bar-label">{t.intake.neutral}</span>
 				<div class="mood-bar-track">
 					<div class="mood-bar-fill ambar" style="width: {pctAmbar}%"></div>
 				</div>
 				<span class="mood-bar-pct">{pctAmbar}%</span>
 			</div>
 			<div class="mood-bar-row">
-				<span class="mood-bar-label">Bad</span>
+				<span class="mood-bar-label">{t.intake.rojo}</span>
 				<div class="mood-bar-track">
 					<div class="mood-bar-fill rojo" style="width: {pctRojo}%"></div>
 				</div>
@@ -575,18 +578,20 @@
 {#if store.items.length > 0}
 	{@const mealTotal = store.items.length}
 	{@const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'other'] as const}
+	{@const mealLabels = { breakfast: t.intake.breakfast, lunch: t.intake.lunch, dinner: t.intake.dinner, snack: t.intake.snack, other: t.intake.other } as Record<string, string>}
 	{@const mealCounts = mealTypes.map(m => ({
 		name: m,
+		label: mealLabels[m],
 		count: store.items.filter(e => (e.data.meal ?? 'other') === m).length
 	}))}
 	{@const mealMax = Math.max(1, ...mealCounts.map(m => m.count))}
 	<section class="metrics">
-		<h2>Meal distribution</h2>
+		<h2>{t.intake.mealDistribution}</h2>
 		<div class="mood-bars">
 			{#each mealCounts as mc}
 				{@const pct = Math.round((mc.count / mealTotal) * 100)}
 				<div class="mood-bar-row">
-					<span class="mood-bar-label meal-bar-label">{mc.name}</span>
+					<span class="mood-bar-label meal-bar-label">{mc.label}</span>
 					<div class="mood-bar-track">
 						<div class="mood-bar-fill meal-fill" style="width: {(mc.count / mealMax) * 100}%"></div>
 					</div>
@@ -607,7 +612,7 @@
 	{@const top10 = [...whatCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)}
 	{#if top10.length > 0}
 		<section class="metrics">
-			<h2>Most logged items</h2>
+			<h2>{t.intake.mostLoggedItems}</h2>
 			<ol class="ranked-list">
 				{#each top10 as [name, count], i}
 					<li>
@@ -634,21 +639,21 @@
 		return acc;
 	}, new Map())}
 	{@const commonMood = [...weekMoodCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '-'}
-	{@const moodLabel = commonMood === 'verde' ? 'Good' : commonMood === 'ambar' ? 'Neutral' : commonMood === 'rojo' ? 'Bad' : '-'}
+	{@const moodLabel = commonMood === 'verde' ? t.intake.verde : commonMood === 'ambar' ? t.intake.neutral : commonMood === 'rojo' ? t.intake.rojo : '-'}
 	<section class="metrics">
-		<h2>This week</h2>
+		<h2>{t.common.thisWeek}</h2>
 		<div class="metrics-row">
 			<div class="metric-card">
 				<span class="metric-value">{totalWeek}</span>
-				<span class="metric-label">Intakes</span>
+				<span class="metric-label">{t.intake.intakes}</span>
 			</div>
 			<div class="metric-card">
 				<span class="metric-value">{avgPerDay}</span>
-				<span class="metric-label">Avg / day</span>
+				<span class="metric-label">{t.intake.avgPerDay}</span>
 			</div>
 			<div class="metric-card">
 				<span class="metric-value">{moodLabel}</span>
-				<span class="metric-label">Top mood</span>
+				<span class="metric-label">{t.intake.topMood}</span>
 			</div>
 		</div>
 	</section>
@@ -696,10 +701,9 @@
 		border-radius: 8px;
 		background: var(--c-accent-bg);
 		color: var(--c-accent);
-		text-transform: capitalize;
 	}
 
-	.meal-bar-label { text-transform: capitalize; }
+	.meal-bar-label { }
 	.meal-fill { background: var(--c-accent); }
 
 	.edit-inline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0 1rem; }

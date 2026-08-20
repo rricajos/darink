@@ -7,7 +7,9 @@
 	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
 	import { computeMedSymptomCorrelations, getMedicationNamesFromRegimen } from '$lib/utils/cross-links';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries('symptom');
 	const allStore = useEntries();
 
@@ -31,13 +33,13 @@
 		'General': ['fatigue', 'fever', 'chills', 'sweating', 'anxiety', 'insomnia', 'malaise']
 	};
 
-	const durationOptions = [
-		{ value: '< 1 hour', label: '< 1 hour' },
-		{ value: '1-3 hours', label: '1-3 hours' },
-		{ value: 'half day', label: 'Half day' },
-		{ value: 'full day', label: 'Full day' },
-		{ value: 'ongoing', label: 'Ongoing' }
-	];
+	const durationOptions = $derived.by(() => [
+		{ value: '< 1 hour', label: t.symptoms.lessThan1h },
+		{ value: '1-3 hours', label: t.symptoms.hours1to3 },
+		{ value: 'half day', label: t.symptoms.halfDay },
+		{ value: 'full day', label: t.symptoms.fullDay },
+		{ value: 'ongoing', label: t.symptoms.ongoing }
+	]);
 
 	/* --- Form state --- */
 	let date = $state(new Date().toISOString().slice(0, 10));
@@ -175,7 +177,7 @@
 		duration = '< 1 hour';
 		triggersInput = '';
 		notes = '';
-		toast.show('Symptom logged');
+		toast.show(t.symptoms.symptomLogged);
 	}
 
 	function resolveOngoing(entry: Entry) {
@@ -189,7 +191,7 @@
 		else if (diffH < 12) resolved = 'half day';
 		else resolved = 'full day';
 		entries.update(entry.id, { ...entry.data, duration: resolved });
-		toast.show('Marked as resolved');
+		toast.show(t.symptoms.markedResolved);
 	}
 
 	function severityColor(sev: number): string {
@@ -200,14 +202,14 @@
 </script>
 
 <svelte:head>
-	<title>Symptoms | Darink</title>
+	<title>{t.symptoms.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Symptoms" />
+<PageHeader title={t.symptoms.title} />
 
 <!-- Body region selector -->
 <section class="section">
-	<h2>Body Region</h2>
+	<h2>{t.symptoms.bodyRegion}</h2>
 	<div class="chips">
 		{#each regions as r}
 			<button
@@ -222,7 +224,7 @@
 <!-- Common symptoms -->
 {#if filteredSymptoms.length > 0}
 	<section class="section">
-		<h2>Common Symptoms</h2>
+		<h2>{t.symptoms.commonSymptoms}</h2>
 		<div class="chips">
 			{#each filteredSymptoms as s}
 				<button
@@ -237,30 +239,30 @@
 
 <!-- Log form -->
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Region
-		<input type="text" bind:value={region} placeholder="Select above or type..." />
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
+	<label>{t.symptoms.region}
+		<input type="text" bind:value={region} placeholder={t.symptoms.selectAboveOrType} />
 	</label>
-	<label>Symptom
-		<input type="text" bind:value={symptom} placeholder="Select above or type custom..." />
+	<label>{t.symptoms.symptom}
+		<input type="text" bind:value={symptom} placeholder={t.symptoms.selectAboveOrTypeCustom} />
 	</label>
 	<label>
-		Severity ({severity}/10)
+		{t.symptoms.severityLabel} ({severity}/10)
 		<input type="range" min="1" max="10" bind:value={severity} class="severity-range" style="accent-color: {severityColor(severity)}" />
 		<div class="severity-labels">
-			<span>Mild</span>
-			<span>Severe</span>
+			<span>{t.symptoms.mild}</span>
+			<span>{t.symptoms.severe}</span>
 		</div>
 	</label>
-	<label>Duration
+	<label>{t.symptoms.durationLabel}
 		<select bind:value={duration}>
 			{#each durationOptions as opt}
 				<option value={opt.value}>{opt.label}</option>
 			{/each}
 		</select>
 	</label>
-	<label>Possible triggers
-		<input type="text" bind:value={triggersInput} placeholder="stress, food, weather... (comma-separated)" />
+	<label>{t.symptoms.possibleTriggers}
+		<input type="text" bind:value={triggersInput} placeholder={t.symptoms.triggersPlaceholder} />
 	</label>
 	{#if medNames.length > 0}
 		<div class="med-chips-row">
@@ -272,14 +274,14 @@
 			{/each}
 		</div>
 	{/if}
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log symptom</button>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
+	<button class="primary" onclick={submit}>{t.symptoms.logSymptom}</button>
 </section>
 
 <!-- Active (ongoing) symptoms today -->
 {#if ongoingToday.length > 0}
 	<section class="section">
-		<h2>Active Symptoms</h2>
+		<h2>{t.symptoms.activeSymptoms}</h2>
 		<div class="ongoing-list">
 			{#each ongoingToday as entry}
 				<div class="ongoing-card">
@@ -290,7 +292,7 @@
 					</div>
 					<button class="resolve-btn" onclick={() => resolveOngoing(entry)}>
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-						Resolved
+						{t.symptoms.resolved}
 					</button>
 				</div>
 			{/each}
@@ -301,11 +303,11 @@
 <!-- Frequency analysis -->
 {#if store.items.length > 0}
 	<section class="section">
-		<h2>Frequency Analysis (30 days)</h2>
+		<h2>{t.symptoms.frequencyAnalysis}</h2>
 
 		<!-- Most common symptoms -->
 		{#if topSymptoms.length > 0}
-			<h3>Most Common Symptoms</h3>
+			<h3>{t.symptoms.mostCommon}</h3>
 			<ol class="top-list">
 				{#each topSymptoms as s, i}
 					<li class="top-item">
@@ -322,7 +324,7 @@
 
 		<!-- Day of week chart -->
 		{#if recentEntries.length > 0}
-			<h3>Symptoms by Day of Week</h3>
+			<h3>{t.symptoms.symptomsByDay}</h3>
 			<svg class="week-chart" viewBox="0 0 280 100" preserveAspectRatio="xMidYMid meet">
 				{#each dayOfWeekFrequency as day, i}
 					{@const barW = 280 / 7}
@@ -357,7 +359,7 @@
 
 		<!-- Trigger frequency -->
 		{#if triggerFrequency.length > 0}
-			<h3>Trigger Frequency</h3>
+			<h3>{t.symptoms.triggerFrequency}</h3>
 			<div class="trigger-cloud">
 				{#each triggerFrequency as t}
 					<span class="trigger-tag">
@@ -373,7 +375,7 @@
 <!-- Medication correlations -->
 {#if significantCorrelations.length > 0}
 	<section class="section">
-		<h2>Medication Correlations</h2>
+		<h2>{t.symptoms.medicationCorrelations}</h2>
 		<div class="corr-list">
 			{#each significantCorrelations as c}
 				{@const pct = Math.round(c.correlation * 100)}
@@ -401,8 +403,8 @@
 {#if store.items.length === 0}
 	<div class="empty-state">
 		<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-		<p>No symptoms tracked yet</p>
-		<p class="empty-hint">Log your first symptom to start tracking patterns.</p>
+		<p>{t.symptoms.noSymptoms}</p>
+		<p class="empty-hint">{t.symptoms.noSymptomsHint}</p>
 	</div>
 {/if}
 
@@ -424,28 +426,28 @@
 			triggers: parsedTriggers,
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date as string ?? ''} /></label>
-		<label>Region <input type="text" name="region" value={data.region as string ?? ''} /></label>
-		<label>Symptom <input type="text" name="symptom" value={data.symptom as string ?? ''} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date as string ?? ''} /></label>
+		<label>{t.symptoms.region} <input type="text" name="region" value={data.region as string ?? ''} /></label>
+		<label>{t.symptoms.symptom} <input type="text" name="symptom" value={data.symptom as string ?? ''} /></label>
 		<label>
-			Severity
+			{t.symptoms.severityLabel}
 			<input type="range" name="severity" min="1" max="10" value={data.severity as number ?? 5} />
 		</label>
-		<label>Duration
+		<label>{t.symptoms.durationLabel}
 			<select name="duration">
 				{#each durationOptions as opt}
 					<option value={opt.value} selected={data.duration === opt.value}>{opt.label}</option>
 				{/each}
 			</select>
 		</label>
-		<label>Triggers <input type="text" name="triggers" value={editTriggers} placeholder="comma-separated" /></label>
-		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<label>{t.symptoms.possibleTriggers} <input type="text" name="triggers" value={editTriggers} placeholder={t.symptoms.commaSeparated} /></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}

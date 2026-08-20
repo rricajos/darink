@@ -3,8 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
 
+	const { t } = useLocale();
 	const store = useEntries('signal.hair');
 	const allStore = useEntries();
 
@@ -90,23 +92,23 @@
 	function submit() {
 		entries.add('signal.hair', { zone, density, shedding, miniaturization, notes });
 		zone = ''; notes = '';
-		toast.show('Hair logged');
+		toast.show(t.hair.hairLogged);
 	}
 </script>
 
 <svelte:head>
-  <title>Hair | Darink</title>
+  <title>{t.hair.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Hair" back="/signals" />
+<PageHeader title={t.hair.title} back="/signals" />
 
 <section class="form">
-	<label>Zone <input type="text" bind:value={zone} placeholder="Temples, crown, beard..." /></label>
-	<label>Density ({density}/10) <input type="range" min="1" max="10" bind:value={density} /></label>
-	<label>Shedding ({shedding}/10) <input type="range" min="1" max="10" bind:value={shedding} /></label>
-	<label class="checkbox"><input type="checkbox" bind:checked={miniaturization} /> Miniaturization visible</label>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log hair</button>
+	<label>{t.hair.zone} <input type="text" bind:value={zone} placeholder={t.hair.zonePlaceholder} /></label>
+	<label>{t.hair.density} ({density}/10) <input type="range" min="1" max="10" bind:value={density} /></label>
+	<label>{t.hair.shedding} ({shedding}/10) <input type="range" min="1" max="10" bind:value={shedding} /></label>
+	<label class="checkbox"><input type="checkbox" bind:checked={miniaturization} /> {t.hair.miniVisible}</label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
+	<button class="primary" onclick={submit}>{t.hair.logHair}</button>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -121,17 +123,17 @@
 			miniaturization: Number(fd.get('miniaturization')),
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Zone <input type="text" name="zone" value={data.zone ?? ''} /></label>
-		<label>Density <input type="range" name="density" min="1" max="10" value={data.density} /></label>
-		<label>Shedding <input type="range" name="shedding" min="1" max="10" value={data.shedding} /></label>
-		<label>Miniaturization <input type="range" name="miniaturization" min="1" max="10" value={data.miniaturization} /></label>
-		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<label>{t.hair.zone} <input type="text" name="zone" value={data.zone ?? ''} /></label>
+		<label>{t.hair.density} <input type="range" name="density" min="1" max="10" value={data.density} /></label>
+		<label>{t.hair.shedding} <input type="range" name="shedding" min="1" max="10" value={data.shedding} /></label>
+		<label>{t.hair.miniaturization} <input type="range" name="miniaturization" min="1" max="10" value={data.miniaturization} /></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -139,14 +141,14 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.97 0-9-2.24-9-5v-4c0-2.76 4.03-5 9-5s9 2.24 9 5v4c0 2.76-4.03 5-9 5z"/><path d="M12 8V2"/><path d="M8 8V4"/><path d="M16 8V4"/><path d="M6 9V6"/><path d="M18 9V6"/></svg>
-	<p>No hair entries yet</p>
-	<p class="empty-hint">Monitor hair health to detect changes in density and shedding.</p>
+	<p>{t.hair.noEntries}</p>
+	<p class="empty-hint">{t.hair.noEntriesHint}</p>
 </div>
 {/if}
 
 <EntryList items={store.items} {editForm} limit={10}>
 	{#snippet row(item)}
-		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">Zone: {item.data.zone || '—'} · Density: {item.data.density}/10 · Shedding: {item.data.shedding}/10</span></div>
+		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">{t.hair.zone}: {item.data.zone || '—'} · {t.hair.density}: {item.data.density}/10 · {t.hair.shedding}: {item.data.shedding}/10</span></div>
 	{/snippet}
 </EntryList>
 
@@ -159,7 +161,7 @@
 {@const rangeV = maxV - minV || 1}
 {@const stepX = 280 / Math.max(ptsD.length - 1, 1)}
 <section class="chart-section">
-	<h2>Density vs Shedding Trend</h2>
+	<h2>{t.hair.densityVsShedding}</h2>
 	<svg class="line-chart" viewBox="0 0 280 100" preserveAspectRatio="none">
 		<polyline fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linejoin="round"
 			points={ptsD.map((p, i) => `${i * stepX},${100 - ((p.value - minV) / rangeV) * 80 - 10}`).join(' ')} />
@@ -167,8 +169,8 @@
 			points={ptsS.map((p, i) => `${i * stepX},${100 - ((p.value - minV) / rangeV) * 80 - 10}`).join(' ')} />
 	</svg>
 	<div class="legend">
-		<span><span class="dot" style="background:var(--c-accent)"></span> Density</span>
-		<span><span class="dot" style="background:#ef5350"></span> Shedding</span>
+		<span><span class="dot" style="background:var(--c-accent)"></span> {t.hair.density}</span>
+		<span><span class="dot" style="background:#ef5350"></span> {t.hair.shedding}</span>
 	</div>
 </section>
 {/if}
@@ -177,15 +179,15 @@
 {@const avgDensity = (last30.reduce((s, e) => s + Number(e.data.density), 0) / last30.length).toFixed(1)}
 {@const avgShedding = (last30.reduce((s, e) => s + Number(e.data.shedding), 0) / last30.length).toFixed(1)}
 <section class="metrics">
-	<h2>Averages</h2>
+	<h2>{t.hair.averages}</h2>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value">{avgDensity}</span>
-			<span class="metric-label">Avg Density</span>
+			<span class="metric-label">{t.hair.avgDensity}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{avgShedding}</span>
-			<span class="metric-label">Avg Shedding</span>
+			<span class="metric-label">{t.hair.avgShedding}</span>
 		</div>
 	</div>
 </section>
@@ -193,16 +195,16 @@
 
 {#if stressHairLink}
 <section class="analytics">
-	<h2>Stress–Shedding Link</h2>
-	<p class="hint">Avg shedding on high stress (≥7) vs low stress (≤4) days</p>
+	<h2>{t.hair.stressSheddingLink}</h2>
+	<p class="hint">{t.hair.stressHint}</p>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value" style="color:#e53e3e">{stressHairLink.highStress}/10</span>
-			<span class="metric-label">High stress (n={stressHairLink.highN})</span>
+			<span class="metric-label">{t.hair.highStress} (n={stressHairLink.highN})</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value" style="color:var(--c-done)">{stressHairLink.lowStress}/10</span>
-			<span class="metric-label">Low stress (n={stressHairLink.lowN})</span>
+			<span class="metric-label">{t.hair.lowStress} (n={stressHairLink.lowN})</span>
 		</div>
 	</div>
 </section>
@@ -210,7 +212,7 @@
 
 {#if zoneFreq.zones.length > 0}
 <section class="analytics">
-	<h2>Zone Frequency</h2>
+	<h2>{t.hair.zoneFrequency}</h2>
 	<div class="zone-bars">
 		{#each zoneFreq.zones as [z, count]}
 			<div class="zone-row">
@@ -225,16 +227,16 @@
 
 {#if supplementHairLink}
 <section class="analytics">
-	<h2>Supplement–Hair Link</h2>
-	<p class="hint">Avg hair density on supplement days vs non-supplement days</p>
+	<h2>{t.hair.supplementHairLink}</h2>
+	<p class="hint">{t.hair.suppHairHint}</p>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value" style="color:var(--c-done)">{supplementHairLink.supp}/10</span>
-			<span class="metric-label">Supplement days</span>
+			<span class="metric-label">{t.hair.supplementDays}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value" style="color:var(--c-text-muted)">{supplementHairLink.noSupp}/10</span>
-			<span class="metric-label">No supplement</span>
+			<span class="metric-label">{t.hair.noSupplement}</span>
 		</div>
 	</div>
 </section>
@@ -242,10 +244,10 @@
 
 {#if monthlyTrend && monthlyTrend.length > 1}
 <section class="analytics">
-	<h2>Monthly Trend</h2>
+	<h2>{t.hair.monthlyTrend}</h2>
 	<div class="monthly-table">
 		<div class="monthly-header">
-			<span>Month</span><span>Density</span><span>Shedding</span>
+			<span>{t.hair.monthHeader}</span><span>{t.hair.density}</span><span>{t.hair.shedding}</span>
 		</div>
 		{#each monthlyTrend as m}
 			<div class="monthly-row">

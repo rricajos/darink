@@ -3,7 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
+
+	const { t } = useLocale();
 
 	const store = useEntries('training.cardio');
 
@@ -19,7 +22,7 @@
 		entries.add('training.cardio', { date, activity: activity.trim(), distanceKm, durationMin, zone, notes });
 		activity = ''; notes = '';
 		date = new Date().toISOString().slice(0, 10);
-		toast.show('Cardio logged');
+		toast.show(t.training.cardioLogged);
 	}
 
 	function repeatLast() {
@@ -30,7 +33,7 @@
 		durationMin = last.data.durationMin as number;
 		zone = last.data.zone as number;
 		notes = (last.data.notes as string) || '';
-		toast.show('Fields pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	const quickActivities = $derived.by(() => {
@@ -60,7 +63,7 @@
 		distanceKm = item.last.distanceKm as number;
 		durationMin = item.last.durationMin as number;
 		zone = item.last.zone as number;
-		toast.show('Pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	/* ── Analytics ── */
@@ -146,7 +149,7 @@
 	});
 
 	const zoneColors = ['#22c55e', '#4aa3ff', '#f97316', '#ef4444', '#dc2626'];
-	const zoneLabels = ['Recovery', 'Endurance', 'Tempo', 'Threshold', 'VO2max'];
+	const zoneLabels = $derived.by(() => [t.training.zoneRecovery, t.training.zoneEndurance, t.training.zoneTempo, t.training.zoneThreshold, t.training.zoneVO2max]);
 
 	/* Personal bests */
 	const personalBests = $derived.by(() => {
@@ -192,14 +195,14 @@
 </script>
 
 <svelte:head>
-  <title>Cardio | Darink</title>
+  <title>{t.training.cardio} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Cardio" back="/training" />
+<PageHeader title={t.training.cardio} back="/training" />
 
 {#if quickActivities.length > 0}
 <section class="quick-add">
-	<h2>Quick add</h2>
+	<h2>{t.training.quickAdd}</h2>
 	<div class="quick-chips">
 		{#each quickActivities as item}
 			<button class="quick-chip" onclick={() => prefillActivity(item)}>
@@ -212,18 +215,18 @@
 {/if}
 
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Activity <input type="text" bind:value={activity} placeholder="Run, Bike, Swim..." /></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
+	<label>{t.training.activity} <input type="text" bind:value={activity} placeholder="Run, Bike, Swim..." /></label>
 	<div class="row">
-		<label>Distance (km) <input type="number" min="0" step="0.1" bind:value={distanceKm} /></label>
-		<label>Duration (min) <input type="number" min="0" bind:value={durationMin} /></label>
-		<label>Zone (1-5) <input type="number" min="1" max="5" bind:value={zone} /></label>
+		<label>{t.training.distanceKm} <input type="number" min="0" step="0.1" bind:value={distanceKm} /></label>
+		<label>{t.training.durationMin} <input type="number" min="0" bind:value={durationMin} /></label>
+		<label>{t.training.zone15} <input type="number" min="1" max="5" bind:value={zone} /></label>
 	</div>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
 	<div class="form-actions">
-		<button class="primary" onclick={submit}>Log cardio</button>
+		<button class="primary" onclick={submit}>{t.training.logCardio}</button>
 		{#if store.items.length > 0}
-			<button onclick={repeatLast}>Repeat last</button>
+			<button onclick={repeatLast}>{t.common.repeatLast}</button>
 		{/if}
 	</div>
 </section>
@@ -241,20 +244,20 @@
 			zone: Number(fd.get('zone')),
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date || ''} /></label>
-		<label>Activity <input type="text" name="activity" value={data.activity} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date || ''} /></label>
+		<label>{t.training.activity} <input type="text" name="activity" value={data.activity} /></label>
 		<div class="row">
-			<label>Distance (km) <input type="number" name="distanceKm" min="0" step="0.1" value={data.distanceKm} /></label>
-			<label>Duration (min) <input type="number" name="durationMin" min="0" value={data.durationMin} /></label>
-			<label>Zone (1-5) <input type="number" name="zone" min="1" max="5" value={data.zone} /></label>
+			<label>{t.training.distanceKm} <input type="number" name="distanceKm" min="0" step="0.1" value={data.distanceKm} /></label>
+			<label>{t.training.durationMin} <input type="number" name="durationMin" min="0" value={data.durationMin} /></label>
+			<label>{t.training.zone15} <input type="number" name="zone" min="1" max="5" value={data.zone} /></label>
 		</div>
-		<label>Notes <textarea name="notes" rows="2">{data.notes}</textarea></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -270,19 +273,19 @@
 
 <!-- Quick Stats -->
 <section class="analytics">
-	<h2>Stats</h2>
+	<h2>{t.training.stats}</h2>
 	<div class="stat-row">
 		<div class="stat-card">
 			<span class="stat-value">{totalDistance.toFixed(1)}</span>
-			<span class="stat-label">km total</span>
+			<span class="stat-label">{t.training.kmTotal}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">{totalDurationHrs.toFixed(1)}</span>
-			<span class="stat-label">hours total</span>
+			<span class="stat-label">{t.training.hoursTotal}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">{sessionsThisWeek}</span>
-			<span class="stat-label">this week</span>
+			<span class="stat-label">{t.common.thisWeek}</span>
 		</div>
 	</div>
 </section>
@@ -290,22 +293,22 @@
 <!-- Pace Progression -->
 {#if paceProgression.length >= 2}
 <section class="analytics">
-	<h2>Pace — {topActivityDisplay}</h2>
+	<h2>{t.training.pace} — {topActivityDisplay}</h2>
 	<div class="chart-card">
 		<div class="chart-meta">
-			<span>Current: <strong>{fmtPace(paceProgression[paceProgression.length - 1].pace)}</strong> min/km</span>
+			<span>{t.training.current}: <strong>{fmtPace(paceProgression[paceProgression.length - 1].pace)}</strong> min/km</span>
 			{#if paceTrend === 'faster'}
 				<span class="trend trend-good">
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
-					Faster
+					{t.training.faster}
 				</span>
 			{:else if paceTrend === 'slower'}
 				<span class="trend trend-bad">
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-					Slower
+					{t.training.slower}
 				</span>
 			{:else}
-				<span class="trend">Steady</span>
+				<span class="trend">{t.training.steady}</span>
 			{/if}
 		</div>
 		<svg viewBox="0 0 280 80" class="line-chart" preserveAspectRatio="none">
@@ -328,11 +331,11 @@
 <!-- Distance & Duration Trends -->
 {#if last20.length >= 2}
 <section class="analytics">
-	<h2>Trends — Last {last20.length} sessions</h2>
+	<h2>{t.training.trendsLast} {last20.length} {t.training.sessions}</h2>
 	<div class="chart-card">
 		<div class="chart-legend">
-			<span class="legend-item"><span class="legend-dot" style="background:#4aa3ff"></span> Distance (km)</span>
-			<span class="legend-item"><span class="legend-dot" style="background:#2e8b57"></span> Duration (min)</span>
+			<span class="legend-item"><span class="legend-dot" style="background:#4aa3ff"></span> {t.training.distanceKm}</span>
+			<span class="legend-item"><span class="legend-dot" style="background:#2e8b57"></span> {t.training.durationMin}</span>
 		</div>
 		<svg viewBox="0 0 280 80" class="line-chart" preserveAspectRatio="none">
 			<polyline
@@ -361,7 +364,7 @@
 
 <!-- Zone Distribution -->
 <section class="analytics">
-	<h2>Zone Distribution</h2>
+	<h2>{t.training.zoneDistribution}</h2>
 	<div class="zone-bars">
 		{#each zoneDistribution as z, i}
 			<div class="zone-row">
@@ -378,7 +381,7 @@
 <!-- Personal Bests -->
 {#if personalBests.length > 0}
 <section class="analytics">
-	<h2>Personal Bests</h2>
+	<h2>{t.training.personalBests}</h2>
 	<div class="pb-list">
 		{#each personalBests as pb}
 			<div class="pb-card">

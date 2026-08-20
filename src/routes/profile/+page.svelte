@@ -3,7 +3,10 @@
 	import { ui } from '$lib/db';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import { onMount } from 'svelte';
+
+	const { t } = useLocale();
 
 	let height = $state(175);
 	let weight = $state(88);
@@ -16,13 +19,13 @@
 	let activityLevel = $state(1.55);
 	let targetWeight = $state(0);
 
-	const activityOptions = [
-		{ value: 1.2, label: 'Sedentary', desc: 'Desk job, little exercise' },
-		{ value: 1.375, label: 'Light', desc: 'Light exercise 1-3 days/week' },
-		{ value: 1.55, label: 'Moderate', desc: 'Moderate exercise 3-5 days/week' },
-		{ value: 1.725, label: 'Active', desc: 'Hard exercise 6-7 days/week' },
-		{ value: 1.9, label: 'Very Active', desc: 'Very hard exercise, physical job' }
-	] as const;
+	const activityOptions = $derived.by(() => [
+		{ value: 1.2, label: t.profile.sedentary, desc: t.profile.sedentaryDesc },
+		{ value: 1.375, label: t.profile.light, desc: t.profile.lightDesc },
+		{ value: 1.55, label: t.profile.moderateLevel, desc: t.profile.moderateDesc },
+		{ value: 1.725, label: t.profile.active, desc: t.profile.activeDesc },
+		{ value: 1.9, label: t.profile.veryActive, desc: t.profile.veryActiveDesc }
+	]);
 
 	const weightStore = useEntries('weight');
 	const intakeStore = useEntries('intake');
@@ -57,16 +60,16 @@
 	// Calculated metrics
 	const bmi = $derived(weight > 0 && height > 0 ? +(weight / ((height / 100) ** 2)).toFixed(1) : 0);
 	const bmiCategory = $derived.by(() => {
-		if (bmi < 18.5) return 'Underweight';
-		if (bmi < 25) return 'Normal';
-		if (bmi < 30) return 'Overweight';
-		return 'Obese';
+		if (bmi < 18.5) return t.profile.underweight;
+		if (bmi < 25) return t.profile.normal;
+		if (bmi < 30) return t.profile.overweight;
+		return t.profile.obese;
 	});
 	const bmr = $derived(weight > 0 && height > 0 && age > 0
 		? Math.round(10 * weight + 6.25 * height - 5 * age + 5)
 		: 0);
 	const tdee = $derived(bmr > 0 ? Math.round(bmr * activityLevel) : 0);
-	const activityLabel = $derived(activityOptions.find((o) => o.value === activityLevel)?.label ?? 'Moderate');
+	const activityLabel = $derived(activityOptions.find((o) => o.value === activityLevel)?.label ?? t.profile.moderateLevel);
 
 	// Weight history (last 30 entries for existing charts)
 	const weightHistory = $derived.by(() => {
@@ -201,59 +204,59 @@
 			profile: { height, weight, age, bodyFat, stressBaseline, sleepTarget, wakeTarget, notes, activityLevel, targetWeight }
 		});
 		entries.add('weight', { weight, bodyFat, date: new Date().toISOString().slice(0, 10) });
-		toast.show('Profile saved');
+		toast.show(t.profile.profileSaved);
 	}
 </script>
 
 <svelte:head>
-  <title>Profile | Darink</title>
+  <title>{t.profile.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Profile" />
+<PageHeader title={t.profile.title} />
 
 <section class="form">
 	<div class="row">
-		<label>Height (cm) <input type="number" bind:value={height} /></label>
-		<label>Weight (kg) <input type="number" step="0.1" bind:value={weight} /></label>
+		<label>{t.profile.heightCm} <input type="number" bind:value={height} /></label>
+		<label>{t.profile.weightKg} <input type="number" step="0.1" bind:value={weight} /></label>
 	</div>
 	<div class="row">
-		<label>Age <input type="number" bind:value={age} /></label>
-		<label>Body fat (%) <input type="number" step="0.5" bind:value={bodyFat} /></label>
+		<label>{t.profile.age} <input type="number" bind:value={age} /></label>
+		<label>{t.profile.bodyFat} <input type="number" step="0.5" bind:value={bodyFat} /></label>
 	</div>
-	<label>Stress baseline ({stressBaseline}/10) <input type="range" min="1" max="10" bind:value={stressBaseline} /></label>
+	<label>{t.profile.stressBaseline} ({stressBaseline}/10) <input type="range" min="1" max="10" bind:value={stressBaseline} /></label>
 	<div class="row">
-		<label>Sleep target <input type="time" bind:value={sleepTarget} /></label>
-		<label>Wake target <input type="time" bind:value={wakeTarget} /></label>
+		<label>{t.profile.sleepTarget} <input type="time" bind:value={sleepTarget} /></label>
+		<label>{t.profile.wakeTarget} <input type="time" bind:value={wakeTarget} /></label>
 	</div>
-	<label>Activity level
+	<label>{t.profile.activityLevel}
 		<select bind:value={activityLevel}>
 			{#each activityOptions as opt}
 				<option value={opt.value}>{opt.label} -- {opt.desc}</option>
 			{/each}
 		</select>
 	</label>
-	<label>Notes <textarea bind:value={notes} rows="3" placeholder="Conditions, medications, genetic notes..."></textarea></label>
-	<button class="primary" onclick={save}>Save profile</button>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="3" placeholder={t.profile.notesPlaceholder}></textarea></label>
+	<button class="primary" onclick={save}>{t.profile.saveProfile}</button>
 </section>
 
 {#if bmi > 0}
 <section class="metrics">
-	<h2>Metrics</h2>
+	<h2>{t.profile.metrics}</h2>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value">{bmi}</span>
-			<span class="metric-label">BMI</span>
-			<span class="metric-sub {bmiCategory.toLowerCase()}">{bmiCategory}</span>
+			<span class="metric-label">{t.profile.bmi}</span>
+			<span class="metric-sub">{bmiCategory}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{bmr}</span>
-			<span class="metric-label">BMR</span>
-			<span class="metric-sub">kcal/day</span>
+			<span class="metric-label">{t.profile.bmr}</span>
+			<span class="metric-sub">{t.profile.kcalDay}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{tdee}</span>
-			<span class="metric-label">TDEE</span>
-			<span class="metric-sub">kcal/day</span>
+			<span class="metric-label">{t.profile.tdee}</span>
+			<span class="metric-sub">{t.profile.kcalDay}</span>
 			<span class="metric-sub activity-tag">{activityLabel}</span>
 		</div>
 	</div>
@@ -262,33 +265,33 @@
 
 {#if latestMeasurement}
 <section class="metrics">
-	<h2>Latest Measurements</h2>
+	<h2>{t.profile.latestMeasurements}</h2>
 	<div class="metrics-row">
 		{#if latestMeasurement.data.waist}
 			<div class="metric-card">
 				<span class="metric-value">{latestMeasurement.data.waist}</span>
-				<span class="metric-label">Waist</span>
+				<span class="metric-label">{t.profile.waist}</span>
 				<span class="metric-sub">cm</span>
 			</div>
 		{/if}
 		{#if latestMeasurement.data.chest}
 			<div class="metric-card">
 				<span class="metric-value">{latestMeasurement.data.chest}</span>
-				<span class="metric-label">Chest</span>
+				<span class="metric-label">{t.profile.chest}</span>
 				<span class="metric-sub">cm</span>
 			</div>
 		{/if}
 		{#if latestMeasurement.data.hips}
 			<div class="metric-card">
 				<span class="metric-value">{latestMeasurement.data.hips}</span>
-				<span class="metric-label">Hips</span>
+				<span class="metric-label">{t.profile.hips}</span>
 				<span class="metric-sub">cm</span>
 			</div>
 		{/if}
 	</div>
 	<a href="/measurements" class="meas-link">
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-		View all measurements
+		{t.profile.viewAllMeasurements}
 	</a>
 </section>
 {/if}
@@ -300,7 +303,7 @@
 {@const rangeW = maxW - minW || 1}
 {@const stepX = 280 / Math.max(pts.length - 1, 1)}
 <section class="chart-section">
-	<h2>Weight History (last {pts.length})</h2>
+	<h2>{t.profile.weightHistoryLast.replace('{n}', String(pts.length))}</h2>
 	<svg class="line-chart" viewBox="0 0 280 100" preserveAspectRatio="none">
 		<polyline
 			fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linejoin="round"
@@ -341,9 +344,9 @@
 	</div>
 	{/if}
 	<div class="legend">
-		<span class="dot weight"></span> Weight
+		<span class="dot weight"></span> {t.profile.weightLegend}
 		{#if pts.some((p) => p.bodyFat != null)}
-			<span class="dot bf"></span> Body fat
+			<span class="dot bf"></span> {t.profile.bodyFatLegend}
 		{/if}
 	</div>
 </section>

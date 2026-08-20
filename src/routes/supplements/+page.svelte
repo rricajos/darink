@@ -6,7 +6,9 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries('supplement');
 	const checkinStore = useEntries('checkin');
 
@@ -37,7 +39,7 @@
 		stack = [...stack, item];
 		ui.patch({ supplementStack: stack });
 		stackName = ''; stackDose = '';
-		toast.show('Added to stack');
+		toast.show(t.supplements.addedToStack);
 	}
 
 	function removeFromStack(index: number) {
@@ -233,36 +235,36 @@
 			timing: item.timing,
 			notes: ''
 		});
-		toast.show(`${item.name} logged`);
+		toast.show(t.supplements.supplementLogged);
 	}
 
 	/* --- Timing labels --- */
-	const timingLabels: Record<string, string> = {
-		morning: 'Morning',
-		preworkout: 'Pre-workout',
-		afternoon: 'Afternoon',
-		night: 'Night',
-		withfood: 'With food'
-	};
+	const timingLabels = $derived.by(() => ({
+		morning: t.supplements.timingMorning,
+		preworkout: t.supplements.timingPreworkout,
+		afternoon: t.supplements.timingAfternoon,
+		night: t.supplements.timingNight,
+		withfood: t.supplements.timingWithfood
+	}) as Record<string, string>);
 
 	function submit() {
 		if (!name.trim()) return;
 		entries.add('supplement', { date, name: name.trim(), dose, timing, notes });
 		date = new Date().toISOString().slice(0, 10);
 		name = ''; dose = ''; notes = '';
-		toast.show('Supplement logged');
+		toast.show(t.supplements.supplementLogged);
 	}
 </script>
 
 <svelte:head>
-  <title>Supplements | Darink</title>
+  <title>{t.supplements.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Supplements" />
+<PageHeader title={t.supplements.title} />
 
 <!-- Planned Stack -->
 <section class="stack-section">
-	<h2>Planned Stack</h2>
+	<h2>{t.supplements.plannedStack}</h2>
 	{#if stack.length > 0}
 		<div class="stack-list">
 			{#each stack as item, i}
@@ -274,32 +276,32 @@
 						{/if}
 						<span class="meta">{timingLabels[item.timing] ?? item.timing}</span>
 					</div>
-					<button class="stack-remove" onclick={() => removeFromStack(i)} aria-label="Remove"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+					<button class="stack-remove" onclick={() => removeFromStack(i)} aria-label={t.common.remove}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
 				</div>
 			{/each}
 		</div>
 	{:else}
-		<p class="empty-hint">No supplements in your planned stack yet.</p>
+		<p class="empty-hint">{t.supplements.noStackHint}</p>
 	{/if}
 	<div class="stack-form">
-		<input type="text" bind:value={stackName} placeholder="Name" />
-		<input type="text" bind:value={stackDose} placeholder="Dose" />
+		<input type="text" bind:value={stackName} placeholder={t.supplements.nameLabel} />
+		<input type="text" bind:value={stackDose} placeholder={t.supplements.doseLabel} />
 		<select bind:value={stackTiming}>
-			<option value="morning">Morning</option>
-			<option value="preworkout">Pre-workout</option>
-			<option value="afternoon">Afternoon</option>
-			<option value="night">Night</option>
-			<option value="withfood">With food</option>
+			<option value="morning">{t.supplements.timingMorning}</option>
+			<option value="preworkout">{t.supplements.timingPreworkout}</option>
+			<option value="afternoon">{t.supplements.timingAfternoon}</option>
+			<option value="night">{t.supplements.timingNight}</option>
+			<option value="withfood">{t.supplements.timingWithfood}</option>
 		</select>
-		<button onclick={addToStack}>Add to stack</button>
+		<button onclick={addToStack}>{t.supplements.addToStack}</button>
 	</div>
 </section>
 
 <!-- Today's Adherence -->
 {#if stack.length > 0}
 <section class="adherence-section">
-	<h2>Today's Adherence</h2>
-	<div class="adherence-summary">{adherence.taken}/{adherence.total} taken ({adherence.pct}%)</div>
+	<h2>{t.supplements.todayAdherence}</h2>
+	<div class="adherence-summary">{adherence.taken}/{adherence.total} {t.supplements.taken} ({adherence.pct}%)</div>
 	<div class="adherence-list">
 		{#each adherence.items as ai}
 			<div class="adherence-item" class:taken={ai.taken}>
@@ -311,7 +313,7 @@
 				{#if !ai.taken}
 					<button class="take-now-btn" onclick={() => takeNow(ai.planned)}>
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-						Take now
+						{t.supplements.takeNow}
 					</button>
 				{/if}
 			</div>
@@ -323,7 +325,7 @@
 <!-- Weekly Adherence Chart -->
 {#if weeklyAdherence.length > 0}
 <section class="chart-section">
-	<h2>Weekly Adherence</h2>
+	<h2>{t.supplements.weeklyAdherence}</h2>
 	<svg class="week-chart" viewBox="0 0 280 100" preserveAspectRatio="xMidYMid meet">
 		{#each weeklyAdherence as day, i}
 			{@const barW = 280 / 7}
@@ -360,28 +362,28 @@
 <!-- Supplement Stats -->
 {#if stack.length > 0 && store.items.length > 0}
 <section class="stats-section">
-	<h2>Supplement Stats</h2>
+	<h2>{t.supplements.supplementStats}</h2>
 	<div class="stats-grid">
 		<div class="stat-card">
 			<span class="stat-value">{totalDoses}</span>
-			<span class="stat-label">Total doses logged</span>
+			<span class="stat-label">{t.supplements.totalDosesLogged}</span>
 		</div>
 		<div class="stat-card">
 			{#if mostConsistent}
 				<span class="stat-value">{mostConsistent.pct}%</span>
-				<span class="stat-label">Most consistent: {mostConsistent.name}</span>
+				<span class="stat-label">{t.supplements.mostConsistent}: {mostConsistent.name}</span>
 			{:else}
 				<span class="stat-value">--</span>
-				<span class="stat-label">Most consistent</span>
+				<span class="stat-label">{t.supplements.mostConsistent}</span>
 			{/if}
 		</div>
 		<div class="stat-card">
 			{#if daysSinceLastMiss !== null}
 				<span class="stat-value">{daysSinceLastMiss}</span>
-				<span class="stat-label">Days since last miss</span>
+				<span class="stat-label">{t.supplements.daysSinceLastMiss}</span>
 			{:else}
 				<span class="stat-value">--</span>
-				<span class="stat-label">Days since last miss</span>
+				<span class="stat-label">{t.supplements.daysSinceLastMiss}</span>
 			{/if}
 		</div>
 	</div>
@@ -391,7 +393,7 @@
 <!-- Supplement-Wellbeing Correlation -->
 {#if correlations.length > 0}
 <section class="correlation-section">
-	<h2>Supplement-Wellbeing Correlation</h2>
+	<h2>{t.supplements.wellbeingCorrelation}</h2>
 	<div class="correlation-list">
 		{#each correlations as cor}
 			<div class="correlation-card">
@@ -399,14 +401,14 @@
 				<div class="correlation-metrics">
 					<span class="correlation-metric" class:positive={cor.moodDiff > 0} class:negative={cor.moodDiff < 0}>
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-						Mood {cor.moodDiff >= 0 ? '+' : ''}{cor.moodDiff}
+						{t.common.mood} {cor.moodDiff >= 0 ? '+' : ''}{cor.moodDiff}
 					</span>
 					<span class="correlation-metric" class:positive={cor.energyDiff > 0} class:negative={cor.energyDiff < 0}>
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-						Energy {cor.energyDiff >= 0 ? '+' : ''}{cor.energyDiff}
+						{t.common.energy} {cor.energyDiff >= 0 ? '+' : ''}{cor.energyDiff}
 					</span>
 				</div>
-				<div class="correlation-sample">Based on {cor.takenDays} days taken, {cor.missedDays} days without</div>
+				<div class="correlation-sample">{t.supplements.basedOnDays.replace('{taken}', String(cor.takenDays)).replace('{missed}', String(cor.missedDays))}</div>
 			</div>
 		{/each}
 	</div>
@@ -416,7 +418,7 @@
 <!-- Stack Timeline (30 days) -->
 {#if timelineData.length > 0}
 <section class="timeline-section">
-	<h2>Stack Timeline (30 days)</h2>
+	<h2>{t.supplements.stackTimeline}</h2>
 	<div class="timeline-grid">
 		<div class="timeline-header">
 			<span class="timeline-label-spacer"></span>
@@ -439,7 +441,7 @@
 <!-- Most Logged Supplements -->
 {#if topSupplements.length > 0}
 <section class="top-section">
-	<h2>Most Logged</h2>
+	<h2>{t.supplements.mostLogged}</h2>
 	<ol class="top-list">
 		{#each topSupplements as s, i}
 			<li class="top-item">
@@ -455,30 +457,30 @@
 {#if store.items.length === 0 && stack.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
-	<p>No supplements tracked yet</p>
-	<p class="empty-hint">Define your supplement stack and start tracking adherence.</p>
+	<p>{t.supplements.noSupplements}</p>
+	<p class="empty-hint">{t.supplements.noSupplementsHint}</p>
 </div>
 {/if}
 
 <!-- Log Form -->
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Name <input type="text" bind:value={name} placeholder="Zinc, Magnesium, Ashwagandha..." /></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
+	<label>{t.supplements.nameLabel} <input type="text" bind:value={name} placeholder="Zinc, Magnesium, Ashwagandha..." /></label>
 	<div class="row">
-		<label>Dose <input type="text" bind:value={dose} placeholder="30mg, 2 caps..." /></label>
+		<label>{t.supplements.doseLabel} <input type="text" bind:value={dose} placeholder="30mg, 2 caps..." /></label>
 		<label>
-			Timing
+			{t.supplements.timingLabel}
 			<select bind:value={timing}>
-				<option value="morning">Morning</option>
-				<option value="preworkout">Pre-workout</option>
-				<option value="afternoon">Afternoon</option>
-				<option value="night">Night</option>
-				<option value="withfood">With food</option>
+				<option value="morning">{t.supplements.timingMorning}</option>
+				<option value="preworkout">{t.supplements.timingPreworkout}</option>
+				<option value="afternoon">{t.supplements.timingAfternoon}</option>
+				<option value="night">{t.supplements.timingNight}</option>
+				<option value="withfood">{t.supplements.timingWithfood}</option>
 			</select>
 		</label>
 	</div>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log supplement</button>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
+	<button class="primary" onclick={submit}>{t.supplements.logSupplement}</button>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -492,27 +494,27 @@
 			timing: fd.get('timing') as string,
 			notes: fd.get('notes') as string
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Name <input type="text" name="name" value={data.name} /></label>
+		<label>{t.supplements.nameLabel} <input type="text" name="name" value={data.name} /></label>
 		<div class="row">
-			<label>Dose <input type="text" name="dose" value={data.dose} /></label>
+			<label>{t.supplements.doseLabel} <input type="text" name="dose" value={data.dose} /></label>
 			<label>
-				Timing
+				{t.supplements.timingLabel}
 				<select name="timing">
-					<option value="morning" selected={data.timing === 'morning'}>Morning</option>
-					<option value="preworkout" selected={data.timing === 'preworkout'}>Pre-workout</option>
-					<option value="afternoon" selected={data.timing === 'afternoon'}>Afternoon</option>
-					<option value="night" selected={data.timing === 'night'}>Night</option>
-					<option value="withfood" selected={data.timing === 'withfood'}>With food</option>
+					<option value="morning" selected={data.timing === 'morning'}>{t.supplements.timingMorning}</option>
+					<option value="preworkout" selected={data.timing === 'preworkout'}>{t.supplements.timingPreworkout}</option>
+					<option value="afternoon" selected={data.timing === 'afternoon'}>{t.supplements.timingAfternoon}</option>
+					<option value="night" selected={data.timing === 'night'}>{t.supplements.timingNight}</option>
+					<option value="withfood" selected={data.timing === 'withfood'}>{t.supplements.timingWithfood}</option>
 				</select>
 			</label>
 		</div>
-		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}

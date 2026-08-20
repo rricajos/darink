@@ -4,7 +4,9 @@
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import type { Entry } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries('measurement');
 
 	const today = new Date().toISOString().slice(0, 10);
@@ -20,10 +22,10 @@
 	let notes = $state('');
 
 	const bodyParts = ['waist', 'chest', 'hips', 'neck', 'bicepsL', 'bicepsR', 'thighL', 'thighR'] as const;
-	const bodyPartLabels: Record<string, string> = {
-		waist: 'Waist', chest: 'Chest', hips: 'Hips', neck: 'Neck',
-		bicepsL: 'Biceps L', bicepsR: 'Biceps R', thighL: 'Thigh L', thighR: 'Thigh R'
-	};
+	const bodyPartLabels = $derived.by(() => ({
+		waist: t.measurements.waist, chest: t.measurements.chest, hips: t.measurements.hips, neck: t.measurements.neck,
+		bicepsL: t.measurements.bicepsL, bicepsR: t.measurements.bicepsR, thighL: t.measurements.thighL, thighR: t.measurements.thighR
+	}) as Record<string, string>);
 
 	const chartColors: Record<string, string> = {
 		waist: '#4aa3ff', chest: '#e8a735', hips: '#2e8b57', neck: '#e05577',
@@ -44,7 +46,7 @@
 
 		const hasValues = Object.keys(data).some((k) => k !== 'date' && k !== 'notes');
 		if (!hasValues) {
-			toast.show('Enter at least one measurement');
+			toast.show(t.measurements.enterAtLeast);
 			return;
 		}
 		entries.add('measurement', data);
@@ -52,7 +54,7 @@
 		bicepsL = 0; bicepsR = 0; thighL = 0; thighR = 0;
 		notes = '';
 		date = new Date().toISOString().slice(0, 10);
-		toast.show('Measurement logged');
+		toast.show(t.measurements.measurementLogged);
 	}
 
 	// Sorted history (oldest first for charts)
@@ -162,56 +164,56 @@
 </script>
 
 <svelte:head>
-	<title>Measurements | Darink</title>
+	<title>{t.measurements.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Measurements" />
+<PageHeader title={t.measurements.title} />
 
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
 	<div class="row">
-		<label>Waist (cm) <input type="number" step="0.1" bind:value={waist} min="0" /></label>
-		<label>Chest (cm) <input type="number" step="0.1" bind:value={chest} min="0" /></label>
+		<label>{t.measurements.waist} (cm) <input type="number" step="0.1" bind:value={waist} min="0" /></label>
+		<label>{t.measurements.chest} (cm) <input type="number" step="0.1" bind:value={chest} min="0" /></label>
 	</div>
 	<div class="row">
-		<label>Hips (cm) <input type="number" step="0.1" bind:value={hips} min="0" /></label>
-		<label>Neck (cm) <input type="number" step="0.1" bind:value={neck} min="0" /></label>
+		<label>{t.measurements.hips} (cm) <input type="number" step="0.1" bind:value={hips} min="0" /></label>
+		<label>{t.measurements.neck} (cm) <input type="number" step="0.1" bind:value={neck} min="0" /></label>
 	</div>
 	<div class="row">
-		<label>Biceps L (cm) <input type="number" step="0.1" bind:value={bicepsL} min="0" /></label>
-		<label>Biceps R (cm) <input type="number" step="0.1" bind:value={bicepsR} min="0" /></label>
+		<label>{t.measurements.bicepsL} (cm) <input type="number" step="0.1" bind:value={bicepsL} min="0" /></label>
+		<label>{t.measurements.bicepsR} (cm) <input type="number" step="0.1" bind:value={bicepsR} min="0" /></label>
 	</div>
 	<div class="row">
-		<label>Thigh L (cm) <input type="number" step="0.1" bind:value={thighL} min="0" /></label>
-		<label>Thigh R (cm) <input type="number" step="0.1" bind:value={thighR} min="0" /></label>
+		<label>{t.measurements.thighL} (cm) <input type="number" step="0.1" bind:value={thighL} min="0" /></label>
+		<label>{t.measurements.thighR} (cm) <input type="number" step="0.1" bind:value={thighR} min="0" /></label>
 	</div>
-	<label>Notes <textarea bind:value={notes} rows="2" placeholder="Context, conditions..."></textarea></label>
-	<button class="primary" onclick={submit}>Log measurement</button>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2" placeholder={t.measurements.contextPlaceholder}></textarea></label>
+	<button class="primary" onclick={submit}>{t.measurements.logMeasurement}</button>
 </section>
 
 <!-- Summary cards -->
 {#if sorted.length > 0}
 <section class="metrics">
-	<h2>Summary</h2>
+	<h2>{t.measurements.summary}</h2>
 	<div class="metrics-row">
 		{#if whr !== null}
 			<div class="metric-card">
 				<span class="metric-value">{whr}</span>
-				<span class="metric-label">Waist / Hip</span>
+				<span class="metric-label">{t.measurements.waistHip}</span>
 				<span class="metric-sub">&lt;0.85 (W) / &lt;0.90 (M) = healthy</span>
 				{#if whr < 0.85}
-					<span class="metric-sub" style="color: var(--c-done)">Healthy range</span>
+					<span class="metric-sub" style="color: var(--c-done)">{t.measurements.healthyRange}</span>
 				{:else if whr < 0.90}
-					<span class="metric-sub" style="color: #e8a735">Moderate (healthy for men)</span>
+					<span class="metric-sub" style="color: #e8a735">{t.measurements.moderateRange}</span>
 				{:else}
-					<span class="metric-sub" style="color: var(--c-cancel)">Elevated</span>
+					<span class="metric-sub" style="color: var(--c-cancel)">{t.measurements.elevated}</span>
 				{/if}
 			</div>
 		{/if}
 		{#if latest}
 			<div class="metric-card">
 				<span class="metric-value">{sorted.length}</span>
-				<span class="metric-label">Total entries</span>
+				<span class="metric-label">{t.measurements.totalEntries}</span>
 				<span class="metric-sub">{(latest.data.date as string) ?? latest.createdAt.slice(0, 10)}</span>
 			</div>
 		{/if}
@@ -222,7 +224,7 @@
 <!-- Delta since first -->
 {#if deltaFirst}
 <section class="metrics">
-	<h2>Change since first</h2>
+	<h2>{t.measurements.changeSinceFirst}</h2>
 	<div class="delta-grid">
 		{#each deltaFirst as d}
 			<div class="delta-card">
@@ -240,7 +242,7 @@
 <!-- Last 30 days change -->
 {#if delta30}
 <section class="metrics">
-	<h2>Last 30 days</h2>
+	<h2>{t.measurements.last30days}</h2>
 	<div class="delta-grid">
 		{#each delta30 as d}
 			<div class="delta-card">
@@ -258,7 +260,7 @@
 <!-- Multi-line chart -->
 {#if sorted.length >= 2}
 <section class="chart-section">
-	<h2>Trends</h2>
+	<h2>{t.measurements.trends}</h2>
 	<div class="chart-toggles">
 		{#each bodyParts as part}
 			<label class="toggle-chip">
@@ -317,30 +319,30 @@
 		const n = (fd.get('notes') as string)?.trim();
 		if (n) updated.notes = n;
 		entries.update(item.id, updated);
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date ?? ''} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date ?? ''} /></label>
 		<div class="row">
-			<label>Waist <input type="number" step="0.1" name="waist" value={data.waist ?? 0} min="0" /></label>
-			<label>Chest <input type="number" step="0.1" name="chest" value={data.chest ?? 0} min="0" /></label>
+			<label>{t.measurements.waist} <input type="number" step="0.1" name="waist" value={data.waist ?? 0} min="0" /></label>
+			<label>{t.measurements.chest} <input type="number" step="0.1" name="chest" value={data.chest ?? 0} min="0" /></label>
 		</div>
 		<div class="row">
-			<label>Hips <input type="number" step="0.1" name="hips" value={data.hips ?? 0} min="0" /></label>
-			<label>Neck <input type="number" step="0.1" name="neck" value={data.neck ?? 0} min="0" /></label>
+			<label>{t.measurements.hips} <input type="number" step="0.1" name="hips" value={data.hips ?? 0} min="0" /></label>
+			<label>{t.measurements.neck} <input type="number" step="0.1" name="neck" value={data.neck ?? 0} min="0" /></label>
 		</div>
 		<div class="row">
-			<label>Biceps L <input type="number" step="0.1" name="bicepsL" value={data.bicepsL ?? 0} min="0" /></label>
-			<label>Biceps R <input type="number" step="0.1" name="bicepsR" value={data.bicepsR ?? 0} min="0" /></label>
+			<label>{t.measurements.bicepsL} <input type="number" step="0.1" name="bicepsL" value={data.bicepsL ?? 0} min="0" /></label>
+			<label>{t.measurements.bicepsR} <input type="number" step="0.1" name="bicepsR" value={data.bicepsR ?? 0} min="0" /></label>
 		</div>
 		<div class="row">
-			<label>Thigh L <input type="number" step="0.1" name="thighL" value={data.thighL ?? 0} min="0" /></label>
-			<label>Thigh R <input type="number" step="0.1" name="thighR" value={data.thighR ?? 0} min="0" /></label>
+			<label>{t.measurements.thighL} <input type="number" step="0.1" name="thighL" value={data.thighL ?? 0} min="0" /></label>
+			<label>{t.measurements.thighR} <input type="number" step="0.1" name="thighR" value={data.thighR ?? 0} min="0" /></label>
 		</div>
-		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -348,8 +350,8 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z"/><path d="M12 6v6l4 2"/></svg>
-	<p>No measurements yet</p>
-	<p class="empty-hint">Track your body measurements over time to see progress.</p>
+	<p>{t.measurements.noMeasurements}</p>
+	<p class="empty-hint">{t.measurements.noMeasurementsHint}</p>
 </div>
 {/if}
 

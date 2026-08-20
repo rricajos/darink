@@ -6,7 +6,9 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries('medication');
 
 	/* --- Regimen state --- */
@@ -44,23 +46,23 @@
 		regimen = [...regimen, item];
 		ui.patch({ medicationRegimen: regimen });
 		medName = ''; medDose = ''; medFrequency = 'daily'; medPrescriber = ''; medRefillDate = '';
-		toast.show('Medication added');
+		toast.show(t.medications.medicationAdded);
 	}
 
 	function removeMed(index: number) {
 		regimen = regimen.filter((_, i) => i !== index);
 		ui.patch({ medicationRegimen: regimen });
-		toast.show('Medication removed');
+		toast.show(t.medications.medicationRemoved);
 	}
 
 	/* --- Frequency helpers --- */
-	const freqLabels: Record<string, string> = {
-		daily: 'Daily',
-		'2x_daily': '2x daily',
-		'3x_daily': '3x daily',
-		weekly: 'Weekly',
-		as_needed: 'As needed'
-	};
+	const freqLabels = $derived.by(() => ({
+		daily: t.medications.daily,
+		'2x_daily': t.medications.twiceDaily,
+		'3x_daily': t.medications.thriceDaily,
+		weekly: t.medications.weekly,
+		as_needed: t.medications.asNeeded
+	}) as Record<string, string>);
 
 	function doseSlotsForFreq(freq: string): string[] {
 		if (freq === 'daily') return ['morning'];
@@ -70,12 +72,12 @@
 		return [];
 	}
 
-	const timeLabels: Record<string, string> = {
-		morning: 'Morning',
-		noon: 'Noon',
-		evening: 'Evening',
-		night: 'Night'
-	};
+	const timeLabels = $derived.by(() => ({
+		morning: t.medications.timeMorning,
+		noon: t.medications.timeNoon,
+		evening: t.medications.timeEvening,
+		night: t.medications.timeNight
+	}) as Record<string, string>);
 
 	/* --- Today's state --- */
 	const todayStr = $derived(new Date().toISOString().slice(0, 10));
@@ -117,7 +119,7 @@
 			severity: 0,
 			notes: ''
 		});
-		toast.show(`${med.name} (${timeLabels[slot] ?? slot}) logged`);
+		toast.show(t.medications.doseLogged);
 	}
 
 	/* --- Weekly adherence chart --- */
@@ -219,20 +221,20 @@
 		date = new Date().toISOString().slice(0, 10);
 		logName = ''; logNameFree = ''; logDoseVal = ''; logTime = 'morning';
 		logSeverity = 0; logNotes = ''; selectedEffects = [];
-		toast.show('Medication logged');
+		toast.show(t.medications.medicationLogged);
 	}
 </script>
 
 <svelte:head>
-	<title>Medications | Darink</title>
+	<title>{t.medications.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Medications" />
+<PageHeader title={t.medications.title} />
 
 <!-- Refill Alerts -->
 {#if refillAlerts.length > 0}
 <section class="refill-section">
-	<h2>Refill Alerts</h2>
+	<h2>{t.medications.refillAlerts}</h2>
 	{#each refillAlerts as alert}
 		<div class="refill-card" class:danger={alert.daysLeft <= 0} class:warning={alert.daysLeft > 0 && alert.daysLeft <= 7}>
 			<div class="refill-icon">
@@ -245,9 +247,9 @@
 			<div class="refill-info">
 				<strong>{alert.name}</strong>
 				{#if alert.daysLeft <= 0}
-					<span class="refill-text danger-text">Overdue by {Math.abs(alert.daysLeft)} day{Math.abs(alert.daysLeft) !== 1 ? 's' : ''}</span>
+					<span class="refill-text danger-text">{t.medications.overdueBy.replace('{n}', String(Math.abs(alert.daysLeft)))}</span>
 				{:else}
-					<span class="refill-text warning-text">{alert.daysLeft} day{alert.daysLeft !== 1 ? 's' : ''} until refill</span>
+					<span class="refill-text warning-text">{t.medications.daysUntilRefill.replace('{n}', String(alert.daysLeft))}</span>
 				{/if}
 			</div>
 		</div>
@@ -258,7 +260,7 @@
 <!-- Today's Dose Checklist -->
 {#if scheduledMeds.length > 0}
 <section class="checklist-section">
-	<h2>Today's Doses</h2>
+	<h2>{t.medications.todayDoses}</h2>
 	{#each doseChecklist as { med, checks }}
 		<div class="dose-card">
 			<div class="dose-header">
@@ -292,7 +294,7 @@
 <!-- Weekly Adherence Chart -->
 {#if weeklyAdherence.length > 0}
 <section class="chart-section">
-	<h2>Weekly Adherence</h2>
+	<h2>{t.medications.weeklyAdherence}</h2>
 	<svg class="week-chart" viewBox="0 0 280 100" preserveAspectRatio="xMidYMid meet">
 		{#each weeklyAdherence as day, i}
 			{@const barW = 280 / 7}
@@ -329,7 +331,7 @@
 <!-- Side Effect Frequency -->
 {#if sideEffectCounts.length > 0}
 <section class="effects-section">
-	<h2>Side Effect Frequency</h2>
+	<h2>{t.medications.sideEffectFrequency}</h2>
 	<ol class="effects-list">
 		{#each sideEffectCounts as se, i}
 			<li class="effects-item">
@@ -345,27 +347,27 @@
 <!-- Manage Medications -->
 <section class="manage-section">
 	<button class="manage-toggle" onclick={() => manageOpen = !manageOpen}>
-		<span>Manage medications</span>
+		<span>{t.medications.manageMedications}</span>
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:rotate={manageOpen}><path d="m6 9 6 6 6-6"/></svg>
 	</button>
 	{#if manageOpen}
 		<div class="manage-body">
 			<div class="manage-add">
-				<label>Name <input type="text" bind:value={medName} placeholder="e.g. Metformin" /></label>
-				<label>Dose <input type="text" bind:value={medDose} placeholder="e.g. 500mg" /></label>
+				<label>{t.medications.nameLabel} <input type="text" bind:value={medName} placeholder="e.g. Metformin" /></label>
+				<label>{t.medications.doseLabel} <input type="text" bind:value={medDose} placeholder="e.g. 500mg" /></label>
 				<label>
-					Frequency
+					{t.medications.frequencyLabel}
 					<select bind:value={medFrequency}>
-						<option value="daily">Daily</option>
-						<option value="2x_daily">2x daily</option>
-						<option value="3x_daily">3x daily</option>
-						<option value="weekly">Weekly</option>
-						<option value="as_needed">As needed</option>
+						<option value="daily">{t.medications.daily}</option>
+						<option value="2x_daily">{t.medications.twiceDaily}</option>
+						<option value="3x_daily">{t.medications.thriceDaily}</option>
+						<option value="weekly">{t.medications.weekly}</option>
+						<option value="as_needed">{t.medications.asNeeded}</option>
 					</select>
 				</label>
-				<label>Prescriber <input type="text" bind:value={medPrescriber} placeholder="Dr. Smith" /></label>
-				<label>Refill date <input type="date" bind:value={medRefillDate} /></label>
-				<button class="primary" onclick={addMed}>Add medication</button>
+				<label>{t.medications.prescriberLabel} <input type="text" bind:value={medPrescriber} placeholder="Dr. Smith" /></label>
+				<label>{t.medications.refillDateLabel} <input type="date" bind:value={medRefillDate} /></label>
+				<button class="primary" onclick={addMed}>{t.medications.addMedication}</button>
 			</div>
 			{#if regimen.length > 0}
 				<ul class="med-type-list">
@@ -381,7 +383,7 @@
 									<span class="meta">({med.prescriber})</span>
 								{/if}
 							</div>
-							<button class="remove-btn" onclick={() => removeMed(i)} title="Remove">
+							<button class="remove-btn" onclick={() => removeMed(i)} title={t.common.remove}>
 								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 							</button>
 						</li>
@@ -396,42 +398,42 @@
 {#if regimen.length === 0 && store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
-	<p>No medications tracked yet</p>
-	<p class="empty-hint">Add your medications above and start tracking doses and side effects.</p>
+	<p>{t.medications.noMedications}</p>
+	<p class="empty-hint">{t.medications.noMedicationsHint}</p>
 </div>
 {/if}
 
 <!-- Log Form -->
 <section class="form">
-	<h2>Log Medication</h2>
-	<label>Date <input type="date" bind:value={date} /></label>
+	<h2>{t.medications.logMedication}</h2>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
 	<label>
-		Medication
+		{t.medications.medication}
 		<select bind:value={logName}>
-			<option value="">-- Select --</option>
+			<option value="">{t.medications.selectMed}</option>
 			{#each regimen as m}
 				<option value={m.name}>{m.name}</option>
 			{/each}
-			<option value="__free__">Other (type below)</option>
+			<option value="__free__">{t.medications.otherType}</option>
 		</select>
 	</label>
 	{#if logName === '__free__'}
-		<label>Name <input type="text" bind:value={logNameFree} placeholder="Medication name" /></label>
+		<label>{t.medications.nameLabel} <input type="text" bind:value={logNameFree} placeholder={t.medications.nameLabel} /></label>
 	{/if}
 	<div class="row">
-		<label>Dose <input type="text" bind:value={logDoseVal} placeholder="500mg, 1 tab..." /></label>
+		<label>{t.medications.doseLabel} <input type="text" bind:value={logDoseVal} placeholder="500mg, 1 tab..." /></label>
 		<label>
-			Time of day
+			{t.medications.timeOfDay}
 			<select bind:value={logTime}>
-				<option value="morning">Morning</option>
-				<option value="noon">Noon</option>
-				<option value="evening">Evening</option>
-				<option value="night">Night</option>
+				<option value="morning">{t.medications.timeMorning}</option>
+				<option value="noon">{t.medications.timeNoon}</option>
+				<option value="evening">{t.medications.timeEvening}</option>
+				<option value="night">{t.medications.timeNight}</option>
 			</select>
 		</label>
 	</div>
 	<div class="field">
-		<span class="field-label">Side effects</span>
+		<span class="field-label">{t.medications.sideEffects}</span>
 		<div class="chips">
 			{#each allSideEffects as effect}
 				<button
@@ -444,11 +446,11 @@
 		</div>
 	</div>
 	<label>
-		Severity ({logSeverity}/5)
+		{t.medications.severity} ({logSeverity}/5)
 		<input type="range" min="0" max="5" step="1" bind:value={logSeverity} />
 	</label>
-	<label>Notes <textarea bind:value={logNotes} rows="2"></textarea></label>
-	<button class="primary" onclick={submitLog}>Log medication</button>
+	<label>{t.common.notes} <textarea bind:value={logNotes} rows="2"></textarea></label>
+	<button class="primary" onclick={submitLog}>{t.medications.logMedication}</button>
 </section>
 
 <!-- Entry History -->
@@ -469,25 +471,25 @@
 			severity: Number(fd.get('severity')),
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date as string ?? ''} /></label>
-		<label>Name <input type="text" name="name" value={data.name} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date as string ?? ''} /></label>
+		<label>{t.medications.nameLabel} <input type="text" name="name" value={data.name} /></label>
 		<div class="row">
-			<label>Dose <input type="text" name="dose" value={data.dose} /></label>
+			<label>{t.medications.doseLabel} <input type="text" name="dose" value={data.dose} /></label>
 			<label>
-				Time
+				{t.medications.timeOfDay}
 				<select name="time">
-					<option value="morning" selected={data.time === 'morning'}>Morning</option>
-					<option value="noon" selected={data.time === 'noon'}>Noon</option>
-					<option value="evening" selected={data.time === 'evening'}>Evening</option>
-					<option value="night" selected={data.time === 'night'}>Night</option>
+					<option value="morning" selected={data.time === 'morning'}>{t.medications.timeMorning}</option>
+					<option value="noon" selected={data.time === 'noon'}>{t.medications.timeNoon}</option>
+					<option value="evening" selected={data.time === 'evening'}>{t.medications.timeEvening}</option>
+					<option value="night" selected={data.time === 'night'}>{t.medications.timeNight}</option>
 				</select>
 			</label>
 		</div>
 		<fieldset class="edit-effects">
-			<legend>Side effects</legend>
+			<legend>{t.medications.sideEffects}</legend>
 			{#each allSideEffects as effect}
 				<label class="edit-effect-label">
 					<input type="checkbox" name="se" value={effect} checked={Array.isArray(data.sideEffects) && (data.sideEffects as string[]).includes(effect)} />
@@ -495,11 +497,11 @@
 				</label>
 			{/each}
 		</fieldset>
-		<label>Severity <input type="range" name="severity" min="0" max="5" step="1" value={data.severity ?? 0} /></label>
-		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<label>{t.medications.severity} <input type="range" name="severity" min="0" max="5" step="1" value={data.severity ?? 0} /></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}

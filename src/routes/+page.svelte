@@ -3,20 +3,22 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t, locale } = useLocale();
 	const store = useEntries();
 
 	const today = $derived(new Date().toISOString().slice(0, 10));
 
 	const greeting = $derived.by(() => {
 		const h = new Date().getHours();
-		if (h < 12) return 'Good morning';
-		if (h < 18) return 'Good afternoon';
-		return 'Good evening';
+		if (h < 12) return t.today_page.goodMorning;
+		if (h < 18) return t.today_page.goodAfternoon;
+		return t.today_page.goodEvening;
 	});
 
 	const dateLabel = $derived(
-		new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+		new Date().toLocaleDateString(locale === 'en' ? 'en-US' : 'es-ES', { weekday: 'long', month: 'long', day: 'numeric' })
 	);
 
 	/* --- Helpers --- */
@@ -59,14 +61,14 @@
 	);
 
 	/* --- Habit & supplement config --- */
-	const defaultHabits = [
-		{ id: 'cold', label: 'Cold exposure' },
-		{ id: 'sun', label: 'Sun exposure' },
-		{ id: 'fasting', label: 'Fasting' },
-		{ id: 'meditation', label: 'Meditation' },
-		{ id: 'wimhof', label: 'Wim Hof' },
-		{ id: 'ejaculation', label: 'Ejaculation control' }
-	];
+	const defaultHabits = $derived([
+		{ id: 'cold', label: t.habits.cold },
+		{ id: 'sun', label: t.habits.sun },
+		{ id: 'fasting', label: t.habits.fasting },
+		{ id: 'meditation', label: t.habits.meditation },
+		{ id: 'wimhof', label: t.habits.wimhof },
+		{ id: 'ejaculation', label: t.habits.ejaculation }
+	]);
 
 	const allHabitTypes = $derived.by(() => {
 		const custom = ui.get().customHabits;
@@ -101,12 +103,12 @@
 		return [];
 	}
 
-	const timeLabels: Record<string, string> = {
-		morning: 'Morning',
-		noon: 'Noon',
-		evening: 'Evening',
-		night: 'Night'
-	};
+	const timeLabels = $derived<Record<string, string>>({
+		morning: t.common.morning,
+		noon: t.common.noon,
+		evening: t.common.evening,
+		night: t.common.night
+	});
 
 	const scheduledMeds = $derived(
 		medicationRegimen.filter((m) => m.frequency !== 'as_needed')
@@ -148,7 +150,7 @@
 			severity: 0,
 			notes: ''
 		});
-		toast.show(`${med.name} (${timeLabels[slot] ?? slot}) logged`);
+		toast.show(`${med.name} (${timeLabels[slot] ?? slot}) ${t.today_page.logged}`);
 	}
 
 	/* --- Active symptoms --- */
@@ -353,7 +355,7 @@
 			if (bestDelta >= 0.3 && bestHabit) {
 				const label = bestHabit.charAt(0).toUpperCase() + bestHabit.slice(1);
 				result.push({
-					text: `Your mood averages ${bestDelta.toFixed(1)} points higher on days you ${label.toLowerCase()}`,
+					text: t.insights.moodHigherOnDays.replace('{delta}', bestDelta.toFixed(1)).replace('{habit}', label.toLowerCase()),
 					type: 'positive'
 				});
 			}
@@ -387,7 +389,7 @@
 
 			if (currentStreak >= 2) {
 				result.push({
-					text: `${currentStreak}-day training streak!${bestStreak > currentStreak ? ` Best: ${bestStreak} days` : ' New record!'}`,
+					text: t.insights.trainingStreak.replace('{count}', String(currentStreak)) + (bestStreak > currentStreak ? ` ${t.insights.bestStreak.replace('{count}', String(bestStreak))}` : ` ${t.insights.newRecord}`),
 					type: 'positive'
 				});
 			}
@@ -410,12 +412,12 @@
 				const diff = lastSleep - avgSleep;
 				if (diff > 1) {
 					result.push({
-						text: 'Great sleep last night — expect higher energy',
+						text: t.insights.greatSleep,
 						type: 'positive'
 					});
 				} else if (diff < -1) {
 					result.push({
-						text: 'Below-average sleep — energy may dip today',
+						text: t.insights.belowSleep,
 						type: 'warning'
 					});
 				}
@@ -445,12 +447,12 @@
 				const delta = Math.round(thisWeek - lastWeek);
 				if (delta > 5) {
 					result.push({
-						text: `Supplement adherence up ${delta}% vs last week`,
+						text: t.insights.suppAdherenceUp.replace('{pct}', String(delta)),
 						type: 'positive'
 					});
 				} else if (delta < -10) {
 					result.push({
-						text: `Supplement adherence down ${Math.abs(delta)}% vs last week`,
+						text: t.insights.suppAdherenceDown.replace('{pct}', String(Math.abs(delta))),
 						type: 'warning'
 					});
 				}
@@ -468,12 +470,12 @@
 
 		if (checkinDaysCount > 0 && checkinDaysCount < 5) {
 			result.push({
-				text: `Only ${checkinDaysCount}/7 check-ins this week — try to log daily`,
+				text: t.insights.checkinPartial.replace('{count}', String(checkinDaysCount)),
 				type: 'warning'
 			});
 		} else if (checkinDaysCount === 7) {
 			result.push({
-				text: 'Perfect check-in streak this week!',
+				text: t.today_page.perfectStreak,
 				type: 'positive'
 			});
 		}
@@ -486,12 +488,12 @@
 			const pct = Math.round((totalMl / hydrationTarget) * 100);
 			if (pct >= 100) {
 				result.push({
-					text: `Hydration target reached (${(totalMl / 1000).toFixed(1)}L / ${(hydrationTarget / 1000).toFixed(1)}L)`,
+					text: `${t.today_page.hydrationReached} (${(totalMl / 1000).toFixed(1)}L / ${(hydrationTarget / 1000).toFixed(1)}L)`,
 					type: 'positive'
 				});
 			} else if (pct > 0) {
 				result.push({
-					text: `Hydration: ${(totalMl / 1000).toFixed(1)}L of ${(hydrationTarget / 1000).toFixed(1)}L target (${pct}%)`,
+					text: t.insights.hydrationProgress.replace('{current}', (totalMl / 1000).toFixed(1)).replace('{target}', (hydrationTarget / 1000).toFixed(1)).replace('{pct}', String(pct)),
 					type: pct >= 50 ? 'neutral' : 'warning'
 				});
 			}
@@ -514,36 +516,36 @@
 		return [
 			{
 				id: 'profile',
-				title: 'Set your profile',
-				description: 'Add your weight to calibrate metrics',
+				title: t.today_page.setProfile,
+				description: t.today_page.setProfileDesc,
 				href: '/profile',
 				done: allItems.some(e => e.type === 'weight')
 			},
 			{
 				id: 'checkin',
-				title: 'First check-in',
-				description: 'Log mood, energy, and sleep',
+				title: t.today_page.firstCheckin,
+				description: t.today_page.firstCheckinDesc,
 				href: '/checkin',
 				done: allItems.some(e => e.type === 'checkin')
 			},
 			{
 				id: 'intake',
-				title: 'Log a meal',
-				description: 'Track what you eat and drink',
+				title: t.today_page.logMeal,
+				description: t.today_page.logMealDesc,
 				href: '/intake',
 				done: allItems.some(e => e.type === 'intake')
 			},
 			{
 				id: 'habit',
-				title: 'Define your habits',
-				description: 'Set up daily habits to track',
+				title: t.today_page.defineHabits,
+				description: t.today_page.defineHabitsDesc,
 				href: '/habits',
 				done: allItems.some(e => e.type === 'habit')
 			},
 			{
 				id: 'goal',
-				title: 'Set a goal',
-				description: 'Create targets to work towards',
+				title: t.today_page.setGoal,
+				description: t.today_page.setGoalDesc,
 				href: '/goals',
 				done: allItems.some(e => e.type === 'goal')
 			}
@@ -570,8 +572,8 @@
 
 		if (todayCheckins.length === 0) {
 			items.push({
-				label: 'Check-in',
-				hint: 'Log mood, energy, and sleep',
+				label: t.today_page.checkin,
+				hint: t.today_page.checkinTask,
 				href: '/checkin',
 				icon: 'checkin'
 			});
@@ -579,8 +581,8 @@
 
 		if (todayTraining.length === 0) {
 			items.push({
-				label: 'Training',
-				hint: 'Log a workout',
+				label: t.today_page.training,
+				hint: t.today_page.trainingTask,
 				href: '/training',
 				icon: 'training'
 			});
@@ -590,8 +592,8 @@
 		const remainingHabits = allHabitTypes.filter(id => !loggedHabitIds.has(id)).length;
 		if (remainingHabits > 0) {
 			items.push({
-				label: `Habits (${remainingHabits} remaining)`,
-				hint: 'Track your daily habits',
+				label: `${t.today_page.habits} (${remainingHabits} ${t.today_page.habitsRemaining})`,
+				hint: t.today_page.trackHabits,
 				href: '/habits',
 				icon: 'habit'
 			});
@@ -601,8 +603,8 @@
 		const remainingSupps = supplementStack.filter(s => !takenNames.has(s.name.toLowerCase())).length;
 		if (remainingSupps > 0) {
 			items.push({
-				label: `Supplements (${remainingSupps} remaining)`,
-				hint: 'Log your supplement intake',
+				label: `${t.today_page.supplements} (${remainingSupps} ${t.today_page.supplementsRemaining})`,
+				hint: t.today_page.logSupplements,
 				href: '/supplements',
 				icon: 'supplement'
 			});
@@ -610,8 +612,8 @@
 
 		if (scheduledMeds.length > 0 && !allDosesTaken) {
 			items.push({
-				label: `Medications (${remainingDoses} dose${remainingDoses !== 1 ? 's' : ''} remaining)`,
-				hint: 'Log your scheduled doses',
+				label: `${t.today_page.medications} (${remainingDoses} ${remainingDoses !== 1 ? t.today_page.doses : t.today_page.dose} ${t.today_page.medicationsRemaining})`,
+				hint: t.today_page.logMedications,
 				href: '/medications',
 				icon: 'medication'
 			});
@@ -619,8 +621,8 @@
 
 		if (todayJournal.length === 0) {
 			items.push({
-				label: 'Journal',
-				hint: 'Write your thoughts',
+				label: t.today_page.journal,
+				hint: t.today_page.writeThoughts,
 				href: '/journal',
 				icon: 'journal'
 			});
@@ -631,7 +633,7 @@
 </script>
 
 <svelte:head>
-	<title>Today | Darink</title>
+	<title>{t.nav.today} | Darink</title>
 </svelte:head>
 
 <section class="today-page">
@@ -647,8 +649,8 @@
 			<div class="onboarding-header">
 				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
 				<div>
-					<h2 class="onboarding-title">Get started</h2>
-					<p class="onboarding-subtitle">Complete these steps to set up your tracker</p>
+					<h2 class="onboarding-title">{t.today_page.getStarted}</h2>
+					<p class="onboarding-subtitle">{t.today_page.setupSteps}</p>
 				</div>
 			</div>
 
@@ -658,9 +660,9 @@
 						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
 						<path d="m9 11 3 3L22 4"/>
 					</svg>
-					<p class="complete-title">You're all set!</p>
-					<p class="complete-hint">Your tracker is ready to use.</p>
-					<button class="complete-btn" onclick={completeOnboarding}>Start tracking</button>
+					<p class="complete-title">{t.today_page.allSet}</p>
+					<p class="complete-hint">{t.today_page.trackerReady}</p>
+					<button class="complete-btn" onclick={completeOnboarding}>{t.today_page.startTracking}</button>
 				</div>
 			{:else}
 				<div class="onboarding-steps">
@@ -718,7 +720,7 @@
 						text-anchor="middle"
 						class="score-label"
 						fill="var(--c-text-muted)"
-					>Your daily score</text>
+					>{t.today_page.dailyScore}</text>
 				</svg>
 			{:else}
 				<svg viewBox="0 0 200 175" class="gauge-svg">
@@ -743,7 +745,7 @@
 						text-anchor="middle"
 						class="score-label"
 						fill="var(--c-text-muted)"
-					>No data yet today</text>
+					>{t.today_page.noDataToday}</text>
 				</svg>
 			{/if}
 		</div>
@@ -751,7 +753,7 @@
 		<!-- 7-day trend sparkline -->
 		{#if weekWithData.length >= 2}
 			<div class="trend-section">
-				<h2>7-day trend</h2>
+				<h2>{t.today_page.sevenDayTrend}</h2>
 				<div class="sparkline-wrap">
 					<svg viewBox="0 0 200 40" class="sparkline-svg" preserveAspectRatio="none">
 						<polyline
@@ -772,7 +774,7 @@
 					<div class="sparkline-labels">
 						{#each weekScores as s}
 							<span class="sparkline-day" class:has-data={s.hasData}>
-								{new Date(s.date + 'T12:00:00').toLocaleDateString('en', { weekday: 'narrow' })}
+								{new Date(s.date + 'T12:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'es-ES', { weekday: 'narrow' })}
 							</span>
 						{/each}
 					</div>
@@ -783,7 +785,7 @@
 		<!-- Insights -->
 		{#if insights.length > 0}
 			<div class="insights-section">
-				<h2>Insights</h2>
+				<h2>{t.today_page.insights}</h2>
 				<div class="insights-list">
 					{#each insights as insight}
 						<div class="insight-card insight-{insight.type}">
@@ -807,11 +809,11 @@
 		<!-- Medications -->
 		{#if scheduledMeds.length > 0}
 			<div class="meds-section">
-				<h2>Medications</h2>
+				<h2>{t.today_page.medications}</h2>
 				{#if allDosesTaken}
 					<div class="meds-alldone">
 						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-						<span>All doses taken</span>
+						<span>{t.today_page.allDosesTaken}</span>
 					</div>
 				{:else}
 					<div class="meds-list">
@@ -826,13 +828,13 @@
 								<div class="med-card-dots">
 									{#each checks as { slot, taken }}
 										{#if taken}
-											<span class="dose-dot dose-dot-taken" title="{timeLabels[slot] ?? slot} - taken">
+											<span class="dose-dot dose-dot-taken" title="{timeLabels[slot] ?? slot}">
 												<svg width="12" height="12" viewBox="0 0 24 24" fill="var(--c-done)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
 											</span>
 										{:else}
 											<button
 												class="dose-dot dose-dot-pending"
-												title="{timeLabels[slot] ?? slot} - tap to log"
+												title="{timeLabels[slot] ?? slot}"
 												onclick={() => logDose(med, slot)}
 											>
 												<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
@@ -850,7 +852,7 @@
 		<!-- Active Symptoms -->
 		{#if ongoingSymptoms.length > 0}
 			<div class="symptoms-section">
-				<h2>Active Symptoms</h2>
+				<h2>{t.today_page.activeSymptoms}</h2>
 				<a href="/symptoms" class="symptoms-banner">
 					<div class="symptoms-items">
 						{#each ongoingSymptoms.slice(0, 3) as entry}
@@ -861,7 +863,7 @@
 							</span>
 						{/each}
 						{#if ongoingSymptoms.length > 3}
-							<span class="symptom-more">+{ongoingSymptoms.length - 3} more</span>
+							<span class="symptom-more">+{ongoingSymptoms.length - 3} {t.today_page.more}</span>
 						{/if}
 					</div>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -871,15 +873,15 @@
 
 		<!-- What's missing today -->
 		<div class="missing-section">
-			<h2>Today's progress</h2>
+			<h2>{t.today_page.todayProgress}</h2>
 			{#if missingItems.length === 0}
 				<div class="all-done">
 					<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
 						<path d="m9 11 3 3L22 4"/>
 					</svg>
-					<p>All caught up!</p>
-					<p class="all-done-hint">You've logged everything for today.</p>
+					<p>{t.today_page.allCaughtUp}</p>
+					<p class="all-done-hint">{t.today_page.loggedEverything}</p>
 				</div>
 			{:else}
 				<div class="missing-list">

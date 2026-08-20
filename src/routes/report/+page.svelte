@@ -4,7 +4,9 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import type { Entry } from '$lib/db';
 	import { onMount } from 'svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries();
 	const hydrationStore = useEntries('hydration');
 
@@ -31,8 +33,8 @@
 
 	function fmtRange(mon: Date, sun: Date): string {
 		const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-		const monStr = mon.toLocaleDateString('en-US', opts);
-		const sunStr = sun.toLocaleDateString('en-US', { ...opts, year: 'numeric' });
+		const monStr = mon.toLocaleDateString(undefined, opts);
+		const sunStr = sun.toLocaleDateString(undefined, { ...opts, year: 'numeric' });
 		return `${monStr} - ${sunStr}`;
 	}
 
@@ -135,13 +137,13 @@
 
 	// --- Training sessions (current + previous) ---
 	const TRAINING_TYPES = ['training.strength', 'training.rings', 'training.hiit', 'training.cardio', 'training.mobility'] as const;
-	const TYPE_LABELS: Record<string, string> = {
-		'training.strength': 'Strength',
-		'training.rings': 'Rings',
-		'training.hiit': 'HIIT',
-		'training.cardio': 'Cardio',
-		'training.mobility': 'Mobility'
-	};
+	const TYPE_LABELS = $derived.by((): Record<string, string> => ({
+		'training.strength': t.report.strength,
+		'training.rings': t.report.rings,
+		'training.hiit': t.report.hiit,
+		'training.cardio': t.report.cardio,
+		'training.mobility': t.report.mobility
+	}));
 
 	function countTraining(entries: Entry[]) {
 		const te = entries.filter((e) => TRAINING_TYPES.includes(e.type as typeof TRAINING_TYPES[number]));
@@ -421,27 +423,27 @@
 	}
 
 	// Type display label
-	function typeLabel(t: string): string {
+	function typeLabel(tp: string): string {
 		const labels: Record<string, string> = {
-			checkin: 'Check-in',
-			intake: 'Intake',
-			journal: 'Journal',
-			habit: 'Habit',
-			supplement: 'Supplement',
-			weight: 'Weight',
-			experiment: 'Experiment',
-			hydration: 'Hydration',
-			'training.strength': 'Strength',
-			'training.rings': 'Rings',
-			'training.hiit': 'HIIT',
-			'training.cardio': 'Cardio',
-			'training.mobility': 'Mobility',
-			'signal.sleep': 'Sleep signal',
-			'signal.skin': 'Skin signal',
-			'signal.hair': 'Hair signal',
-			'signal.genital': 'Genital signal'
+			checkin: t.timeline.checkin,
+			intake: t.timeline.intake,
+			journal: t.report.journal,
+			habit: t.report.habit,
+			supplement: t.report.supplement,
+			weight: t.report.weight,
+			experiment: t.timeline.experiment,
+			hydration: t.timeline.hydration,
+			'training.strength': t.report.strength,
+			'training.rings': t.report.rings,
+			'training.hiit': t.report.hiit,
+			'training.cardio': t.report.cardio,
+			'training.mobility': t.report.mobility,
+			'signal.sleep': t.report.sleepSignalLabel,
+			'signal.skin': t.report.skinSignalLabel,
+			'signal.hair': t.report.hairSignalLabel,
+			'signal.genital': t.report.genitalSignalLabel
 		};
-		return labels[t] ?? t;
+		return labels[tp] ?? tp;
 	}
 
 	function doPrint() {
@@ -514,13 +516,13 @@
 	const currentVolume = $derived(trainingVolume(weekEntries));
 	const prevVolume = $derived(trainingVolume(prevEntries));
 
-	const TRAINING_COLORS: Record<string, string> = {
-		Strength: '#6366f1',
-		Rings: '#f59e0b',
-		HIIT: '#ef4444',
-		Cardio: '#10b981',
-		Mobility: '#8b5cf6'
-	};
+	const TRAINING_COLORS = $derived.by((): Record<string, string> => ({
+		[t.report.strength]: '#6366f1',
+		[t.report.rings]: '#f59e0b',
+		[t.report.hiit]: '#ef4444',
+		[t.report.cardio]: '#10b981',
+		[t.report.mobility]: '#8b5cf6'
+	}));
 
 	// --- Signal Summary ---
 	const signalSummary = $derived.by(() => {
@@ -603,10 +605,10 @@
 </script>
 
 <svelte:head>
-	<title>Weekly Report | Darink</title>
+	<title>{t.report.weeklyReport} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Weekly Report" back="/more" />
+<PageHeader title={t.report.weeklyReport} back="/more" />
 
 <!-- Week selector -->
 <section class="week-nav no-print">
@@ -619,7 +621,7 @@
 	</button>
 	<button class="print-btn" onclick={doPrint}>
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-		Print
+		{t.report.print}
 	</button>
 </section>
 
@@ -633,7 +635,7 @@
 			{@const scoreDelta = weeklyScore.hasData && prevWeeklyScore.hasData ? delta(weeklyScore.score, prevWeeklyScore.score) : null}
 			<div class="weekly-score" style="--score-color: {scoreColor(sc)}">
 				<span class="weekly-score-num">{sc}</span>
-				<span class="weekly-score-label">Score</span>
+				<span class="weekly-score-label">{t.report.score}</span>
 				{#if scoreDelta}
 					<span class="delta delta-{scoreDelta.direction}">{scoreDelta.value}</span>
 				{/if}
@@ -644,31 +646,31 @@
 	{#if weekEntries.length === 0}
 		<div class="empty-state">
 			<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
-			<p>No entries for this week</p>
-			<p class="empty-hint">Select a different week or log some data first.</p>
+			<p>{t.report.noEntriesThisWeek}</p>
+			<p class="empty-hint">{t.report.noEntriesHint}</p>
 		</div>
 	{:else}
 		<!-- Entry count by type -->
 		<section class="report-section">
-			<h2>Activity Overview</h2>
+			<h2>{t.report.activityOverview}</h2>
 			<div class="metrics-row">
 				<div class="metric-card">
 					<span class="metric-value">{weekEntries.length}</span>
-					<span class="metric-label">Total entries</span>
+					<span class="metric-label">{t.report.totalEntries}</span>
 				</div>
-				{#each typeCounts.slice(0, 5) as [t, count]}
+				{#each typeCounts.slice(0, 5) as [tp, count]}
 					<div class="metric-card">
 						<span class="metric-value">{count}</span>
-						<span class="metric-label">{typeLabel(t)}</span>
+						<span class="metric-label">{typeLabel(tp)}</span>
 					</div>
 				{/each}
 			</div>
 			{#if typeCounts.length > 5}
 				<table class="data-table">
-					<thead><tr><th>Type</th><th>Count</th></tr></thead>
+					<thead><tr><th>{t.report.type}</th><th>{t.report.count}</th></tr></thead>
 					<tbody>
-						{#each typeCounts as [t, count]}
-							<tr><td>{typeLabel(t)}</td><td>{count}</td></tr>
+						{#each typeCounts as [tp, count]}
+							<tr><td>{typeLabel(tp)}</td><td>{count}</td></tr>
 						{/each}
 					</tbody>
 				</table>
@@ -682,12 +684,12 @@
 			{@const stressDelta = deltaInverted(currentCheckins.stress, prevCheckins.stress)}
 			{@const sleepDelta = delta(currentCheckins.sleep, prevCheckins.sleep)}
 			<section class="report-section">
-				<h2>Check-in Averages</h2>
+				<h2>{t.report.checkinAverages}</h2>
 				<div class="metrics-row">
 					{#if currentCheckins.mood !== null}
 						<div class="metric-card">
 							<span class="metric-value">{currentCheckins.mood}</span>
-							<span class="metric-label">Mood</span>
+							<span class="metric-label">{t.common.mood}</span>
 							{#if moodDelta}
 								<span class="delta delta-{moodDelta.direction}">{moodDelta.value}</span>
 							{/if}
@@ -696,7 +698,7 @@
 					{#if currentCheckins.energy !== null}
 						<div class="metric-card">
 							<span class="metric-value">{currentCheckins.energy}</span>
-							<span class="metric-label">Energy</span>
+							<span class="metric-label">{t.common.energy}</span>
 							{#if energyDelta}
 								<span class="delta delta-{energyDelta.direction}">{energyDelta.value}</span>
 							{/if}
@@ -705,7 +707,7 @@
 					{#if currentCheckins.stress !== null}
 						<div class="metric-card">
 							<span class="metric-value">{currentCheckins.stress}</span>
-							<span class="metric-label">Stress</span>
+							<span class="metric-label">{t.common.stress}</span>
 							{#if stressDelta}
 								<span class="delta delta-{stressDelta.direction}">{stressDelta.value}</span>
 							{/if}
@@ -714,23 +716,23 @@
 					{#if currentCheckins.sleep !== null}
 						<div class="metric-card">
 							<span class="metric-value">{currentCheckins.sleep}</span>
-							<span class="metric-label">Sleep (h)</span>
+							<span class="metric-label">{t.common.sleep} (h)</span>
 							{#if sleepDelta}
 								<span class="delta delta-{sleepDelta.direction}">{sleepDelta.value}</span>
 							{/if}
 						</div>
 					{/if}
 				</div>
-				<p class="note">Based on {currentCheckins.count} check-in{currentCheckins.count !== 1 ? 's' : ''}{prevCheckins.count > 0 ? ` (prev week: ${prevCheckins.count})` : ''}</p>
+				<p class="note">{t.report.basedOnCheckins.replace('{n}', String(currentCheckins.count))}{prevCheckins.count > 0 ? ` (${t.report.prevWeekLabel} ${prevCheckins.count})` : ''}</p>
 			</section>
 
 			<!-- Daily mood/energy mini-chart -->
 			<section class="report-section">
-				<h2>Daily Mood / Energy</h2>
+				<h2>{t.report.dailyMoodEnergy}</h2>
 				<div class="mini-charts">
 					<!-- Mood chart -->
 					<div class="mini-chart-block">
-						<span class="mini-chart-title">Mood</span>
+						<span class="mini-chart-title">{t.common.mood}</span>
 						<svg viewBox="0 0 154 52" class="mini-chart-svg" role="img" aria-label="Daily mood chart">
 							{#each dailyMoodEnergy as day, i}
 								{@const barH = day.mood !== null ? (day.mood / 10) * 36 : 0}
@@ -762,7 +764,7 @@
 					</div>
 					<!-- Energy chart -->
 					<div class="mini-chart-block">
-						<span class="mini-chart-title">Energy</span>
+						<span class="mini-chart-title">{t.common.energy}</span>
 						<svg viewBox="0 0 154 52" class="mini-chart-svg" role="img" aria-label="Daily energy chart">
 							{#each dailyMoodEnergy as day, i}
 								{@const barH = day.energy !== null ? (day.energy / 10) * 36 : 0}
@@ -800,11 +802,11 @@
 		{#if currentTraining.total > 0}
 			{@const trainDelta = delta(currentTraining.total, prevTraining.total)}
 			<section class="report-section">
-				<h2>Training</h2>
+				<h2>{t.report.training}</h2>
 				<div class="metrics-row">
 					<div class="metric-card">
 						<span class="metric-value">{currentTraining.total}</span>
-						<span class="metric-label">Sessions</span>
+						<span class="metric-label">{t.report.sessions}</span>
 						{#if trainDelta}
 							<span class="delta delta-{trainDelta.direction}">{trainDelta.value}</span>
 						{/if}
@@ -822,9 +824,9 @@
 		<!-- Habit completion -->
 		{#if currentHabits.length > 0}
 			<section class="report-section">
-				<h2>Habits</h2>
+				<h2>{t.report.habits}</h2>
 				<table class="data-table">
-					<thead><tr><th>Habit</th><th>Days done</th><th>vs prev</th></tr></thead>
+					<thead><tr><th>{t.report.habit}</th><th>{t.report.daysDone}</th><th>{t.report.vsPrev}</th></tr></thead>
 					<tbody>
 						{#each currentHabits as h}
 							{@const prevDays = prevHabitMap.get(h.habit) ?? null}
@@ -849,9 +851,9 @@
 		<!-- Supplement adherence -->
 		{#if suppAdherence !== null && suppAdherence.length > 0}
 			<section class="report-section">
-				<h2>Supplement Adherence</h2>
+				<h2>{t.report.supplementAdherence}</h2>
 				<table class="data-table">
-					<thead><tr><th>Supplement</th><th>Days taken</th><th>vs prev</th></tr></thead>
+					<thead><tr><th>{t.report.supplement}</th><th>{t.report.daysTaken}</th><th>{t.report.vsPrev}</th></tr></thead>
 					<tbody>
 						{#each suppAdherence as s, idx}
 							{@const prevDays = prevSuppAdherence !== null ? prevSuppAdherence[idx]?.daysLogged ?? null : null}
@@ -877,26 +879,26 @@
 		{#if hydrationSummary}
 			{@const hydDelta = delta(hydrationSummary.avgDaily, prevHydrationSummary?.avgDaily ?? null)}
 			<section class="report-section">
-				<h2>Hydration</h2>
+				<h2>{t.report.hydration}</h2>
 				<div class="metrics-row">
 					<div class="metric-card">
 						<span class="metric-value">{(hydrationSummary.totalMl / 1000).toFixed(1)}L</span>
-						<span class="metric-label">Total</span>
+						<span class="metric-label">{t.common.total}</span>
 					</div>
 					<div class="metric-card">
 						<span class="metric-value">{hydrationSummary.metTarget}/{hydrationSummary.daysCount}</span>
-						<span class="metric-label">Days on target</span>
+						<span class="metric-label">{t.report.daysOnTarget}</span>
 					</div>
 					<div class="metric-card">
 						<span class="metric-value">{(hydrationSummary.avgDaily / 1000).toFixed(1)}L</span>
-						<span class="metric-label">Daily avg</span>
+						<span class="metric-label">{t.report.dailyAvg}</span>
 						{#if hydDelta}
 							<span class="delta delta-{hydDelta.direction}">{hydDelta.value}ml</span>
 						{/if}
 					</div>
 				</div>
 				{#if prevHydrationSummary}
-					<p class="note">Prev week: {(prevHydrationSummary.totalMl / 1000).toFixed(1)}L total, {(prevHydrationSummary.avgDaily / 1000).toFixed(1)}L daily avg</p>
+					<p class="note">{t.report.prevWeekLabel} {(prevHydrationSummary.totalMl / 1000).toFixed(1)}L {t.common.total.toLowerCase()}, {(prevHydrationSummary.avgDaily / 1000).toFixed(1)}L {t.report.dailyAvg.toLowerCase()}</p>
 				{/if}
 			</section>
 		{/if}
@@ -904,12 +906,12 @@
 		<!-- Weight change -->
 		{#if weightEntries.length > 0}
 			<section class="report-section">
-				<h2>Weight</h2>
+				<h2>{t.report.weight}</h2>
 				<div class="metrics-row">
 					{#if lastWeight !== null}
 						<div class="metric-card">
 							<span class="metric-value">{lastWeight} kg</span>
-							<span class="metric-label">Latest</span>
+							<span class="metric-label">{t.report.latest}</span>
 						</div>
 					{/if}
 					{#if weightDelta !== null}
@@ -917,7 +919,7 @@
 							<span class="metric-value" class:positive={Number(weightDelta) > 0} class:negative={Number(weightDelta) < 0}>
 								{Number(weightDelta) > 0 ? '+' : ''}{weightDelta} kg
 							</span>
-							<span class="metric-label">Change</span>
+							<span class="metric-label">{t.report.change}</span>
 						</div>
 					{/if}
 				</div>
@@ -927,9 +929,9 @@
 		<!-- Top intakes -->
 		{#if topIntakes.length > 0}
 			<section class="report-section">
-				<h2>Top Intakes</h2>
+				<h2>{t.report.topIntakes}</h2>
 				<table class="data-table">
-					<thead><tr><th>#</th><th>Food / Drink</th><th>Count</th></tr></thead>
+					<thead><tr><th>#</th><th>{t.report.foodDrink}</th><th>{t.report.count}</th></tr></thead>
 					<tbody>
 						{#each topIntakes as [name, count], i}
 							<tr>
@@ -946,13 +948,13 @@
 		<!-- Journal entries -->
 		{#if journalEntries.length > 0}
 			<section class="report-section">
-				<h2>Journal</h2>
+				<h2>{t.report.journal}</h2>
 				{#each journalEntries as entry}
 					<div class="journal-card">
 						<div class="journal-meta">
-							<span>{new Date(entry.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+							<span>{new Date(entry.createdAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
 							{#if entry.data.mood}
-								<span class="mood-badge">Mood: {entry.data.mood}/10</span>
+								<span class="mood-badge">{t.common.mood}: {entry.data.mood}/10</span>
 							{/if}
 						</div>
 						<p class="journal-text">{entry.data.text}</p>
@@ -964,7 +966,7 @@
 		<!-- Medication Adherence -->
 		{#if medicationAdherence !== null && medicationAdherence.length > 0}
 			<section class="report-section">
-				<h2>Medication Adherence</h2>
+				<h2>{t.report.medicationAdherence}</h2>
 				<div class="adherence-list">
 					{#each medicationAdherence as med}
 						<div class="adherence-row">
@@ -988,7 +990,7 @@
 		<!-- Supplement Compliance -->
 		{#if supplementCompliance !== null && supplementCompliance.length > 0}
 			<section class="report-section">
-				<h2>Supplement Compliance</h2>
+				<h2>{t.report.supplementCompliance}</h2>
 				<div class="adherence-list">
 					{#each supplementCompliance as sup}
 						<div class="adherence-row">
@@ -1014,18 +1016,18 @@
 			{@const sessionsDelta = delta(currentVolume.totalSessions, prevVolume.totalSessions)}
 			{@const minutesDelta = delta(currentVolume.totalMinutes, prevVolume.totalMinutes)}
 			<section class="report-section">
-				<h2>Training Volume</h2>
+				<h2>{t.report.trainingVolume}</h2>
 				<div class="metrics-row">
 					<div class="metric-card">
 						<span class="metric-value">{currentVolume.totalSessions}</span>
-						<span class="metric-label">Sessions</span>
+						<span class="metric-label">{t.report.sessions}</span>
 						{#if sessionsDelta}
 							<span class="delta delta-{sessionsDelta.direction}">{sessionsDelta.value}</span>
 						{/if}
 					</div>
 					<div class="metric-card">
 						<span class="metric-value">{currentVolume.totalMinutes}</span>
-						<span class="metric-label">Minutes</span>
+						<span class="metric-label">{t.report.minutes}</span>
 						{#if minutesDelta}
 							<span class="delta delta-{minutesDelta.direction}">{minutesDelta.value}</span>
 						{/if}
@@ -1052,7 +1054,7 @@
 		<!-- Signal Summary -->
 		{#if signalSummary}
 			<section class="report-section">
-				<h2>Signal Summary</h2>
+				<h2>{t.report.signalSummary}</h2>
 				<div class="signal-grid">
 					{#if signalSummary.sleep}
 						<div class="signal-card">
@@ -1060,7 +1062,7 @@
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
 							</div>
 							<div class="signal-data">
-								<span class="signal-title">Sleep</span>
+								<span class="signal-title">{t.report.sleepSignal}</span>
 								<span class="signal-value">{signalSummary.sleep.avgHours}h avg</span>
 								<span class="signal-sub">Quality: {signalSummary.sleep.avgQuality}/10</span>
 							</div>
@@ -1072,9 +1074,9 @@
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
 							</div>
 							<div class="signal-data">
-								<span class="signal-title">Skin</span>
+								<span class="signal-title">{t.report.skinSignal}</span>
 								<span class="signal-value">Elasticity: {signalSummary.skin.avgElasticity}/10</span>
-								<span class="signal-sub">{signalSummary.skin.count} reading{signalSummary.skin.count !== 1 ? 's' : ''}</span>
+								<span class="signal-sub">{signalSummary.skin.count} {signalSummary.skin.count !== 1 ? t.report.readings : t.report.reading}</span>
 							</div>
 						</div>
 					{/if}
@@ -1084,13 +1086,13 @@
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7c0-3.5-3.5-5-7-1.5C9.5 2 6 3.5 6 7c0 4 6.5 10 7 10.5C13.5 17 20 11 20 7Z"/></svg>
 							</div>
 							<div class="signal-data">
-								<span class="signal-title">Hair</span>
+								<span class="signal-title">{t.report.hairSignal}</span>
 								{#if signalSummary.hair.latestDensity !== null}
 									<span class="signal-value">Density: {signalSummary.hair.latestDensity}/10</span>
 								{:else}
 									<span class="signal-value">Logged</span>
 								{/if}
-								<span class="signal-sub">{signalSummary.hair.count} reading{signalSummary.hair.count !== 1 ? 's' : ''}</span>
+								<span class="signal-sub">{signalSummary.hair.count} {signalSummary.hair.count !== 1 ? t.report.readings : t.report.reading}</span>
 							</div>
 						</div>
 					{/if}
@@ -1100,9 +1102,9 @@
 								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
 							</div>
 							<div class="signal-data">
-								<span class="signal-title">Genital</span>
+								<span class="signal-title">{t.report.genitalSignal}</span>
 								<span class="signal-value">Libido: {signalSummary.genital.avgLibido}/10</span>
-								<span class="signal-sub">{signalSummary.genital.count} reading{signalSummary.genital.count !== 1 ? 's' : ''}</span>
+								<span class="signal-sub">{signalSummary.genital.count} {signalSummary.genital.count !== 1 ? t.report.readings : t.report.reading}</span>
 							</div>
 						</div>
 					{/if}
@@ -1113,7 +1115,7 @@
 		<!-- Overall Weekly Grade -->
 		{#if currentGrade}
 			<section class="report-section grade-section">
-				<h2>Overall Weekly Grade</h2>
+				<h2>{t.report.overallWeeklyGrade}</h2>
 				<div class="grade-container">
 					<div class="grade-badge" style="--grade-color: {gradeColor(currentGrade)}">
 						<span class="grade-letter">{currentGrade}</span>
@@ -1122,16 +1124,16 @@
 					{#if prevGrade}
 						<div class="grade-comparison">
 							{#if currentGrade === prevGrade}
-								<span class="grade-same">Same as last week ({prevGrade})</span>
+								<span class="grade-same">{t.report.sameAsLastWeek} ({prevGrade})</span>
 							{:else if weeklyScore.score > prevWeeklyScore.score}
 								<span class="grade-improved">
 									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-									Up from {prevGrade} ({prevWeeklyScore.score})
+									{t.report.upFrom} {prevGrade} ({prevWeeklyScore.score})
 								</span>
 							{:else}
 								<span class="grade-declined">
 									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-									Down from {prevGrade} ({prevWeeklyScore.score})
+									{t.report.downFrom} {prevGrade} ({prevWeeklyScore.score})
 								</span>
 							{/if}
 						</div>

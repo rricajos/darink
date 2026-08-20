@@ -1,29 +1,31 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
+	const { t } = useLocale();
 
 	let search = $state('');
 
-	const allItems = [
-		{ href: '/signals', label: 'Signals', desc: 'Body signal monitoring', group: 'Health Tracking' },
-		{ href: '/habits', label: 'Habits', desc: 'Daily habits and streaks', group: 'Health Tracking' },
-		{ href: '/supplements', label: 'Supplements', desc: 'Stack and adherence', group: 'Health Tracking' },
-		{ href: '/hydration', label: 'Hydration', desc: 'Water and fluid tracking', group: 'Health Tracking' },
-		{ href: '/measurements', label: 'Measurements', desc: 'Body measurements over time', group: 'Health Tracking' },
-		{ href: '/bloodwork', label: 'Blood Work', desc: 'Lab results and reference ranges', group: 'Health Tracking' },
-		{ href: '/medications', label: 'Medications', desc: 'Prescriptions, doses, side effects', group: 'Health Tracking' },
-		{ href: '/symptoms', label: 'Symptoms', desc: 'Pain and symptom tracking', group: 'Health Tracking' },
-		{ href: '/journal', label: 'Journal', desc: 'Freeform notes', group: 'Health Tracking' },
-		{ href: '/timeline', label: 'Timeline', desc: 'Activity feed', group: 'Insights' },
-		{ href: '/goals', label: 'Goals', desc: 'Targets and progress', group: 'Insights' },
-		{ href: '/experiments', label: 'Experiments', desc: 'n=1 testing', group: 'Insights' },
-		{ href: '/records', label: 'Records', desc: 'Personal bests and milestones', group: 'Insights' },
-		{ href: '/report', label: 'Report', desc: 'Weekly summary for review', group: 'Insights' },
-		{ href: '/insights', label: 'Insights', desc: 'Deep dive analytics and patterns', group: 'Insights' },
-		{ href: '/profile', label: 'Profile', desc: 'Body metrics and targets', group: 'Settings' },
-		{ href: '/reminders', label: 'Reminders', desc: 'Notification reminders', group: 'Settings' },
-		{ href: '/data', label: 'Data', desc: 'Search, export, import', group: 'Settings' },
-		{ href: '/ref', label: 'Reference', desc: 'Health knowledge base', group: 'Settings' }
-	];
+	const allItems = $derived.by(() => [
+		{ href: '/signals', label: t.more.signals, desc: t.more.signalsDesc, group: t.more.healthTracking },
+		{ href: '/habits', label: t.more.habits, desc: t.more.habitsDesc, group: t.more.healthTracking },
+		{ href: '/supplements', label: t.more.supplements, desc: t.more.supplementsDesc, group: t.more.healthTracking },
+		{ href: '/hydration', label: t.more.hydration, desc: t.more.hydrationDesc, group: t.more.healthTracking },
+		{ href: '/measurements', label: t.more.measurements, desc: t.more.measurementsDesc, group: t.more.healthTracking },
+		{ href: '/bloodwork', label: t.more.bloodwork, desc: t.more.bloodworkDesc, group: t.more.healthTracking },
+		{ href: '/medications', label: t.more.medications, desc: t.more.medicationsDesc, group: t.more.healthTracking },
+		{ href: '/symptoms', label: t.more.symptoms, desc: t.more.symptomsDesc, group: t.more.healthTracking },
+		{ href: '/journal', label: t.more.journal, desc: t.more.journalDesc, group: t.more.healthTracking },
+		{ href: '/timeline', label: t.more.timeline, desc: t.more.timelineDesc, group: t.more.insightsGroup },
+		{ href: '/goals', label: t.more.goals, desc: t.more.goalsDesc, group: t.more.insightsGroup },
+		{ href: '/experiments', label: t.more.experiments, desc: t.more.experimentsDesc, group: t.more.insightsGroup },
+		{ href: '/records', label: t.more.records, desc: t.more.recordsDesc, group: t.more.insightsGroup },
+		{ href: '/report', label: t.more.report, desc: t.more.reportDesc, group: t.more.insightsGroup },
+		{ href: '/insights', label: t.more.insights, desc: t.more.insightsDesc, group: t.more.insightsGroup },
+		{ href: '/profile', label: t.more.profile, desc: t.more.profileDesc, group: t.more.settings },
+		{ href: '/reminders', label: t.more.reminders, desc: t.more.remindersDesc, group: t.more.settings },
+		{ href: '/data', label: t.more.data, desc: t.more.dataDesc, group: t.more.settings },
+		{ href: '/ref', label: t.more.ref, desc: t.more.refDesc, group: t.more.settings }
+	]);
 
 	const filtered = $derived.by(() => {
 		const q = search.trim().toLowerCase();
@@ -31,57 +33,57 @@
 		return allItems.filter(i => i.label.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q));
 	});
 
-	const groups = [
+	const groups = $derived.by(() => [
 		{
-			title: 'Health Tracking',
+			title: t.more.healthTracking,
 			items: [
-				{ href: '/signals', label: 'Signals', desc: 'Body signal monitoring' },
-				{ href: '/habits', label: 'Habits', desc: 'Daily habits and streaks' },
-				{ href: '/supplements', label: 'Supplements', desc: 'Stack and adherence' },
-				{ href: '/hydration', label: 'Hydration', desc: 'Water and fluid tracking' },
-				{ href: '/measurements', label: 'Measurements', desc: 'Body measurements over time' },
-				{ href: '/bloodwork', label: 'Blood Work', desc: 'Lab results and reference ranges' },
-				{ href: '/medications', label: 'Medications', desc: 'Prescriptions, doses, side effects' },
-				{ href: '/symptoms', label: 'Symptoms', desc: 'Pain and symptom tracking' },
-				{ href: '/journal', label: 'Journal', desc: 'Freeform notes' }
+				{ href: '/signals', label: t.more.signals, desc: t.more.signalsDesc },
+				{ href: '/habits', label: t.more.habits, desc: t.more.habitsDesc },
+				{ href: '/supplements', label: t.more.supplements, desc: t.more.supplementsDesc },
+				{ href: '/hydration', label: t.more.hydration, desc: t.more.hydrationDesc },
+				{ href: '/measurements', label: t.more.measurements, desc: t.more.measurementsDesc },
+				{ href: '/bloodwork', label: t.more.bloodwork, desc: t.more.bloodworkDesc },
+				{ href: '/medications', label: t.more.medications, desc: t.more.medicationsDesc },
+				{ href: '/symptoms', label: t.more.symptoms, desc: t.more.symptomsDesc },
+				{ href: '/journal', label: t.more.journal, desc: t.more.journalDesc }
 			]
 		},
 		{
-			title: 'Insights',
+			title: t.more.insightsGroup,
 			items: [
-				{ href: '/timeline', label: 'Timeline', desc: 'Activity feed' },
-				{ href: '/goals', label: 'Goals', desc: 'Targets and progress' },
-				{ href: '/experiments', label: 'Experiments', desc: 'n=1 testing' },
-				{ href: '/records', label: 'Records', desc: 'Personal bests and milestones' },
-				{ href: '/report', label: 'Report', desc: 'Weekly summary for review' },
-				{ href: '/insights', label: 'Insights', desc: 'Deep dive analytics and patterns' }
+				{ href: '/timeline', label: t.more.timeline, desc: t.more.timelineDesc },
+				{ href: '/goals', label: t.more.goals, desc: t.more.goalsDesc },
+				{ href: '/experiments', label: t.more.experiments, desc: t.more.experimentsDesc },
+				{ href: '/records', label: t.more.records, desc: t.more.recordsDesc },
+				{ href: '/report', label: t.more.report, desc: t.more.reportDesc },
+				{ href: '/insights', label: t.more.insights, desc: t.more.insightsDesc }
 			]
 		},
 		{
-			title: 'Settings',
+			title: t.more.settings,
 			items: [
-				{ href: '/profile', label: 'Profile', desc: 'Body metrics and targets' },
-				{ href: '/reminders', label: 'Reminders', desc: 'Notification reminders' },
-				{ href: '/data', label: 'Data', desc: 'Search, export, import' },
-				{ href: '/ref', label: 'Reference', desc: 'Health knowledge base' }
+				{ href: '/profile', label: t.more.profile, desc: t.more.profileDesc },
+				{ href: '/reminders', label: t.more.reminders, desc: t.more.remindersDesc },
+				{ href: '/data', label: t.more.data, desc: t.more.dataDesc },
+				{ href: '/ref', label: t.more.ref, desc: t.more.refDesc }
 			]
 		}
-	];
+	]);
 </script>
 
 <svelte:head>
-  <title>More | Darink</title>
+  <title>{t.more.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="More" />
+<PageHeader title={t.more.title} />
 
 <div class="search-wrap">
-	<input type="search" class="search-input" placeholder="Search pages..." bind:value={search} />
+	<input type="search" class="search-input" placeholder={t.more.searchPages} bind:value={search} />
 </div>
 
 {#if filtered}
 	{#if filtered.length === 0}
-		<p class="no-results">No pages matching "{search}"</p>
+		<p class="no-results">{t.more.noMatch} "{search}"</p>
 	{:else}
 		<section class="grid" style="padding:0 1rem">
 			{#each filtered as s}
@@ -108,7 +110,7 @@
 {/each}
 
 <footer class="version">
-	Darink v1.0.0
+	{t.more.version}
 </footer>
 
 {/if}

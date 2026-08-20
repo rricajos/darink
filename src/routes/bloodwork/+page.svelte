@@ -7,16 +7,18 @@
 	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
 	import { findRelevantSupplements, findSuggestedSupplements } from '$lib/utils/marker-supplement-map';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries('bloodwork');
 
 	/* --- Marker definitions --- */
 	interface Marker { key: string; label: string; unit: string; min: number; max: number }
 	interface Category { name: string; markers: Marker[] }
 
-	const categories: Category[] = [
+	const categories: Category[] = $derived.by(() => [
 		{
-			name: 'Hormonal', markers: [
+			name: t.bloodwork.catHormonal, markers: [
 				{ key: 'testosterone', label: 'Testosterone', unit: 'ng/dL', min: 300, max: 1000 },
 				{ key: 'freeT', label: 'Free T', unit: 'pg/mL', min: 5, max: 25 },
 				{ key: 'estradiol', label: 'Estradiol', unit: 'pg/mL', min: 10, max: 40 },
@@ -26,7 +28,7 @@
 			]
 		},
 		{
-			name: 'Metabolic', markers: [
+			name: t.bloodwork.catMetabolic, markers: [
 				{ key: 'glucose', label: 'Glucose', unit: 'mg/dL', min: 70, max: 100 },
 				{ key: 'hba1c', label: 'HbA1c', unit: '%', min: 4.0, max: 5.6 },
 				{ key: 'totalCholesterol', label: 'Total Cholesterol', unit: 'mg/dL', min: 0, max: 200 },
@@ -36,7 +38,7 @@
 			]
 		},
 		{
-			name: 'Blood', markers: [
+			name: t.bloodwork.catBlood, markers: [
 				{ key: 'hemoglobin', label: 'Hemoglobin', unit: 'g/dL', min: 13.5, max: 17.5 },
 				{ key: 'hematocrit', label: 'Hematocrit', unit: '%', min: 38, max: 49 },
 				{ key: 'ferritin', label: 'Ferritin', unit: 'ng/mL', min: 30, max: 400 },
@@ -44,7 +46,7 @@
 			]
 		},
 		{
-			name: 'Liver/Kidney', markers: [
+			name: t.bloodwork.catLiverKidney, markers: [
 				{ key: 'alt', label: 'ALT', unit: 'U/L', min: 7, max: 56 },
 				{ key: 'ast', label: 'AST', unit: 'U/L', min: 10, max: 40 },
 				{ key: 'creatinine', label: 'Creatinine', unit: 'mg/dL', min: 0.7, max: 1.3 },
@@ -52,7 +54,7 @@
 			]
 		},
 		{
-			name: 'Vitamins', markers: [
+			name: t.bloodwork.catVitamins, markers: [
 				{ key: 'vitaminD', label: 'Vitamin D', unit: 'ng/mL', min: 30, max: 100 },
 				{ key: 'b12', label: 'B12', unit: 'pg/mL', min: 200, max: 900 },
 				{ key: 'iron', label: 'Iron', unit: 'ug/dL', min: 60, max: 170 },
@@ -60,10 +62,10 @@
 				{ key: 'magnesium', label: 'Magnesium', unit: 'mg/dL', min: 1.7, max: 2.2 }
 			]
 		}
-	];
+	]);
 
-	const allMarkers = categories.flatMap((c) => c.markers);
-	const markerByKey = new Map(allMarkers.map((m) => [m.key, m]));
+	const allMarkers = $derived(categories.flatMap((c) => c.markers));
+	const markerByKey = $derived(new Map(allMarkers.map((m) => [m.key, m])));
 
 	/* --- Form state --- */
 	let date = $state(new Date().toISOString().slice(0, 10));
@@ -85,12 +87,12 @@
 			if (val > 0) filled[key] = val;
 		}
 		if (Object.keys(filled).length === 0) {
-			toast.show('Enter at least one marker value');
+			toast.show(t.bloodwork.enterAtLeast);
 			return;
 		}
 		entries.add('bloodwork', { date, lab: lab.trim(), markers: filled, notes: notes.trim() });
 		resetForm();
-		toast.show('Blood work logged');
+		toast.show(t.bloodwork.bloodworkLogged);
 	}
 
 	/* --- Supplement stack (loaded from ui store) --- */
@@ -152,11 +154,11 @@
 	}
 
 	function rangeLabel(value: number, min: number, max: number): string {
-		if (value >= min && value <= max) return 'normal';
+		if (value >= min && value <= max) return t.bloodwork.normal;
 		const range = max - min;
 		const tolerance = range * 0.1;
-		if (value >= min - tolerance && value <= max + tolerance) return 'borderline';
-		return value < min ? 'low' : 'high';
+		if (value >= min - tolerance && value <= max + tolerance) return t.bloodwork.borderline;
+		return value < min ? t.bloodwork.low : t.bloodwork.high;
 	}
 
 	/* --- Trend chart --- */
@@ -208,14 +210,14 @@
 </script>
 
 <svelte:head>
-	<title>Blood Work | Darink</title>
+	<title>{t.bloodwork.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Blood Work" />
+<PageHeader title={t.bloodwork.title} />
 
 <!-- Log Form -->
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
 
 	<div class="cat-tabs">
 		{#each categories as cat, i}
@@ -250,15 +252,15 @@
 		{/each}
 	</div>
 
-	<label>Lab name <input type="text" bind:value={lab} placeholder="Hospital, clinic..." /></label>
-	<label>Notes <textarea bind:value={notes} rows="2" placeholder="Fasting, context..."></textarea></label>
-	<button class="primary" onclick={submit}>Log blood work</button>
+	<label>{t.bloodwork.labName} <input type="text" bind:value={lab} placeholder={t.bloodwork.labPlaceholder} /></label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2" placeholder={t.bloodwork.notesPlaceholder}></textarea></label>
+	<button class="primary" onclick={submit}>{t.bloodwork.logBloodwork}</button>
 </section>
 
 <!-- Latest Results Summary -->
 {#if latestResults.length > 0}
 <section class="results-section">
-	<h2>Latest Results</h2>
+	<h2>{t.bloodwork.latestResults}</h2>
 	<div class="results-grid">
 		{#each latestResults as r}
 			{@const outOfRange = r.value < r.marker.min || r.value > r.marker.max}
@@ -270,20 +272,20 @@
 					<span class="result-status" style="color: {rangeColor(r.value, r.marker.min, r.marker.max)}">{rangeLabel(r.value, r.marker.min, r.marker.max)}</span>
 				</div>
 				<div class="result-value" style="color: {rangeColor(r.value, r.marker.min, r.marker.max)}">{r.value} <span class="result-unit">{r.marker.unit}</span></div>
-				<div class="result-ref">Ref: {r.marker.min}-{r.marker.max} {r.marker.unit}</div>
+				<div class="result-ref">{t.bloodwork.ref}: {r.marker.min}-{r.marker.max} {r.marker.unit}</div>
 				<div class="result-date">{r.date}</div>
 				{#if outOfRange && (taking.length > 0 || suggested.length > 0)}
 					<div class="result-supplement">
 						{#each taking as name}
 							<div class="result-supplement-taking">
 								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M12 4v16"/><path d="M3 12h18"/></svg>
-								Taking: {name}
+								{t.bloodwork.taking}: {name}
 							</div>
 						{/each}
 						{#each suggested as name}
 							<div class="result-supplement-consider">
 								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-								Consider: {name}
+								{t.bloodwork.consider}: {name}
 							</div>
 						{/each}
 					</div>
@@ -297,9 +299,9 @@
 <!-- Trend Chart -->
 {#if sorted.length > 0}
 <section class="chart-section">
-	<h2>Trend Chart</h2>
+	<h2>{t.bloodwork.trendChart}</h2>
 	<select class="chart-select" bind:value={chartMarkerKey}>
-		<option value="">Select a marker...</option>
+		<option value="">{t.bloodwork.selectMarker}</option>
 		{#each categories as cat}
 			<optgroup label={cat.name}>
 				{#each cat.markers as m}
@@ -363,7 +365,7 @@
 			<span>{pts[pts.length - 1].date.slice(5)}</span>
 		</div>
 	{:else if chartMarkerKey}
-		<p class="empty-hint">No data for this marker yet.</p>
+		<p class="empty-hint">{t.bloodwork.noDataMarker}</p>
 	{/if}
 </section>
 {/if}
@@ -371,7 +373,7 @@
 <!-- Delta Comparison -->
 {#if deltas}
 <section class="delta-section">
-	<h2>Change (Latest vs Previous)</h2>
+	<h2>{t.bloodwork.changeLast}</h2>
 	<div class="delta-grid">
 		{#each deltas as d}
 			<div class="delta-card">
@@ -394,8 +396,8 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-	<p>No blood work tracked yet</p>
-	<p class="empty-hint">Log your lab results to track markers over time.</p>
+	<p>{t.bloodwork.noBloodwork}</p>
+	<p class="empty-hint">{t.bloodwork.noBloodworkHint}</p>
 </div>
 {/if}
 
@@ -418,11 +420,11 @@
 		}
 		updated.markers = markers;
 		entries.update(item.id, updated);
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date ?? ''} /></label>
-		<label>Lab <input type="text" name="lab" value={data.lab ?? ''} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date ?? ''} /></label>
+		<label>{t.bloodwork.labName} <input type="text" name="lab" value={data.lab ?? ''} /></label>
 		{#each categories as cat}
 			<details class="edit-cat">
 				<summary>{cat.name}</summary>
@@ -436,10 +438,10 @@
 				</div>
 			</details>
 		{/each}
-		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -449,7 +451,7 @@
 		{@const markerCount = countMarkers(item)}
 		<div class="bw-row">
 			<span class="bw-date">{(item.data.date as string) ?? item.createdAt.slice(0, 10)}</span>
-			<span class="bw-count">{markerCount} marker{markerCount !== 1 ? 's' : ''}</span>
+			<span class="bw-count">{markerCount} {markerCount !== 1 ? t.bloodwork.markers : t.bloodwork.marker}</span>
 			{#if item.data.lab}
 				<span class="bw-lab">{item.data.lab}</span>
 			{/if}

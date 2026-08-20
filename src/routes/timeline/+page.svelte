@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { useEntries } from '$lib/stores/entries.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries();
 
 	/* --- Tag filter state --- */
@@ -13,9 +15,9 @@
 		for (const e of store.items) {
 			const tags = e.data.tags;
 			if (Array.isArray(tags)) {
-				for (const t of tags) {
-					if (typeof t === 'string') {
-						counts[t] = (counts[t] || 0) + 1;
+				for (const tag of tags) {
+					if (typeof tag === 'string') {
+						counts[tag] = (counts[tag] || 0) + 1;
 					}
 				}
 			}
@@ -27,7 +29,7 @@
 
 	function toggleTagFilter(tag: string): void {
 		if (selectedTags.includes(tag)) {
-			selectedTags = selectedTags.filter((t) => t !== tag);
+			selectedTags = selectedTags.filter((st) => st !== tag);
 		} else {
 			selectedTags = [...selectedTags, tag];
 		}
@@ -73,35 +75,37 @@
 
 	/* --- Type labels --- */
 	function getTypeLabel(type: string): string {
-		if (type === 'checkin') return 'Check-in';
-		if (type === 'intake') return 'Intake';
-		if (type === 'training.strength') return 'Strength';
-		if (type === 'training.cardio') return 'Cardio';
-		if (type === 'training.hiit') return 'HIIT';
-		if (type === 'training.rings') return 'Rings';
-		if (type === 'training.mobility') return 'Mobility';
-		if (type === 'habit') return 'Habit';
-		if (type === 'supplement') return 'Supplement';
-		if (type === 'signal.sleep') return 'Sleep';
-		if (type === 'signal.skin') return 'Skin';
-		if (type === 'signal.hair') return 'Hair';
-		if (type === 'signal.genital') return 'Genital';
-		if (type === 'experiment') return 'Experiment';
-		if (type === 'journal') return 'Journal';
-		if (type === 'hydration') return 'Hydration';
-		if (type === 'weight') return 'Weight';
-		if (type === 'measurement') return 'Measurement';
-		if (type === 'bloodwork') return 'Blood Work';
-		if (type === 'medication') return 'Medication';
-		if (type === 'symptom') return 'Symptom';
-		return type;
+		const map: Record<string, string> = {
+			'checkin': t.timeline.checkin,
+			'intake': t.timeline.intake,
+			'training.strength': t.timeline.strength,
+			'training.cardio': t.timeline.cardio,
+			'training.hiit': t.timeline.hiit,
+			'training.rings': t.timeline.rings,
+			'training.mobility': t.timeline.mobility,
+			'habit': t.timeline.habit,
+			'supplement': t.timeline.supplement,
+			'signal.sleep': t.timeline.sleep,
+			'signal.skin': t.timeline.skin,
+			'signal.hair': t.timeline.hair,
+			'signal.genital': t.timeline.genital,
+			'experiment': t.timeline.experiment,
+			'journal': t.timeline.journal,
+			'hydration': t.timeline.hydration,
+			'weight': t.timeline.weight,
+			'measurement': t.timeline.measurement,
+			'bloodwork': t.timeline.bloodWork,
+			'medication': t.timeline.medication,
+			'symptom': t.timeline.symptom
+		};
+		return map[type] ?? type;
 	}
 
 	/* --- Entry summary --- */
 	function summarize(type: string, data: Record<string, unknown>): string {
 		switch (type) {
 			case 'checkin':
-				return `Mood ${data.mood ?? '?'}/10 · Energy ${data.energy ?? '?'}/10`;
+				return `${t.common.mood} ${data.mood ?? '?'}/10 · ${t.common.energy} ${data.energy ?? '?'}/10`;
 			case 'intake':
 				return `${data.what ?? '?'} (${data.amount ?? '?'})`;
 			case 'training.strength':
@@ -119,18 +123,18 @@
 			case 'supplement':
 				return `${data.name ?? '?'} ${data.dose ?? ''}`;
 			case 'signal.sleep':
-				return `Sleep ${data.hours ?? '?'}h Q${data.quality ?? '?'}/10`;
+				return `${t.timeline.sleep} ${data.hours ?? '?'}h Q${data.quality ?? '?'}/10`;
 			case 'signal.skin':
-				return `Skin O${data.oiliness ?? '?'} E${data.elasticity ?? '?'}`;
+				return `${t.timeline.skin} O${data.oiliness ?? '?'} E${data.elasticity ?? '?'}`;
 			case 'signal.hair':
-				return `Hair D${data.density ?? '?'} S${data.shedding ?? '?'}`;
+				return `${t.timeline.hair} D${data.density ?? '?'} S${data.shedding ?? '?'}`;
 			case 'signal.genital':
-				return `Libido ${data.libido ?? '?'}/10`;
+				return `${t.genital.libido} ${data.libido ?? '?'}/10`;
 			case 'experiment':
 				return `${data.hypothesis ?? '?'} [${data.status ?? '?'}]`;
 			case 'journal': {
 				const text = typeof data.text === 'string' ? data.text : '';
-				return text.length > 0 ? text.slice(0, 60) : 'Entry';
+				return text.length > 0 ? text.slice(0, 60) : t.timeline.entry;
 			}
 			case 'hydration':
 				return `${data.amount ?? '?'}ml ${data.source ?? ''}`.trim();
@@ -141,18 +145,18 @@
 			}
 			case 'measurement': {
 				const parts: string[] = [];
-				if (data.waist != null) parts.push(`Waist ${data.waist}cm`);
-				if (data.chest != null) parts.push(`Chest ${data.chest}cm`);
-				return parts.length > 0 ? parts.join(' / ') : 'Measurement';
+				if (data.waist != null) parts.push(`${t.profile.waist} ${data.waist}cm`);
+				if (data.chest != null) parts.push(`${t.profile.chest} ${data.chest}cm`);
+				return parts.length > 0 ? parts.join(' / ') : t.timeline.measurement;
 			}
 			case 'bloodwork': {
 				if (data.marker != null && data.value != null) return `${data.marker}: ${data.value}`;
-				return 'Blood work';
+				return t.timeline.bloodWork;
 			}
 			case 'medication':
 				return `${data.medication ?? '?'} ${data.dose ?? ''}`.trim();
 			case 'symptom':
-				return `${data.symptom ?? '?'} severity ${data.severity ?? '?'}/10`;
+				return `${data.symptom ?? '?'} ${t.medications.severity} ${data.severity ?? '?'}/10`;
 			default:
 				return JSON.stringify(data).slice(0, 60);
 		}
@@ -259,12 +263,12 @@
 	function formatDateHeader(dateStr: string): string {
 		const d = new Date(dateStr + 'T12:00:00');
 		const todayStr = new Date().toISOString().slice(0, 10);
-		const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+		const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
-		if (dateStr === todayStr) return 'Today';
-		if (dateStr === yesterday) return 'Yesterday';
+		if (dateStr === todayStr) return t.timeline.today;
+		if (dateStr === yesterdayStr) return t.timeline.yesterday;
 
-		return d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
+		return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 	}
 
 	/* --- Daily density data (max 60 days) --- */
@@ -298,8 +302,8 @@
 			const count = Object.values(types).reduce((s, v) => s + v, 0);
 			let dominant = '';
 			let maxC = 0;
-			for (const [t, c] of Object.entries(types)) {
-				if (c > maxC) { maxC = c; dominant = t; }
+			for (const [tp, c] of Object.entries(types)) {
+				if (c > maxC) { maxC = c; dominant = tp; }
 			}
 			result.push({ date: ds, count, dominantType: dominant });
 		}
@@ -352,7 +356,7 @@
 
 	function formatDayName(dateStr: string): string {
 		const d = new Date(dateStr + 'T12:00:00');
-		return d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
+		return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 	}
 
 	function formatTime(iso: string): string {
@@ -361,35 +365,35 @@
 </script>
 
 <svelte:head>
-  <title>Timeline | Darink</title>
+  <title>{t.timeline.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Timeline" back="/more" />
+<PageHeader title={t.timeline.title} back="/more" />
 
 <!-- Filter bar -->
 <section class="filter-bar">
 	<div class="date-filters">
 		<label class="date-label">
-			From
+			{t.timeline.from}
 			<input type="date" bind:value={dateFrom} />
 		</label>
 		<label class="date-label">
-			To
+			{t.timeline.to}
 			<input type="date" bind:value={dateTo} />
 		</label>
 	</div>
 
 	<button class="toggle-filters" onclick={() => filtersOpen = !filtersOpen}>
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-		Types ({enabledTypes.size}/{allTypes.length})
+		{t.timeline.types} ({enabledTypes.size}/{allTypes.length})
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron" class:open={filtersOpen}><path d="m6 9 6 6 6-6"/></svg>
 	</button>
 
 	{#if filtersOpen}
 	<div class="type-filters">
 		<div class="type-actions">
-			<button class="sm" onclick={selectAllTypes}>All</button>
-			<button class="sm" onclick={deselectAllTypes}>None</button>
+			<button class="sm" onclick={selectAllTypes}>{t.timeline.all}</button>
+			<button class="sm" onclick={deselectAllTypes}>{t.timeline.none}</button>
 		</div>
 		<div class="type-chips">
 			{#each allTypes as type}
@@ -409,7 +413,7 @@
 	{#if allTags.length > 0}
 	<button class="toggle-filters tag-toggle" onclick={() => tagFilterOpen = !tagFilterOpen}>
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
-		Tags ({selectedTags.length}/{allTags.length})
+		{t.timeline.tags} ({selectedTags.length}/{allTags.length})
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron" class:open={tagFilterOpen}><path d="m6 9 6 6 6-6"/></svg>
 	</button>
 
@@ -417,7 +421,7 @@
 	<div class="type-filters">
 		{#if selectedTags.length > 0}
 		<div class="type-actions">
-			<button class="sm" onclick={clearTagFilter}>Clear tags</button>
+			<button class="sm" onclick={clearTagFilter}>{t.timeline.clearTags}</button>
 		</div>
 		{/if}
 		<div class="type-chips">
@@ -440,7 +444,7 @@
 <!-- Daily activity density -->
 {#if dailyDensity.length > 0 && filtered.length > 0}
 <section class="density-section">
-	<div class="density-label">Daily activity</div>
+	<div class="density-label">{t.timeline.dailyActivity}</div>
 	<div class="density-chart-wrap">
 		<svg class="density-chart" viewBox="0 0 {dailyDensity.length * 10} 40" preserveAspectRatio="none">
 			{#each dailyDensity as day, i}
@@ -455,7 +459,7 @@
 					fill={barColor}
 					opacity="0.85"
 				>
-					<title>{day.date}: {day.count} {day.count === 1 ? 'entry' : 'entries'}</title>
+					<title>{day.date}: {day.count} {day.count === 1 ? t.timeline.entry : t.timeline.entries}</title>
 				</rect>
 			{/each}
 		</svg>
@@ -467,8 +471,8 @@
 {#if filtered.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
-	<p>No entries in this range</p>
-	<p class="empty-hint">Adjust the date range or type filters above.</p>
+	<p>{t.timeline.noEntries}</p>
+	<p class="empty-hint">{t.timeline.noEntriesHint}</p>
 </div>
 {:else}
 <div class="feed">
@@ -477,11 +481,11 @@
 		<div class="stat-row">
 			<div class="stat-item">
 				<span class="stat-value">{summaryStats.total}</span>
-				<span class="stat-label">entries</span>
+				<span class="stat-label">{t.timeline.entries}</span>
 			</div>
 			<div class="stat-item">
 				<span class="stat-value">{summaryStats.avg}</span>
-				<span class="stat-label">per day</span>
+				<span class="stat-label">{t.timeline.perDay}</span>
 			</div>
 			<div class="stat-item">
 				<span class="stat-value">{summaryStats.bestDayCount}</span>
@@ -490,9 +494,9 @@
 		</div>
 		{#if summaryStats.topTypes.length > 0}
 		<div class="top-types">
-			{#each summaryStats.topTypes as t}
-				<span class="top-type-chip" style="--chip-color: {getTypeColor(t.type)}">
-					{getTypeLabel(t.type)} <span class="top-type-count">{t.count}</span>
+			{#each summaryStats.topTypes as tp}
+				<span class="top-type-chip" style="--chip-color: {getTypeColor(tp.type)}">
+					{getTypeLabel(tp.type)} <span class="top-type-count">{tp.count}</span>
 				</span>
 			{/each}
 		</div>
@@ -528,7 +532,7 @@
 	<div class="load-more-wrap">
 		<button class="load-more" onclick={loadMore}>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
-			Load more ({filtered.length - visibleCount} remaining)
+			{t.timeline.loadMore} ({filtered.length - visibleCount} {t.timeline.remaining})
 		</button>
 	</div>
 	{/if}

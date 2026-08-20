@@ -2,7 +2,10 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { ui } from '$lib/db';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import { onMount } from 'svelte';
+
+	const { t } = useLocale();
 
 	interface Reminder {
 		id: string;
@@ -14,7 +17,7 @@
 	}
 
 	const TYPES = ['checkin', 'habit', 'supplement', 'training', 'journal', 'custom'] as const;
-	const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+	const DAY_LABELS = $derived([t.days.mon, t.days.tue, t.days.wed, t.days.thu, t.days.fri, t.days.sat, t.days.sun] as const);
 
 	let reminders = $state<Reminder[]>([]);
 	let permission = $state<NotificationPermission>('default');
@@ -42,7 +45,7 @@
 			.filter((d) => d >= 0);
 
 		if (selectedDays.length === 0) {
-			toast.show('Select at least one day');
+			toast.show(t.reminders.selectAtLeastOneDay);
 			return;
 		}
 
@@ -57,7 +60,7 @@
 
 		reminders = [...reminders, reminder];
 		saveReminders();
-		toast.show('Reminder added');
+		toast.show(t.reminders.reminderAdded);
 
 		// Reset form
 		formLabel = '';
@@ -74,20 +77,20 @@
 	function deleteReminder(id: string): void {
 		reminders = reminders.filter((r) => r.id !== id);
 		saveReminders();
-		toast.show('Reminder deleted');
+		toast.show(t.reminders.reminderDeleted);
 	}
 
 	async function requestPermission(): Promise<void> {
 		if (!('Notification' in window)) {
-			toast.show('Notifications not supported');
+			toast.show(t.reminders.notificationsNotSupported);
 			return;
 		}
 		const result = await Notification.requestPermission();
 		permission = result;
 		if (result === 'granted') {
-			toast.show('Notifications enabled');
+			toast.show(t.reminders.notificationsEnabled);
 		} else if (result === 'denied') {
-			toast.show('Notifications blocked');
+			toast.show(t.reminders.notificationsBlocked);
 		}
 	}
 
@@ -119,9 +122,9 @@
 	}
 
 	function daysDisplay(days: number[]): string {
-		if (days.length === 7) return 'Every day';
-		if (days.length === 5 && !days.includes(5) && !days.includes(6)) return 'Weekdays';
-		if (days.length === 2 && days.includes(5) && days.includes(6)) return 'Weekends';
+		if (days.length === 7) return t.reminders.everyDay;
+		if (days.length === 5 && !days.includes(5) && !days.includes(6)) return t.reminders.weekdays;
+		if (days.length === 2 && days.includes(5) && days.includes(6)) return t.reminders.weekends;
 		return days.map((d) => DAY_LABELS[d]).join(', ');
 	}
 
@@ -145,48 +148,48 @@
 </script>
 
 <svelte:head>
-	<title>Reminders | Darink</title>
+	<title>{t.reminders.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Reminders" />
+<PageHeader title={t.reminders.title} />
 
 <!-- Notification permission -->
 <section class="perm">
 	{#if permission === 'granted'}
 		<div class="perm-status granted">
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-			Notifications enabled
+			{t.reminders.notificationsEnabled}
 		</div>
 	{:else if permission === 'denied'}
 		<div class="perm-status denied">
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
-			Notifications blocked (update browser settings)
+			{t.reminders.notificationsBlocked} ({t.reminders.notificationsBlockedHint})
 		</div>
 	{:else}
 		<button class="perm-btn" onclick={requestPermission}>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-			Enable notifications
+			{t.reminders.enableNotifications}
 		</button>
 	{/if}
 </section>
 
 <!-- Add reminder form -->
 <section class="form">
-	<h2>New Reminder</h2>
+	<h2>{t.reminders.newReminder}</h2>
 	<div class="row">
-		<label>Type
+		<label>{t.reminders.typeLabel}
 			<select bind:value={formType}>
-				{#each TYPES as t}
-					<option value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+				{#each TYPES as tp}
+					<option value={tp}>{tp.charAt(0).toUpperCase() + tp.slice(1)}</option>
 				{/each}
 			</select>
 		</label>
-		<label>Time
+		<label>{t.reminders.time}
 			<input type="time" bind:value={formTime} />
 		</label>
 	</div>
 	<div class="days-row">
-		<span class="days-label">Days</span>
+		<span class="days-label">{t.reminders.days}</span>
 		<div class="days-grid">
 			{#each DAY_LABELS as day, i}
 				<label class="day-check" class:checked={formDays[i]}>
@@ -196,20 +199,20 @@
 			{/each}
 		</div>
 	</div>
-	<label>Label (optional)
-		<input type="text" bind:value={formLabel} placeholder="e.g. Morning vitamins" />
+	<label>{t.reminders.labelOptional}
+		<input type="text" bind:value={formLabel} placeholder={t.reminders.labelPlaceholder} />
 	</label>
-	<button class="primary" onclick={addReminder}>Add reminder</button>
+	<button class="primary" onclick={addReminder}>{t.reminders.addReminder}</button>
 </section>
 
 <!-- Reminder list -->
 <section class="list">
-	<h2>Active Reminders</h2>
+	<h2>{t.reminders.activeReminders}</h2>
 	{#if reminders.length === 0}
 		<div class="empty">
 			<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-			<p>No reminders yet</p>
-			<span>Create one above to get started</span>
+			<p>{t.reminders.noReminders}</p>
+			<span>{t.reminders.noRemindersHint}</span>
 		</div>
 	{:else}
 		{#each reminders as r (r.id)}
@@ -227,7 +230,7 @@
 					{/if}
 					<span class="days">{daysDisplay(r.days)}</span>
 				</div>
-				<button class="delete" onclick={() => deleteReminder(r.id)} aria-label="Delete reminder">
+				<button class="delete" onclick={() => deleteReminder(r.id)} aria-label={t.common.delete}>
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 				</button>
 			</div>

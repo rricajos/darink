@@ -3,8 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
 
+	const { t } = useLocale();
 	const store = useEntries('experiment');
 	const checkinStore = useEntries('checkin');
 
@@ -114,11 +116,11 @@
 	/* --- Outcome Tag Classification --- */
 	function classifyOutcome(resultText: string): { label: string; cls: string } {
 		const lower = resultText.toLowerCase();
-		const positiveWords = ['improved', 'better', 'increased', 'successful', 'works'];
-		const negativeWords = ['worse', 'failed', 'no effect', 'no change', 'decreased'];
-		if (positiveWords.some((w) => lower.includes(w))) return { label: 'Positive', cls: 'tag-positive' };
-		if (negativeWords.some((w) => lower.includes(w))) return { label: 'Negative', cls: 'tag-negative' };
-		return { label: 'Neutral', cls: 'tag-neutral' };
+		const positiveWords = ['improved', 'better', 'increased', 'successful', 'works', 'mejorado', 'mejor', 'éxito'];
+		const negativeWords = ['worse', 'failed', 'no effect', 'no change', 'decreased', 'peor', 'fallido', 'sin efecto'];
+		if (positiveWords.some((w) => lower.includes(w))) return { label: t.experiments.positive, cls: 'tag-positive' };
+		if (negativeWords.some((w) => lower.includes(w))) return { label: t.experiments.negative, cls: 'tag-negative' };
+		return { label: t.experiments.neutral, cls: 'tag-neutral' };
 	}
 
 	/* --- Experiment Duration Stats --- */
@@ -179,40 +181,40 @@
 			protocol: protocol.trim(), duration, result: result.trim(), status
 		});
 		hypothesis = ''; variable = ''; protocol = ''; result = '';
-		toast.show('Experiment logged');
+		toast.show(t.experiments.logged);
 	}
 </script>
 
 <svelte:head>
-  <title>Experiments | Darink</title>
+  <title>{t.experiments.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Experiments (n=1)" />
+<PageHeader title={t.experiments.titleN1} />
 
 <section class="form">
-	<label>Hypothesis <input type="text" bind:value={hypothesis} placeholder="If I do X, then Y..." /></label>
-	<label>Variable <input type="text" bind:value={variable} placeholder="What you're changing" /></label>
-	<label>Protocol <textarea bind:value={protocol} rows="2" placeholder="Steps to follow"></textarea></label>
+	<label>{t.experiments.hypothesis} <input type="text" bind:value={hypothesis} placeholder={t.experiments.hypothesisPlaceholder} /></label>
+	<label>{t.experiments.variable} <input type="text" bind:value={variable} placeholder={t.experiments.variablePlaceholder} /></label>
+	<label>{t.experiments.protocol} <textarea bind:value={protocol} rows="2" placeholder={t.experiments.protocolPlaceholder}></textarea></label>
 	<div class="row">
-		<label>Duration <input type="text" bind:value={duration} /></label>
+		<label>{t.experiments.duration} <input type="text" bind:value={duration} /></label>
 		<label>
-			Status
+			{t.experiments.status}
 			<select bind:value={status}>
-				<option value="active">Active</option>
-				<option value="completed">Completed</option>
-				<option value="abandoned">Abandoned</option>
+				<option value="active">{t.experiments.active}</option>
+				<option value="completed">{t.experiments.completed}</option>
+				<option value="abandoned">{t.experiments.abandoned}</option>
 			</select>
 		</label>
 	</div>
-	<label>Result <textarea bind:value={result} rows="2" placeholder="Observations, outcome..."></textarea></label>
-	<button class="primary" onclick={submit}>Log experiment</button>
+	<label>{t.experiments.result} <textarea bind:value={result} rows="2" placeholder={t.experiments.resultPlaceholder}></textarea></label>
+	<button class="primary" onclick={submit}>{t.experiments.logExperiment}</button>
 </section>
 
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
-	<p>No experiments yet</p>
-	<p class="empty-hint">Design your first n=1 experiment to start testing hypotheses.</p>
+	<p>{t.experiments.noExperiments}</p>
+	<p class="empty-hint">{t.experiments.noExperimentsHint}</p>
 </div>
 {/if}
 
@@ -221,28 +223,28 @@
 <section class="overview-cards">
 	<div class="metric-card accent">
 		<span class="metric-val">{statusCounts.active}</span>
-		<span class="metric-lbl">Active</span>
+		<span class="metric-lbl">{t.experiments.active}</span>
 	</div>
 	<div class="metric-card done">
 		<span class="metric-val">{statusCounts.completed}</span>
-		<span class="metric-lbl">Completed</span>
+		<span class="metric-lbl">{t.experiments.completed}</span>
 	</div>
 	<div class="metric-card muted">
 		<span class="metric-val">{statusCounts.abandoned}</span>
-		<span class="metric-lbl">Abandoned</span>
+		<span class="metric-lbl">{t.experiments.abandoned}</span>
 	</div>
 	<div class="metric-card">
 		<span class="metric-val">{statusCounts.total}</span>
-		<span class="metric-lbl">Total</span>
+		<span class="metric-lbl">{t.common.total}</span>
 	</div>
 	{#if durationStats}
 	<div class="metric-card done">
 		<span class="metric-val">{durationStats.avg}d</span>
-		<span class="metric-lbl">Avg Duration</span>
+		<span class="metric-lbl">{t.experiments.avgDuration}</span>
 	</div>
 	<div class="metric-card">
 		<span class="metric-val">{durationStats.longest}d</span>
-		<span class="metric-lbl">Longest</span>
+		<span class="metric-lbl">{t.experiments.longest}</span>
 	</div>
 	{/if}
 </section>
@@ -251,29 +253,29 @@
 <!-- Active Experiments Timeline -->
 {#if store.items.length > 0 && activeExperiments.length > 0}
 <section class="timeline-section">
-	<h2>Active experiments</h2>
+	<h2>{t.experiments.activeExperiments}</h2>
 	<div class="timeline-list">
 		{#each activeExperiments as exp}
 		<div class="timeline-card border-active">
 			<strong>{exp.hypothesis}</strong>
 			<div class="timeline-meta">
-				<span>Variable: {exp.variable}</span>
-				<span>Duration: {exp.duration}</span>
-				<span>{exp.elapsed} day{exp.elapsed !== 1 ? 's' : ''} elapsed</span>
+				<span>{t.experiments.variable}: {exp.variable}</span>
+				<span>{t.experiments.duration}: {exp.duration}</span>
+				<span>{exp.elapsed} {exp.elapsed !== 1 ? t.experiments.daysElapsed : t.experiments.dayElapsed}</span>
 			</div>
 			{#if exp.pct !== null}
 			{@const clamped = Math.min(exp.pct, 100)}
 			<div class="progress-track">
 				<div class="progress-fill" style="width: {clamped}%"></div>
 			</div>
-			<span class="progress-label">{clamped}% of {exp.durDays} days</span>
+			<span class="progress-label">{clamped}% {t.experiments.ofDays.replace('{n}', String(exp.durDays))}</span>
 			{/if}
 			{#if beforeAfterMap.has(exp.id)}
 			{@const ba = beforeAfterMap.get(exp.id)!}
 			<div class="ba-card">
-				<span class="ba-title">Before / After</span>
+				<span class="ba-title">{t.experiments.beforeAfter}</span>
 				<div class="ba-row">
-					<span class="ba-label">Mood</span>
+					<span class="ba-label">{t.common.mood}</span>
 					<span class="ba-val">{ba.beforeMood}</span>
 					<svg class="ba-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
 					<span class="ba-val" class:ba-up={ba.afterMood > ba.beforeMood} class:ba-down={ba.afterMood < ba.beforeMood}>{ba.afterMood}</span>
@@ -284,7 +286,7 @@
 					{/if}
 				</div>
 				<div class="ba-row">
-					<span class="ba-label">Energy</span>
+					<span class="ba-label">{t.common.energy}</span>
 					<span class="ba-val">{ba.beforeEnergy}</span>
 					<svg class="ba-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
 					<span class="ba-val" class:ba-up={ba.afterEnergy > ba.beforeEnergy} class:ba-down={ba.afterEnergy < ba.beforeEnergy}>{ba.afterEnergy}</span>
@@ -305,7 +307,7 @@
 <!-- Completed Results Summary -->
 {#if store.items.length > 0 && completedExperiments.length > 0}
 <section class="results-section">
-	<h2>Completed results</h2>
+	<h2>{t.experiments.completedResults}</h2>
 	<div class="results-list">
 		{#each completedExperiments as exp}
 		{@const outcome = classifyOutcome(exp.result)}
@@ -317,10 +319,10 @@
 			{#if exp.result}
 			<div class="result-text">{exp.result}</div>
 			{:else}
-			<div class="result-text empty">No result recorded</div>
+			<div class="result-text empty">{t.experiments.noResultRecorded}</div>
 			{/if}
 			<div class="timeline-meta">
-				<span>{exp.durationDays} day{exp.durationDays !== 1 ? 's' : ''} from start to completion</span>
+				<span>{exp.durationDays} {t.common.days} {t.experiments.daysFromStart}</span>
 			</div>
 		</div>
 		{/each}
@@ -331,7 +333,7 @@
 <!-- Success Rate -->
 {#if store.items.length > 0 && successRate !== null}
 <section class="success-section">
-	<h2>Success rate</h2>
+	<h2>{t.experiments.successRate}</h2>
 	<div class="success-card">
 		{#if successRate.pct >= 75}
 		<span class="success-indicator high"></span>
@@ -341,7 +343,7 @@
 		<span class="success-indicator low"></span>
 		{/if}
 		<span class="success-pct">{successRate.pct}%</span>
-		<span class="success-detail">{successRate.withResult} of {successRate.total} completed experiments have recorded results</span>
+		<span class="success-detail">{t.experiments.hasRecordedResults.replace('{n}', String(successRate.withResult)).replace('{total}', String(successRate.total))}</span>
 	</div>
 </section>
 {/if}
@@ -349,7 +351,7 @@
 <!-- Experiment Timeline -->
 {#if timelineData}
 <section class="timeline-visual-section">
-	<h2>Timeline</h2>
+	<h2>{t.experiments.timeline}</h2>
 	<div class="tl-axis">
 		<span class="tl-date">{timelineData.minDate}</span>
 		<span class="tl-date">{timelineData.maxDate}</span>
@@ -387,27 +389,27 @@
 			result: (fd.get('result') as string).trim(),
 			status: fd.get('status') as string
 		});
-		toast.show('Updated');
+		toast.show(t.experiments.updated);
 		done();
 	}}>
-		<label>Hypothesis <input type="text" name="hypothesis" value={data.hypothesis} /></label>
-		<label>Variable <input type="text" name="variable" value={data.variable} /></label>
-		<label>Protocol <textarea name="protocol" rows="2">{data.protocol ?? ''}</textarea></label>
+		<label>{t.experiments.hypothesis} <input type="text" name="hypothesis" value={data.hypothesis} /></label>
+		<label>{t.experiments.variable} <input type="text" name="variable" value={data.variable} /></label>
+		<label>{t.experiments.protocol} <textarea name="protocol" rows="2">{data.protocol ?? ''}</textarea></label>
 		<div class="row">
-			<label>Duration <input type="text" name="duration" value={data.duration} /></label>
+			<label>{t.experiments.duration} <input type="text" name="duration" value={data.duration} /></label>
 			<label>
-				Status
+				{t.experiments.status}
 				<select name="status">
-					<option value="active" selected={data.status === 'active'}>Active</option>
-					<option value="completed" selected={data.status === 'completed'}>Completed</option>
-					<option value="abandoned" selected={data.status === 'abandoned'}>Abandoned</option>
+					<option value="active" selected={data.status === 'active'}>{t.experiments.active}</option>
+					<option value="completed" selected={data.status === 'completed'}>{t.experiments.completed}</option>
+					<option value="abandoned" selected={data.status === 'abandoned'}>{t.experiments.abandoned}</option>
 				</select>
 			</label>
 		</div>
-		<label>Result <textarea name="result" rows="2">{data.result ?? ''}</textarea></label>
+		<label>{t.experiments.result} <textarea name="result" rows="2">{data.result ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}

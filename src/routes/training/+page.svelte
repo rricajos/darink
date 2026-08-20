@@ -1,15 +1,18 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { useEntries } from '$lib/stores/entries.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
 
-	const types = [
-		{ href: '/training/strength', label: 'Strength', desc: 'Weights, sets, reps, RIR' },
-		{ href: '/training/rings', label: 'Rings', desc: 'Progressions, holds, levels' },
-		{ href: '/training/hiit', label: 'HIIT', desc: 'Intervals, work/rest, HR' },
-		{ href: '/training/cardio', label: 'Cardio', desc: 'Distance, time, zone' },
-		{ href: '/training/mobility', label: 'Mobility', desc: 'Routine, duration, notes' }
-	];
+	const { t } = useLocale();
+
+	const types = $derived.by(() => [
+		{ href: '/training/strength', label: t.training.strength, desc: t.training.strengthDesc },
+		{ href: '/training/rings', label: t.training.rings, desc: t.training.ringsDesc },
+		{ href: '/training/hiit', label: t.training.hiit, desc: t.training.hiitDesc },
+		{ href: '/training/cardio', label: t.training.cardio, desc: t.training.cardioDesc },
+		{ href: '/training/mobility', label: t.training.mobility, desc: t.training.mobilityDesc }
+	]);
 
 	const TRAINING_TYPES = ['training.strength', 'training.rings', 'training.hiit', 'training.cardio', 'training.mobility'] as const;
 	const TYPE_COLORS: Record<string, string> = {
@@ -19,13 +22,13 @@
 		'training.cardio': '#2e8b57',
 		'training.mobility': '#9b59b6'
 	};
-	const TYPE_LABELS: Record<string, string> = {
-		'training.strength': 'Strength',
-		'training.rings': 'Rings',
-		'training.hiit': 'HIIT',
-		'training.cardio': 'Cardio',
-		'training.mobility': 'Mobility'
-	};
+	const TYPE_LABELS = $derived.by(() => ({
+		'training.strength': t.training.strength,
+		'training.rings': t.training.rings,
+		'training.hiit': t.training.hiit,
+		'training.cardio': t.training.cardio,
+		'training.mobility': t.training.mobility
+	} as Record<string, string>));
 
 	const allStore = useEntries();
 	const checkinStore = useEntries('checkin');
@@ -57,7 +60,7 @@
 	);
 	const volumeByType = $derived.by(() => {
 		const counts: Record<string, number> = {};
-		for (const t of TRAINING_TYPES) counts[t] = 0;
+		for (const tt of TRAINING_TYPES) counts[tt] = 0;
 		for (const e of weekEntries) counts[e.type] = (counts[e.type] || 0) + 1;
 		return counts;
 	});
@@ -73,7 +76,7 @@
 			const d = daysAgo(i);
 			const key = d.toISOString().slice(0, 10);
 			const byType: Record<string, number> = {};
-			for (const t of TRAINING_TYPES) byType[t] = 0;
+			for (const tt of TRAINING_TYPES) byType[tt] = 0;
 			days.push({ key, byType });
 		}
 		for (const e of freq14Entries) {
@@ -84,7 +87,7 @@
 		return days;
 	});
 	const freqMaxTotal = $derived(
-		Math.max(1, ...freqData.map((d) => TRAINING_TYPES.reduce((s, t) => s + d.byType[t], 0)))
+		Math.max(1, ...freqData.map((d) => TRAINING_TYPES.reduce((s, tt) => s + d.byType[tt], 0)))
 	);
 
 	// --- 3. Strength progression (top 3 exercises, 1RM via Epley) ---
@@ -276,7 +279,7 @@
 			weekStart.setDate(weekStart.getDate() - 6);
 
 			const byType: Record<string, number> = {};
-			for (const t of TRAINING_TYPES) byType[t] = 0;
+			for (const tt of TRAINING_TYPES) byType[tt] = 0;
 
 			for (const e of trainingEntries) {
 				const d = isoToDate(e.createdAt);
@@ -285,7 +288,7 @@
 				}
 			}
 
-			const total = TRAINING_TYPES.reduce((s, t) => s + byType[t], 0);
+			const total = TRAINING_TYPES.reduce((s, tt) => s + byType[tt], 0);
 			const label = `${weekStart.toISOString().slice(5, 10)}`;
 			weeks.push({ label, byType, total });
 		}
@@ -324,16 +327,16 @@
 </script>
 
 <svelte:head>
-  <title>Training | Darink</title>
+  <title>{t.training.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Training" />
+<PageHeader title={t.training.title} />
 
 <section class="grid">
-	{#each types as t}
-		<a href={t.href} class="card">
-			<strong>{t.label}</strong>
-			<span>{t.desc}</span>
+	{#each types as typ}
+		<a href={typ.href} class="card">
+			<strong>{typ.label}</strong>
+			<span>{typ.desc}</span>
 		</a>
 	{/each}
 </section>
@@ -341,23 +344,23 @@
 {#if trainingEntries.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767-1.768a2 2 0 1 1-2.829-2.829l-1.767-1.767a2 2 0 1 1-2.829-2.829L8.404 7.696a2 2 0 1 1 2.829 2.829l1.767 1.767a2 2 0 1 1 2.829 2.829l1.767 1.767a2 2 0 1 1 2.829 2.829z"/></svg>
-	<p>No training entries yet</p>
-	<p class="empty-hint">Start logging your workouts to see training analytics.</p>
+	<p>{t.training.noEntries}</p>
+	<p class="empty-hint">{t.training.startLogging}</p>
 </div>
 {/if}
 
 {#if trainingEntries.length > 0}
 	<!-- 5. Total training stats -->
 	<section class="analytics">
-		<h2>Overview</h2>
+		<h2>{t.training.overview}</h2>
 		<div class="metrics-row">
 			<div class="metric-card">
 				<span class="metric-value">{totalSessions}</span>
-				<span class="metric-label">Total sessions</span>
+				<span class="metric-label">{t.training.totalSessions}</span>
 			</div>
 			<div class="metric-card">
 				<span class="metric-value">{thisWeekCount}</span>
-				<span class="metric-label">This week</span>
+				<span class="metric-label">{t.common.thisWeek}</span>
 			</div>
 			<div class="metric-card">
 				<span class="metric-value">
@@ -368,7 +371,7 @@
 						<span class="trend down">{weekDiff}</span>
 					{/if}
 				</span>
-				<span class="metric-label">Last week</span>
+				<span class="metric-label">{t.common.lastWeek}</span>
 			</div>
 		</div>
 	</section>
@@ -376,7 +379,7 @@
 	<!-- 1. Weekly volume summary -->
 	{#if weekEntries.length > 0}
 		<section class="analytics">
-			<h2>This week</h2>
+			<h2>{t.common.thisWeek}</h2>
 			<div class="volume-row">
 				{#each TRAINING_TYPES as tt}
 					{@const count = volumeByType[tt]}
@@ -394,11 +397,11 @@
 	<!-- 2. Training frequency chart (14 days) -->
 	{#if freq14Entries.length > 0}
 		<section class="analytics">
-			<h2>Frequency (14 days)</h2>
+			<h2>{t.training.frequency}</h2>
 			<div class="chart-wrap">
 				<svg viewBox="0 0 280 100" class="bar-chart">
 					{#each freqData as day, i}
-						{@const total = TRAINING_TYPES.reduce((s, t) => s + day.byType[t], 0)}
+						{@const total = TRAINING_TYPES.reduce((s, tt) => s + day.byType[tt], 0)}
 						{@const barW = 280 / 14 - 2}
 						{@const x = i * (280 / 14) + 1}
 						{#if total > 0}
@@ -439,7 +442,7 @@
 	<!-- 3. Strength progression (top 3 exercises) -->
 	{#if strengthProgressData.length > 0}
 		<section class="analytics">
-			<h2>Strength progression (est. 1RM)</h2>
+			<h2>{t.training.strengthProgression}</h2>
 			{#each strengthProgressData as ex}
 				{@const pts = ex.points.map((p, i) => ({ x: i, y: p.e1rm }))}
 				{@const line = polylinePoints(pts, 280, 80, 10, 8)}
@@ -463,11 +466,11 @@
 		{@const cLine = polylinePoints(cPts, 280, 80, 10, 8)}
 		{@const lastPace = cardioProgressData[cardioProgressData.length - 1].pace}
 		<section class="analytics">
-			<h2>Cardio pace ({topCardioActivity})</h2>
+			<h2>{t.training.cardioPace} ({topCardioActivity})</h2>
 			<div class="mini-chart-block">
 				<div class="mini-chart-header">
 					<strong>{lastPace} min/km</strong>
-					<span class="metric-sub">last {cardioProgressData.length} sessions</span>
+					<span class="metric-sub">{t.training.lastSessions} ({cardioProgressData.length})</span>
 				</div>
 				<svg viewBox="0 0 280 80" class="line-chart">
 					<polyline points={cLine} fill="none" stroke="var(--c-done)" stroke-width="2" stroke-linejoin="round" />
@@ -479,24 +482,24 @@
 	<!-- 6. Recovery impact -->
 	{#if recoveryData.hasData}
 		<section class="analytics">
-			<h2>Recovery impact (30 days)</h2>
+			<h2>{t.training.recoveryImpact}</h2>
 			<div class="metrics-row">
 				{#if recoveryData.ptMood !== null}
 					<div class="metric-card">
 						<span class="metric-value">{recoveryData.ptMood}</span>
-						<span class="metric-label">Post-training mood</span>
+						<span class="metric-label">{t.training.postTrainingMood}</span>
 					</div>
 				{/if}
 				{#if recoveryData.ptEnergy !== null}
 					<div class="metric-card">
 						<span class="metric-value">{recoveryData.ptEnergy}</span>
-						<span class="metric-label">Post-training energy</span>
+						<span class="metric-label">{t.training.postTrainingEnergy}</span>
 					</div>
 				{/if}
 				{#if recoveryData.rMood !== null}
 					<div class="metric-card">
 						<span class="metric-value">{recoveryData.rMood}</span>
-						<span class="metric-label">Rest day mood</span>
+						<span class="metric-label">{t.training.restDayMood}</span>
 					</div>
 				{/if}
 			</div>
@@ -512,7 +515,7 @@
 					<span class="diff-value" class:positive={recoveryData.moodDiff >= 0} class:negative={recoveryData.moodDiff < 0}>
 						{recoveryData.moodDiff > 0 ? '+' : ''}{recoveryData.moodDiff}
 					</span>
-					<span class="diff-label">mood difference (training vs rest)</span>
+					<span class="diff-label">{t.training.moodDiffTrainVsRest}</span>
 				</div>
 			{/if}
 		</section>
@@ -520,15 +523,15 @@
 
 	<!-- 7. Rest & volume stats -->
 	<section class="analytics">
-		<h2>Rest & volume (14 days)</h2>
+		<h2>{t.training.restAndVolume}</h2>
 		<div class="metrics-row">
 			<div class="metric-card">
 				<span class="metric-value">{restVolumeData.restDays}</span>
-				<span class="metric-label">Rest days</span>
+				<span class="metric-label">{t.training.restDays}</span>
 			</div>
 			<div class="metric-card">
-				<span class="metric-value">{restVolumeData.totalMinutes}<span class="metric-unit">min</span></span>
-				<span class="metric-label">Training time</span>
+				<span class="metric-value">{restVolumeData.totalMinutes}<span class="metric-unit">{t.common.min}</span></span>
+				<span class="metric-label">{t.training.trainingTime}</span>
 			</div>
 		</div>
 	</section>
@@ -536,7 +539,7 @@
 	<!-- 8. Monthly volume chart (4 weeks) -->
 	{#if monthlyVolumeData.some((w) => w.total > 0)}
 		<section class="analytics">
-			<h2>Monthly volume (sessions/week)</h2>
+			<h2>{t.training.monthlyVolume}</h2>
 			<div class="chart-wrap">
 				<svg viewBox="0 0 280 100" class="bar-chart">
 					{#each monthlyVolumeData as week, i}

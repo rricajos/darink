@@ -5,7 +5,9 @@
 	import { useEntries, bumpEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { onMount } from 'svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries();
 
 	let search = $state('');
@@ -25,9 +27,9 @@
 	});
 
 	const backupStatus = $derived.by(() => {
-		if (!lastExportDate) return { label: 'Never backed up', daysAgo: Infinity, warn: true };
+		if (!lastExportDate) return { label: t.data.neverBackedUp, daysAgo: Infinity, warn: true };
 		const diff = Math.floor((Date.now() - new Date(lastExportDate).getTime()) / 86400000);
-		return { label: `Last backup: ${diff} day${diff !== 1 ? 's' : ''} ago`, daysAgo: diff, warn: diff > 7 };
+		return { label: t.data.lastBackup.replace('{n}', String(diff)), daysAgo: diff, warn: diff > 7 };
 	});
 
 	function markExported() {
@@ -84,9 +86,9 @@
 		let last30 = 0;
 		let oldest: string | null = null;
 		for (const e of all) {
-			const t = new Date(e.createdAt).getTime();
-			if (t >= weekAgo) thisWeek++;
-			if (t >= monthAgo) last30++;
+			const ts = new Date(e.createdAt).getTime();
+			if (ts >= weekAgo) thisWeek++;
+			if (ts >= monthAgo) last30++;
 			if (!oldest || e.createdAt < oldest) oldest = e.createdAt;
 		}
 		const avgPerDay = last30 > 0 ? (last30 / 30) : 0;
@@ -129,9 +131,9 @@
 		for (const e of store.items) {
 			const tags = e.data.tags;
 			if (Array.isArray(tags)) {
-				for (const t of tags) {
-					if (typeof t === 'string') {
-						counts[t] = (counts[t] || 0) + 1;
+				for (const tag of tags) {
+					if (typeof tag === 'string') {
+						counts[tag] = (counts[tag] || 0) + 1;
 					}
 				}
 			}
@@ -143,7 +145,7 @@
 
 	function toggleTagFilter(tag: string): void {
 		if (selectedTags.includes(tag)) {
-			selectedTags = selectedTags.filter((t) => t !== tag);
+			selectedTags = selectedTags.filter((st) => st !== tag);
 		} else {
 			selectedTags = [...selectedTags, tag];
 		}
@@ -168,8 +170,8 @@
 				}
 				const tags = e.data.tags;
 				if (Array.isArray(tags)) {
-					for (const t of tags) {
-						if (typeof t === 'string' && t.toLowerCase().includes(q)) return true;
+					for (const tag of tags) {
+						if (typeof tag === 'string' && tag.toLowerCase().includes(q)) return true;
 					}
 				}
 				return false;
@@ -247,7 +249,7 @@
 	function exportJSON() {
 		const data = getFilteredEntries();
 		if (data.length === 0) {
-			toast.show('No data to export');
+			toast.show(t.data.noDataToExport);
 			return;
 		}
 		const json = JSON.stringify(data, null, 2);
@@ -259,14 +261,14 @@
 		a.download = `darink-export-${date}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
-		toast.show(`${data.length} entries exported as JSON`);
+		toast.show(t.data.entriesExportedJSON.replace('{n}', String(data.length)));
 		markExported();
 	}
 
 	function exportCSV() {
 		const all = getFilteredEntries();
 		if (all.length === 0) {
-			toast.show('No data to export');
+			toast.show(t.data.noDataToExport);
 			return;
 		}
 		const dataKeys = new Set<string>();
@@ -304,7 +306,7 @@
 		a.download = `darink-export-${date}.csv`;
 		a.click();
 		URL.revokeObjectURL(url);
-		toast.show(`${all.length} entries exported as CSV`);
+		toast.show(t.data.entriesExportedCSV.replace('{n}', String(all.length)));
 		markExported();
 	}
 
@@ -319,10 +321,10 @@
 		reader.onload = () => {
 			try {
 				const count = db.importJSON(reader.result as string);
-				toast.show(`${count} entries imported`);
+				toast.show(t.data.entriesImported.replace('{n}', String(count)));
 				bumpEntries();
 			} catch {
-				toast.show('Invalid file format');
+				toast.show(t.data.invalidFileFormat);
 			}
 		};
 		reader.readAsText(file);
@@ -335,7 +337,7 @@
 			return;
 		}
 		db.clear();
-		toast.show('All data cleared');
+		toast.show(t.data.allDataCleared);
 		bumpEntries();
 	}
 
@@ -373,7 +375,7 @@
 		if (duplicates.length === 0) return;
 		const count = duplicates.length;
 		entries.removeMany(duplicates);
-		toast.show(`Removed ${count} duplicates`);
+		toast.show(t.data.removedDuplicates.replace('{n}', String(count)));
 	}
 
 	const dataQuality = $derived.by(() => {
@@ -401,29 +403,29 @@
 </script>
 
 <svelte:head>
-  <title>Data | Darink</title>
+  <title>{t.data.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Data" />
+<PageHeader title={t.data.title} />
 
 <!-- Entry Count Stats -->
 <section class="metrics-section">
 	<div class="metrics-grid">
 		<div class="metric-card">
 			<span class="metric-value">{entryStats.total}</span>
-			<span class="metric-label">Total entries</span>
+			<span class="metric-label">{t.data.totalEntries}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{entryStats.thisWeek}</span>
-			<span class="metric-label">This week</span>
+			<span class="metric-label">{t.data.thisWeek}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{entryStats.avgPerDay}</span>
-			<span class="metric-label">Per day (30d)</span>
+			<span class="metric-label">{t.data.perDay30d}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{entryStats.oldest ?? '--'}</span>
-			<span class="metric-label">Oldest entry</span>
+			<span class="metric-label">{t.data.oldestEntry}</span>
 		</div>
 	</div>
 </section>
@@ -433,7 +435,7 @@
 <section class="donut-section">
 	<h2>
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-		Entry distribution
+		{t.data.entryDistribution}
 	</h2>
 	<div class="donut-wrapper">
 		<svg class="donut-chart" viewBox="0 0 42 42" role="img" aria-label="Entry distribution donut chart">
@@ -467,11 +469,11 @@
 	<input
 		type="search"
 		class="search-input"
-		placeholder="Search all entries..."
+		placeholder={t.data.searchAllEntries}
 		bind:value={search}
 	/>
 	{#if search.trim() || selectedTags.length > 0}
-		<p class="search-hint">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
+		<p class="search-hint">{filtered.length} {t.data.results}</p>
 	{/if}
 </section>
 
@@ -481,10 +483,10 @@
 	<div class="tag-filter-header">
 		<h2>
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
-			Filter by tags
+			{t.data.filterByTags}
 		</h2>
 		{#if selectedTags.length > 0}
-			<button class="clear-tags-btn" onclick={clearTagFilter}>Clear</button>
+			<button class="clear-tags-btn" onclick={clearTagFilter}>{t.data.clear}</button>
 		{/if}
 	</div>
 	<div class="tag-filter-chips">
@@ -507,7 +509,7 @@
 <section class="tag-cloud-section">
 	<button class="toggle-cloud" onclick={() => tagCloudOpen = !tagCloudOpen}>
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
-		Tag cloud
+		{t.data.tagCloud}
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron" class:open={tagCloudOpen}><path d="m6 9 6 6 6-6"/></svg>
 	</button>
 	{#if tagCloudOpen}
@@ -549,34 +551,34 @@
 				{/if}
 			</div>
 		{:else}
-			<p class="empty">No entries match your search.</p>
+			<p class="empty">{t.data.noMatchSearch}</p>
 		{/each}
 	</section>
 {/if}
 
 <!-- Stats -->
 <section class="stats-section">
-	<h2>Statistics</h2>
+	<h2>{t.data.statistics}</h2>
 	<div class="stats-grid">
 		<div class="stat-card">
 			<span class="stat-value">{stats.total}</span>
-			<span class="stat-label">Total entries</span>
+			<span class="stat-label">{t.data.totalEntries}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">{stats.sizeKB} KB</span>
-			<span class="stat-label">Storage used</span>
+			<span class="stat-label">{t.data.storageUsed}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">{stats.firstDate ?? '—'}</span>
-			<span class="stat-label">First entry</span>
+			<span class="stat-label">{t.data.firstEntry}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">{stats.lastDate ?? '—'}</span>
-			<span class="stat-label">Last entry</span>
+			<span class="stat-label">{t.data.lastEntry}</span>
 		</div>
 	</div>
 	{#if stats.byType.length > 0}
-		<h2>By type</h2>
+		<h2>{t.data.byType}</h2>
 		<div class="type-list">
 			{#each stats.byType as [type, count]}
 				<div class="type-row">
@@ -592,13 +594,13 @@
 <section class="health-section">
 	<h2>
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-		Storage Health
+		{t.data.storageHealth}
 	</h2>
 
 	<!-- Usage bar -->
 	<div class="health-card">
 		<div class="health-row">
-			<span class="health-label">LocalStorage usage</span>
+			<span class="health-label">{t.data.localStorageUsage}</span>
 			<span class="health-value">{storageHealth.usedMB} MB / {storageHealth.maxMB} MB ({storageHealth.pct.toFixed(1)}%)</span>
 		</div>
 		<div class="progress-track">
@@ -613,7 +615,7 @@
 		{#if storageHealth.level === 'critical'}
 			<div class="health-warning">
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-				Storage is running low. Consider exporting and clearing old data.
+				{t.data.storageRunningLow}
 			</div>
 		{/if}
 	</div>
@@ -621,7 +623,7 @@
 	<!-- Full localStorage usage -->
 	<div class="health-card">
 		<div class="health-row">
-			<span class="health-label">Full localStorage</span>
+			<span class="health-label">{t.data.fullLocalStorage}</span>
 			<span class="health-value">{storageUsage.label} / {storageUsage.maxLabel} ({storageUsage.pct.toFixed(1)}%)</span>
 		</div>
 		<div class="progress-track">
@@ -635,15 +637,15 @@
 	<!-- Entry stats -->
 	<div class="health-card">
 		<div class="health-row">
-			<span class="health-label">Total entries</span>
+			<span class="health-label">{t.data.totalEntries}</span>
 			<span class="health-value">{stats.total}</span>
 		</div>
 		<div class="health-row">
-			<span class="health-label">Oldest entry</span>
+			<span class="health-label">{t.data.oldestEntry}</span>
 			<span class="health-value">{stats.firstDate ?? '—'}</span>
 		</div>
 		<div class="health-row">
-			<span class="health-label">Newest entry</span>
+			<span class="health-label">{t.data.newestEntry}</span>
 			<span class="health-value">{stats.lastDate ?? '—'}</span>
 		</div>
 	</div>
@@ -653,18 +655,18 @@
 		<div class="health-row">
 			<span class="health-label">
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-				Duplicates
+				{t.data.duplicates}
 			</span>
 			{#if duplicates.length > 0}
-				<span class="health-value health-warn-text">{duplicates.length} found</span>
+				<span class="health-value health-warn-text">{t.data.duplicatesFound.replace('{n}', String(duplicates.length))}</span>
 			{:else}
-				<span class="health-value health-ok-text">None</span>
+				<span class="health-value health-ok-text">{t.data.noDuplicates}</span>
 			{/if}
 		</div>
 		{#if duplicates.length > 0}
 			<button class="cleanup-btn" onclick={cleanDuplicates}>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-				Clean up
+				{t.data.cleanUp}
 			</button>
 		{/if}
 	</div>
@@ -674,12 +676,12 @@
 		<div class="health-row">
 			<span class="health-label">
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-				Data quality
+				{t.data.dataQuality}
 			</span>
 			{#if dataQuality > 0}
-				<span class="health-value health-warn-text">{dataQuality} entries with missing data</span>
+				<span class="health-value health-warn-text">{t.data.entriesWithMissingData.replace('{n}', String(dataQuality))}</span>
 			{:else}
-				<span class="health-value health-ok-text">All entries valid</span>
+				<span class="health-value health-ok-text">{t.data.allEntriesValid}</span>
 			{/if}
 		</div>
 	</div>
@@ -694,7 +696,7 @@
 			</div>
 			<div class="backup-text">
 				<strong>{backupStatus.label}</strong>
-				<span>Export your data regularly to avoid data loss.</span>
+				<span>{t.data.backupHint}</span>
 			</div>
 		</div>
 	{:else}
@@ -711,39 +713,39 @@
 
 <!-- Export / Import -->
 <section class="io-section">
-	<h2>Export & Import</h2>
+	<h2>{t.data.exportImport}</h2>
 	<div class="export-filters">
 		<label class="filter-field">
-			<span class="filter-label">Type</span>
+			<span class="filter-label">{t.data.type}</span>
 			<select bind:value={exportType}>
-				<option value="">All types</option>
-				{#each exportTypes as t}
-					<option value={t}>{t}{t === 'training' || t === 'signal' ? '.*' : ''}</option>
+				<option value="">{t.data.allTypes}</option>
+				{#each exportTypes as tp}
+					<option value={tp}>{tp}{tp === 'training' || tp === 'signal' ? '.*' : ''}</option>
 				{/each}
 			</select>
 		</label>
 		<label class="filter-field">
-			<span class="filter-label">From</span>
+			<span class="filter-label">{t.data.from}</span>
 			<input type="date" bind:value={exportFrom} />
 		</label>
 		<label class="filter-field">
-			<span class="filter-label">To</span>
+			<span class="filter-label">{t.data.to}</span>
 			<input type="date" bind:value={exportTo} />
 		</label>
 	</div>
 	<div class="io-buttons">
-		<button onclick={exportJSON}>Export JSON</button>
-		<button onclick={exportCSV}>Export CSV</button>
-		<button onclick={importData}>Import JSON</button>
+		<button onclick={exportJSON}>{t.data.exportJSON}</button>
+		<button onclick={exportCSV}>{t.data.exportCSV}</button>
+		<button onclick={importData}>{t.data.importJSON}</button>
 	</div>
 	<input type="file" accept=".json" bind:this={fileInput} onchange={handleFile} hidden />
 </section>
 
 <!-- Danger Zone -->
 <section class="danger-section">
-	<h2>Danger zone</h2>
+	<h2>{t.data.dangerZone}</h2>
 	<button class="danger-btn" onclick={clearAll}>
-		{confirmClear ? 'Are you sure? Click again to confirm' : 'Clear all data'}
+		{confirmClear ? t.data.confirmClear : t.data.clearAll}
 	</button>
 </section>
 

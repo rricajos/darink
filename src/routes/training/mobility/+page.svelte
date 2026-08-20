@@ -3,7 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
+
+	const { t } = useLocale();
 
 	const store = useEntries('training.mobility');
 
@@ -17,7 +20,7 @@
 		entries.add('training.mobility', { date, routine: routine.trim(), durationMin, notes });
 		routine = ''; notes = '';
 		date = new Date().toISOString().slice(0, 10);
-		toast.show('Mobility logged');
+		toast.show(t.training.mobilityLogged);
 	}
 
 	function repeatLast() {
@@ -26,7 +29,7 @@
 		routine = last.data.routine as string;
 		durationMin = last.data.durationMin as number;
 		notes = (last.data.notes as string) || '';
-		toast.show('Fields pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	// --- Analytics derived state ---
@@ -119,20 +122,20 @@
 </script>
 
 <svelte:head>
-  <title>Mobility | Darink</title>
+  <title>{t.training.mobility} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Mobility" back="/training" />
+<PageHeader title={t.training.mobility} back="/training" />
 
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Routine <input type="text" bind:value={routine} placeholder="Hip opener, Shoulder..." /></label>
-	<label>Duration (min) <input type="number" min="1" bind:value={durationMin} /></label>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
+	<label>{t.training.routine} <input type="text" bind:value={routine} placeholder="Hip opener, Shoulder..." /></label>
+	<label>{t.training.durationMin} <input type="number" min="1" bind:value={durationMin} /></label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
 	<div class="form-actions">
-		<button class="primary" onclick={submit}>Log session</button>
+		<button class="primary" onclick={submit}>{t.training.logSession}</button>
 		{#if store.items.length > 0}
-			<button onclick={repeatLast}>Repeat last</button>
+			<button onclick={repeatLast}>{t.common.repeatLast}</button>
 		{/if}
 	</div>
 </section>
@@ -148,16 +151,16 @@
 			durationMin: Number(fd.get('durationMin')),
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date || ''} /></label>
-		<label>Routine <input type="text" name="routine" value={data.routine} /></label>
-		<label>Duration (min) <input type="number" name="durationMin" min="1" value={data.durationMin} /></label>
-		<label>Notes <textarea name="notes" rows="2">{data.notes}</textarea></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date || ''} /></label>
+		<label>{t.training.routine} <input type="text" name="routine" value={data.routine} /></label>
+		<label>{t.training.durationMin} <input type="number" name="durationMin" min="1" value={data.durationMin} /></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -171,23 +174,23 @@
 {#if store.items.length > 0}
 	<!-- Quick Stats -->
 	<section class="analytics">
-		<h3>Quick Stats</h3>
+		<h3>{t.training.quickStats}</h3>
 		<div class="stat-grid">
 			<div class="card">
 				<div class="stat-value">{totalSessions}</div>
-				<div class="stat-label">Sessions</div>
+				<div class="stat-label">{t.training.sessions}</div>
 			</div>
 			<div class="card">
 				<div class="stat-value">{totalTime}<span class="stat-unit">min</span></div>
-				<div class="stat-label">Total time</div>
+				<div class="stat-label">{t.training.totalTime}</div>
 			</div>
 			<div class="card">
 				<div class="stat-value">{avgDuration}<span class="stat-unit">min</span></div>
-				<div class="stat-label">Avg duration</div>
+				<div class="stat-label">{t.training.avgDuration}</div>
 			</div>
 			<div class="card">
 				<div class="stat-value">{currentStreak}<span class="stat-unit">d</span></div>
-				<div class="stat-label">Streak</div>
+				<div class="stat-label">{t.common.streak}</div>
 			</div>
 		</div>
 	</section>
@@ -195,7 +198,7 @@
 	<!-- Routine Frequency Chart -->
 	{#if routineFreq.length > 0}
 		<section class="analytics">
-			<h3>Routine Frequency</h3>
+			<h3>{t.training.routineFrequency}</h3>
 			<div class="chart-wrap">
 				<svg viewBox="0 0 300 {routineFreq.length * 36 + 8}" preserveAspectRatio="xMidYMid meet" width="100%">
 					{#each routineFreq as [name, count], i}
@@ -247,7 +250,7 @@
 		}))}
 		{@const polyline = points.map(p => `${p.x},${p.y}`).join(' ')}
 		<section class="analytics">
-			<h3>Duration Trend</h3>
+			<h3>{t.training.durationTrend}</h3>
 			<div class="chart-wrap">
 				<svg viewBox="0 0 {chartW} {chartH}" preserveAspectRatio="xMidYMid meet" width="100%">
 					<text x={padL - 4} y={padT + 4} text-anchor="end" fill="var(--c-text-muted)" font-size="9">{yMax}</text>
@@ -284,7 +287,7 @@
 
 	<!-- Monthly Consistency -->
 	<section class="analytics">
-		<h3>Monthly Consistency</h3>
+		<h3>{t.training.monthlyConsistency}</h3>
 		<div class="consistency-grid">
 			{#each monthGrid as day}
 				<div

@@ -2,13 +2,17 @@
 	import { page } from '$app/state';
 	import { theme } from '$lib/db';
 	import { onMount } from 'svelte';
+	import { useLocale, setLocale, initLocale } from '$lib/stores/locale.svelte';
+	import type { Locale } from '$lib/stores/locale.svelte';
 
-	const tabs = [
-		{ href: '/', label: 'Today', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
-		{ href: '/intake', label: 'Intake', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>' },
-		{ href: '/training', label: 'Train', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>' },
-		{ href: '/dashboard', label: 'Dashboard', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>' },
-		{ href: '/more', label: 'More', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>' }
+	const { t, locale } = useLocale();
+
+	const tabKeys: Array<{ href: string; key: keyof typeof t.nav; icon: string }> = [
+		{ href: '/', key: 'today', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
+		{ href: '/intake', key: 'intake', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>' },
+		{ href: '/training', key: 'train', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>' },
+		{ href: '/dashboard', key: 'dashboard', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>' },
+		{ href: '/more', key: 'more', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>' }
 	];
 
 	const morePaths = ['/checkin', '/signals', '/habits', '/supplements', '/experiments', '/profile', '/data', '/ref', '/timeline', '/goals', '/journal', '/report', '/reminders', '/records', '/hydration', '/measurements', '/bloodwork', '/medications', '/symptoms', '/insights'];
@@ -39,7 +43,12 @@
 		applyTheme(isDark);
 	}
 
+	function toggleLocale(): void {
+		setLocale(locale === 'en' ? 'es' : 'en');
+	}
+
 	onMount(() => {
+		initLocale();
 		const saved = theme.get();
 		if (saved === 'dark') {
 			isDark = true;
@@ -54,19 +63,24 @@
 
 <nav>
 	<div class="brand">Darink</div>
-	{#each tabs as tab}
-		<a href={tab.href} class:active={isActive(tab.href)} aria-label={tab.label}>
+	{#each tabKeys as tab}
+		<a href={tab.href} class:active={isActive(tab.href)} aria-label={t.nav[tab.key]}>
 			<span class="icon">{@html tab.icon}</span>
-			<span class="label">{tab.label}</span>
+			<span class="label">{t.nav[tab.key]}</span>
 		</a>
 	{/each}
-	<button class="theme-toggle" onclick={toggleTheme} aria-label="Toggle theme">
+	<div class="nav-controls">
+		<button class="locale-toggle" onclick={toggleLocale} aria-label={t.nav.language}>
+			{locale === 'en' ? 'ES' : 'EN'}
+		</button>
+		<button class="theme-toggle" onclick={toggleTheme} aria-label={t.nav.toggleTheme}>
 		{#if isDark}
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
 		{:else}
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
 		{/if}
 	</button>
+	</div>
 </nav>
 
 <style>
@@ -112,10 +126,16 @@
 		height: 20px;
 	}
 
-	.theme-toggle {
+	.nav-controls {
 		position: absolute;
 		top: 0.4rem;
 		right: 0.4rem;
+		display: flex;
+		gap: 0.3rem;
+		z-index: 101;
+	}
+
+	.theme-toggle, .locale-toggle {
 		background: none;
 		border: 1px solid var(--c-border);
 		border-radius: var(--radius);
@@ -124,15 +144,20 @@
 		color: var(--c-text-muted);
 		transition: color 0.2s;
 		line-height: 1;
-		z-index: 101;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 
-	.theme-toggle:hover {
+	.theme-toggle:hover, .locale-toggle:hover {
 		color: var(--c-accent);
 		background: none;
+	}
+
+	.locale-toggle {
+		font-size: 0.65rem;
+		font-weight: 700;
+		letter-spacing: 0.03em;
 	}
 
 	@media (min-width: 900px) {
@@ -185,16 +210,18 @@
 			width: 1.5rem;
 		}
 
-		.theme-toggle {
+		.nav-controls {
 			position: static;
 			margin-top: auto;
 			margin-bottom: 1rem;
 			margin-left: 1rem;
 			margin-right: 1rem;
-			padding: 0.5rem;
 			display: flex;
-			align-items: center;
-			justify-content: center;
+			gap: 0.5rem;
+		}
+
+		.theme-toggle, .locale-toggle {
+			padding: 0.5rem;
 		}
 	}
 </style>

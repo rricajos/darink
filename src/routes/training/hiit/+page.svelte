@@ -3,7 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
+
+	const { t } = useLocale();
 
 	const store = useEntries('training.hiit');
 
@@ -20,7 +23,7 @@
 		entries.add('training.hiit', { date, name: name.trim(), rounds, workSec, restSec, maxHr, notes });
 		name = ''; notes = '';
 		date = new Date().toISOString().slice(0, 10);
-		toast.show('HIIT logged');
+		toast.show(t.training.hiitLogged);
 	}
 
 	function repeatLast() {
@@ -32,7 +35,7 @@
 		restSec = last.data.restSec as number;
 		maxHr = last.data.maxHr as number;
 		notes = (last.data.notes as string) || '';
-		toast.show('Fields pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	/* ── Quick Add Chips ── */
@@ -66,7 +69,7 @@
 		restSec = item.last.restSec as number;
 		maxHr = item.last.maxHr as number;
 		notes = (item.last.notes as string) || '';
-		toast.show('Pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	/* ── Analytics ── */
@@ -119,7 +122,7 @@
 		for (let i = 0; i < 4; i++) {
 			const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
 			const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 6);
-			const labels = ['This week', 'Last week', '2 weeks ago', '3 weeks ago'];
+			const labels = [t.common.thisWeek, t.common.lastWeek, t.training.nWeeksAgo.replace('{n}', '2'), t.training.nWeeksAgo.replace('{n}', '3')];
 			weeks.push({ label: labels[i], start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) });
 		}
 		return weeks.map((w, i) => {
@@ -183,14 +186,14 @@
 </script>
 
 <svelte:head>
-  <title>HIIT | Darink</title>
+  <title>{t.training.hiit} | Darink</title>
 </svelte:head>
 
-<PageHeader title="HIIT" back="/training" />
+<PageHeader title={t.training.hiit} back="/training" />
 
 {#if quickWorkouts.length > 0}
 <section class="quick-add">
-	<h2>Quick add</h2>
+	<h2>{t.training.quickAdd}</h2>
 	<div class="quick-chips">
 		{#each quickWorkouts as item}
 			<button class="quick-chip" onclick={() => prefillWorkout(item)}>
@@ -203,19 +206,19 @@
 {/if}
 
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Name <input type="text" bind:value={name} placeholder="Tabata, Sprint..." /></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
+	<label>{t.training.name} <input type="text" bind:value={name} placeholder="Tabata, Sprint..." /></label>
 	<div class="row">
-		<label>Rounds <input type="number" min="1" max="50" bind:value={rounds} /></label>
-		<label>Work (s) <input type="number" min="1" bind:value={workSec} /></label>
-		<label>Rest (s) <input type="number" min="0" bind:value={restSec} /></label>
+		<label>{t.training.rounds} <input type="number" min="1" max="50" bind:value={rounds} /></label>
+		<label>{t.training.workS} <input type="number" min="1" bind:value={workSec} /></label>
+		<label>{t.training.restS} <input type="number" min="0" bind:value={restSec} /></label>
 	</div>
-	<label>Max HR <input type="number" min="0" max="250" bind:value={maxHr} /></label>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
+	<label>{t.training.maxHR} <input type="number" min="0" max="250" bind:value={maxHr} /></label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
 	<div class="form-actions">
-		<button class="primary" onclick={submit}>Log session</button>
+		<button class="primary" onclick={submit}>{t.training.logSession}</button>
 		{#if store.items.length > 0}
-			<button onclick={repeatLast}>Repeat last</button>
+			<button onclick={repeatLast}>{t.common.repeatLast}</button>
 		{/if}
 	</div>
 </section>
@@ -234,21 +237,21 @@
 			maxHr: Number(fd.get('maxHr')),
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date || ''} /></label>
-		<label>Name <input type="text" name="name" value={data.name} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date || ''} /></label>
+		<label>{t.training.name} <input type="text" name="name" value={data.name} /></label>
 		<div class="row">
-			<label>Rounds <input type="number" name="rounds" min="1" max="50" value={data.rounds} /></label>
-			<label>Work (s) <input type="number" name="workSec" min="1" value={data.workSec} /></label>
-			<label>Rest (s) <input type="number" name="restSec" min="0" value={data.restSec} /></label>
+			<label>{t.training.rounds} <input type="number" name="rounds" min="1" max="50" value={data.rounds} /></label>
+			<label>{t.training.workS} <input type="number" name="workSec" min="1" value={data.workSec} /></label>
+			<label>{t.training.restS} <input type="number" name="restSec" min="0" value={data.restSec} /></label>
 		</div>
-		<label>Max HR <input type="number" name="maxHr" min="0" max="250" value={data.maxHr} /></label>
-		<label>Notes <textarea name="notes" rows="2">{data.notes}</textarea></label>
+		<label>{t.training.maxHR} <input type="number" name="maxHr" min="0" max="250" value={data.maxHr} /></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -264,20 +267,20 @@
 
 <!-- 1. Quick Stats -->
 <section class="analytics">
-	<h2>Stats</h2>
+	<h2>{t.training.stats}</h2>
 	<div class="stat-row">
 		<div class="stat-card">
 			<span class="stat-value">{totalSessions}</span>
-			<span class="stat-label">Sessions</span>
+			<span class="stat-label">{t.training.sessions}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">{totalWorkMin}<small>m</small></span>
-			<span class="stat-label">Work time</span>
+			<span class="stat-label">{t.training.workTime}</span>
 		</div>
 		{#if avgMaxHr > 0}
 		<div class="stat-card">
 			<span class="stat-value">{avgMaxHr}</span>
-			<span class="stat-label">Avg max HR</span>
+			<span class="stat-label">{t.training.avgMaxHR}</span>
 		</div>
 		{/if}
 	</div>
@@ -286,7 +289,7 @@
 <!-- 2. Session Intensity Chart -->
 {#if intensityBars.length > 1}
 <section class="analytics">
-	<h2>Session intensity (last 15)</h2>
+	<h2>{t.training.sessionIntensity}</h2>
 	<div class="chart-wrap">
 		<svg viewBox="0 0 280 80" class="chart-svg">
 			{#each intensityBars as bar, i}
@@ -306,9 +309,9 @@
 			<line x1="8" y1="72" x2="272" y2="72" stroke="var(--c-border)" stroke-width="0.5" />
 		</svg>
 		<div class="chart-legend">
-			<span class="legend-item"><span class="legend-dot" style="background:#e53e3e"></span> High (&gt;0.6)</span>
-			<span class="legend-item"><span class="legend-dot" style="background:#e8a735"></span> Medium</span>
-			<span class="legend-item"><span class="legend-dot" style="background:#2e8b57"></span> Low (&le;0.4)</span>
+			<span class="legend-item"><span class="legend-dot" style="background:#e53e3e"></span> {t.training.high} (&gt;0.6)</span>
+			<span class="legend-item"><span class="legend-dot" style="background:#e8a735"></span> {t.training.medium}</span>
+			<span class="legend-item"><span class="legend-dot" style="background:#2e8b57"></span> {t.training.low} (&le;0.4)</span>
 		</div>
 	</div>
 </section>
@@ -317,7 +320,7 @@
 <!-- 3. HR Trend Chart -->
 {#if hrTrend.length >= 2}
 <section class="analytics">
-	<h2>HR trend (last 20)</h2>
+	<h2>{t.training.hrTrend}</h2>
 	<div class="chart-wrap">
 		<svg viewBox="0 0 280 80" class="chart-svg">
 			<!-- Average HR dashed reference line -->
@@ -344,7 +347,7 @@
 <!-- 4. Weekly Volume Progression -->
 {#if weeklyVolume.some(w => w.vol > 0)}
 <section class="analytics">
-	<h2>Weekly volume</h2>
+	<h2>{t.training.weeklyVolume}</h2>
 	<div class="weekly-bars">
 		{#each weeklyVolume as week, i}
 			{@const maxVol = Math.max(...weeklyVolume.map(w => w.vol), 1)}
@@ -371,23 +374,23 @@
 <!-- 6. Work:Rest Ratio Stats -->
 {#if ratioStats.avg > 0}
 <section class="analytics">
-	<h2>Work:Rest ratio</h2>
+	<h2>{t.training.workRestRatio}</h2>
 	<div class="stat-row">
 		<div class="stat-card">
 			<span class="stat-value">{ratioStats.avg.toFixed(2)}</span>
-			<span class="stat-label">Avg ratio</span>
+			<span class="stat-label">{t.training.avgRatio}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value" style="color:#e53e3e">{ratioStats.high}</span>
-			<span class="stat-label">High</span>
+			<span class="stat-label">{t.training.high}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value" style="color:#e8a735">{ratioStats.medium}</span>
-			<span class="stat-label">Medium</span>
+			<span class="stat-label">{t.training.medium}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value" style="color:#2e8b57">{ratioStats.low}</span>
-			<span class="stat-label">Low</span>
+			<span class="stat-label">{t.training.low}</span>
 		</div>
 	</div>
 </section>

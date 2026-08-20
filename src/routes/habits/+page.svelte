@@ -6,18 +6,20 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries('habit');
 	const allStore = useEntries();
 
-	const defaultHabits = [
-		{ id: 'cold', label: 'Cold exposure', unit: 'min' },
-		{ id: 'sun', label: 'Sun exposure', unit: 'min' },
-		{ id: 'fasting', label: 'Fasting', unit: 'hours' },
-		{ id: 'meditation', label: 'Meditation', unit: 'min' },
-		{ id: 'wimhof', label: 'Wim Hof', unit: 'rounds' },
-		{ id: 'ejaculation', label: 'Ejaculation control', unit: 'days' }
-	];
+	const defaultHabits = $derived.by(() => [
+		{ id: 'cold', label: t.habits.cold, unit: 'min' },
+		{ id: 'sun', label: t.habits.sun, unit: 'min' },
+		{ id: 'fasting', label: t.habits.fasting, unit: 'hours' },
+		{ id: 'meditation', label: t.habits.meditation, unit: 'min' },
+		{ id: 'wimhof', label: t.habits.wimhof, unit: 'rounds' },
+		{ id: 'ejaculation', label: t.habits.ejaculation, unit: 'days' }
+	]);
 
 	let customHabits = $state<Array<{id: string, label: string, unit: string}>>([]);
 	const allHabitTypes = $derived([...defaultHabits, ...customHabits]);
@@ -205,39 +207,39 @@
 		return { segments, total };
 	});
 
-	const defaultIds = new Set(defaultHabits.map((h) => h.id));
+	const defaultIds = $derived(new Set(defaultHabits.map((h) => h.id)));
 
 	function submit() {
 		entries.add('habit', { date, habit: selectedHabit, duration, notes });
 		date = new Date().toISOString().slice(0, 10);
 		duration = 0; notes = '';
-		toast.show('Habit logged');
+		toast.show(t.habits.habitLogged);
 	}
 
 	function addCustomHabit() {
 		const label = newLabel.trim();
 		const unit = newUnit.trim();
 		if (!label || !unit) {
-			toast.show('Label and unit are required');
+			toast.show(t.habits.labelUnitRequired);
 			return;
 		}
 		const id = label.toLowerCase().replace(/\s+/g, '');
 		if (allHabitTypes.some((h) => h.id === id)) {
-			toast.show('A habit with that name already exists');
+			toast.show(t.habits.nameExists);
 			return;
 		}
 		customHabits = [...customHabits, { id, label, unit }];
 		ui.patch({ customHabits });
 		newLabel = '';
 		newUnit = '';
-		toast.show('Habit type added');
+		toast.show(t.habits.typeAdded);
 	}
 
 	function removeCustomHabit(id: string) {
 		customHabits = customHabits.filter((h) => h.id !== id);
 		ui.patch({ customHabits });
 		if (selectedHabit === id) selectedHabit = 'cold';
-		toast.show('Habit type removed');
+		toast.show(t.habits.typeRemoved);
 	}
 
 	function getLabel(id: string): string {
@@ -250,44 +252,44 @@
 </script>
 
 <svelte:head>
-  <title>Habits | Darink</title>
+  <title>{t.habits.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Habits" />
+<PageHeader title={t.habits.title} />
 
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
 	<label>
-		Habit
+		{t.habits.habit}
 		<select bind:value={selectedHabit}>
 			{#each allHabitTypes as h}
 				<option value={h.id}>{h.label}</option>
 			{/each}
 		</select>
 	</label>
-	<label>Duration ({selectedUnit}) <input type="number" min="0" step="1" bind:value={duration} /></label>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log habit</button>
+	<label>{t.habits.durationLabel} ({selectedUnit}) <input type="number" min="0" step="1" bind:value={duration} /></label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
+	<button class="primary" onclick={submit}>{t.habits.logHabit}</button>
 </section>
 
 <section class="manage-section">
 	<button class="manage-toggle" onclick={() => manageOpen = !manageOpen}>
-		<span>Manage habit types</span>
+		<span>{t.habits.manageTypes}</span>
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:rotate={manageOpen}><path d="m6 9 6 6 6-6"/></svg>
 	</button>
 	{#if manageOpen}
 		<div class="manage-body">
 			<div class="manage-add">
-				<label>Label <input type="text" bind:value={newLabel} placeholder="e.g. Stretching" /></label>
-				<label>Unit <input type="text" bind:value={newUnit} placeholder="e.g. min" /></label>
-				<button class="primary" onclick={addCustomHabit}>Add habit type</button>
+				<label>{t.habits.labelField} <input type="text" bind:value={newLabel} placeholder="e.g. Stretching" /></label>
+				<label>{t.habits.unitField} <input type="text" bind:value={newUnit} placeholder="e.g. min" /></label>
+				<button class="primary" onclick={addCustomHabit}>{t.habits.addType}</button>
 			</div>
 			<ul class="habit-type-list">
 				{#each allHabitTypes as h}
 					<li class="habit-type-item">
 						<span><strong>{h.label}</strong> <span class="unit-tag">({h.unit})</span></span>
 						{#if !defaultIds.has(h.id)}
-							<button class="remove-btn" onclick={() => removeCustomHabit(h.id)} title="Remove">
+							<button class="remove-btn" onclick={() => removeCustomHabit(h.id)} title={t.common.remove}>
 								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 							</button>
 						{/if}
@@ -301,14 +303,14 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-	<p>No habits logged yet</p>
-	<p class="empty-hint">Log your first habit to start building streaks.</p>
+	<p>{t.habits.noHabits}</p>
+	<p class="empty-hint">{t.habits.noHabitsHint}</p>
 </div>
 {/if}
 
 {#if todayItems.length > 0}
 	<section class="today">
-		<h2>Today</h2>
+		<h2>{t.habits.today}</h2>
 		<div class="chips">
 			{#each todayItems as item}
 				<span class="chip">{getLabel(item.data.habit as string)} · {item.data.duration}{getUnit(item.data.habit as string)}</span>
@@ -319,14 +321,14 @@
 
 {#if Object.keys(streaks).length > 0}
 	<section class="streaks">
-		<h2>Streaks</h2>
+		<h2>{t.habits.streaks}</h2>
 		<div class="streak-grid">
 			{#each Object.entries(streaks) as [id, s]}
 				<div class="streak-card" class:active={s.current > 0}>
 					<strong>{getLabel(id)}</strong>
 					<div class="streak-nums">
 						<span class="streak-current">{s.current}d</span>
-						<span class="streak-meta">Best {s.best}d · {s.total} total</span>
+						<span class="streak-meta">{t.habits.best} {s.best}d · {s.total} {t.common.total.toLowerCase()}</span>
 					</div>
 				</div>
 			{/each}
@@ -337,7 +339,7 @@
 <!-- Analytics: 30-Day Completion Heatmap -->
 {#if store.items.length > 0}
 	<section class="analytics-section">
-		<h3>30-Day Completion Heatmap</h3>
+		<h3>{t.habits.heatmap30}</h3>
 		<div class="heatmap-grid">
 			{#each heatmapData as cell}
 				<div
@@ -346,7 +348,7 @@
 					class:heatmap-low={cell.count >= 1 && cell.count <= 2}
 					class:heatmap-mid={cell.count >= 3 && cell.count <= 4}
 					class:heatmap-high={cell.count >= 5}
-					title="{cell.date}: {cell.count} habits"
+					title="{cell.date}: {cell.count} {t.habits.nHabits}"
 				>
 					<span class="heatmap-day">{cell.dayNum}</span>
 				</div>
@@ -358,7 +360,7 @@
 <!-- Analytics: Weekly Completion Rates -->
 {#if store.items.length > 0}
 	<section class="analytics-section">
-		<h3>Weekly Completion Rates</h3>
+		<h3>{t.habits.weeklyCompletion}</h3>
 		<svg class="weekly-chart" width="100%" height="140" viewBox="0 0 400 140">
 			{#each weeklyRates as week, i}
 				{@const barMaxWidth = 260}
@@ -377,7 +379,7 @@
 <!-- Analytics: Habit-Mood Correlation -->
 {#if store.items.length > 0 && habitMoodCorrelation.length > 0}
 	<section class="analytics-section">
-		<h3>Habit-Mood Correlation</h3>
+		<h3>{t.habits.habitMoodCorrelation}</h3>
 		<div class="mood-correlation-list">
 			{#each habitMoodCorrelation as hm}
 				<div class="mood-corr-row">
@@ -393,8 +395,8 @@
 						</div>
 					</div>
 					<div class="mood-legend-inline">
-						<span class="legend-done">Done ({hm.doneCount}d)</span>
-						<span class="legend-skip">Skip ({hm.skipCount}d)</span>
+						<span class="legend-done">{t.habits.done} ({hm.doneCount}d)</span>
+						<span class="legend-skip">{t.habits.skipped} ({hm.skipCount}d)</span>
 					</div>
 				</div>
 			{/each}
@@ -405,7 +407,7 @@
 <!-- Analytics: Habit Frequency Distribution -->
 {#if store.items.length > 0 && frequencyData.segments.length > 0}
 	<section class="analytics-section analytics-donut-section">
-		<h3>Habit Frequency Distribution</h3>
+		<h3>{t.habits.frequencyDistribution}</h3>
 		<div class="donut-container">
 			<svg width="160" height="160" viewBox="0 0 160 160">
 				{#each frequencyData.segments as seg, i}
@@ -431,7 +433,7 @@
 				{/each}
 				<circle cx="80" cy="80" r="46" fill="var(--c-bg-card)" />
 				<text x="80" y="76" text-anchor="middle" fill="var(--c-text)" font-size="22" font-weight="700" font-family="inherit">{frequencyData.total}</text>
-				<text x="80" y="94" text-anchor="middle" fill="var(--c-text-muted)" font-size="10" font-family="inherit">entries</text>
+				<text x="80" y="94" text-anchor="middle" fill="var(--c-text-muted)" font-size="10" font-family="inherit">{t.common.entries}</text>
 			</svg>
 			<div class="donut-legend">
 				{#each frequencyData.segments as seg}
@@ -457,23 +459,23 @@
 			duration: Number(fd.get('duration')),
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date as string ?? ''} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date as string ?? ''} /></label>
 		<label>
-			Habit
+			{t.habits.habit}
 			<select name="habit">
 				{#each allHabitTypes as h}
 					<option value={h.id} selected={data.habit === h.id}>{h.label}</option>
 				{/each}
 			</select>
 		</label>
-		<label>Duration <input type="number" name="duration" min="0" step="1" value={data.duration} /></label>
-		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<label>{t.habits.durationLabel} <input type="number" name="duration" min="0" step="1" value={data.duration} /></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}

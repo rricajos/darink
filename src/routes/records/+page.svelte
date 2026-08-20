@@ -1,8 +1,10 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { useEntries } from '$lib/stores/entries.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
 
+	const { t } = useLocale();
 	const store = useEntries();
 
 	interface Record {
@@ -86,7 +88,7 @@
 			}
 		}
 		if (longestDur > 0) {
-			records.push({ title: `Longest session (${longestType})`, value: `${Math.round(longestDur)} min`, date: longestDate });
+			records.push({ title: `${t.records.longestSession} (${longestType})`, value: `${Math.round(longestDur)} min`, date: longestDate });
 		}
 
 		return records;
@@ -155,7 +157,7 @@
 			}
 		}
 		if (maxCount > 0) {
-			records.push({ title: 'Most entries in a day', value: `${maxCount}`, date: maxDay });
+			records.push({ title: t.records.mostEntriesInDay, value: `${maxCount}`, date: maxDay });
 		}
 
 		/* Most consecutive days with any entry */
@@ -177,10 +179,10 @@
 				currentRun = 1;
 			}
 		}
-		records.push({ title: 'Longest daily streak', value: `${bestRun} day${bestRun !== 1 ? 's' : ''}`, date: bestRunEnd });
+		records.push({ title: t.records.longestDailyStreak, value: `${bestRun} ${t.common.days}`, date: bestRunEnd });
 
 		/* Total entries all time */
-		records.push({ title: 'Total entries', value: `${items.length}`, date: '' });
+		records.push({ title: t.records.totalEntries, value: `${items.length}`, date: '' });
 
 		return records;
 	});
@@ -210,10 +212,10 @@
 			if (!isNaN(stress) && stress < lowestStress) { lowestStress = stress; lowestStressDate = d; }
 		}
 
-		if (bestMood > -Infinity) records.push({ title: 'Best mood', value: `${bestMood}/10`, date: bestMoodDate });
-		if (bestEnergy > -Infinity) records.push({ title: 'Best energy', value: `${bestEnergy}/10`, date: bestEnergyDate });
-		if (bestSleep > -Infinity) records.push({ title: 'Best sleep', value: `${bestSleep} h`, date: bestSleepDate });
-		if (lowestStress < Infinity) records.push({ title: 'Lowest stress', value: `${lowestStress}/10`, date: lowestStressDate });
+		if (bestMood > -Infinity) records.push({ title: t.records.bestMood, value: `${bestMood}/10`, date: bestMoodDate });
+		if (bestEnergy > -Infinity) records.push({ title: t.records.bestEnergy, value: `${bestEnergy}/10`, date: bestEnergyDate });
+		if (bestSleep > -Infinity) records.push({ title: t.records.bestSleep, value: `${bestSleep} h`, date: bestSleepDate });
+		if (lowestStress < Infinity) records.push({ title: t.records.lowestStress, value: `${lowestStress}/10`, date: lowestStressDate });
 
 		return records;
 	});
@@ -241,9 +243,9 @@
 			if (!isNaN(bf) && bf > 0 && bf < minBF) { minBF = bf; minBFDate = d; }
 		}
 
-		if (minW < Infinity) records.push({ title: 'Lowest weight', value: `${minW} kg`, date: minWDate });
-		if (maxW > -Infinity) records.push({ title: 'Highest weight', value: `${maxW} kg`, date: maxWDate });
-		if (minBF < Infinity) records.push({ title: 'Lowest body fat', value: `${minBF}%`, date: minBFDate });
+		if (minW < Infinity) records.push({ title: t.records.lowestWeight, value: `${minW} kg`, date: minWDate });
+		if (maxW > -Infinity) records.push({ title: t.records.highestWeight, value: `${maxW} kg`, date: maxWDate });
+		if (minBF < Infinity) records.push({ title: t.records.lowestBodyFat, value: `${minBF}%`, date: minBFDate });
 
 		return records;
 	});
@@ -264,11 +266,11 @@
 
 	const sections = $derived.by((): Section[] => {
 		const result: Section[] = [];
-		if (trainingRecords.length > 0) result.push({ title: 'Training PRs', icon: 'trophy', records: trainingRecords });
-		if (habitRecords.length > 0) result.push({ title: 'Habit Milestones', icon: 'flame', records: habitRecords });
-		if (consistencyRecords.length > 0) result.push({ title: 'Consistency', icon: 'calendar', records: consistencyRecords });
-		if (checkinRecords.length > 0) result.push({ title: 'Check-in Records', icon: 'star', records: checkinRecords });
-		if (weightRecords.length > 0) result.push({ title: 'Weight Records', icon: 'scale', records: weightRecords });
+		if (trainingRecords.length > 0) result.push({ title: t.records.trainingPRs, icon: 'trophy', records: trainingRecords });
+		if (habitRecords.length > 0) result.push({ title: t.records.habitMilestones, icon: 'flame', records: habitRecords });
+		if (consistencyRecords.length > 0) result.push({ title: t.records.consistency, icon: 'calendar', records: consistencyRecords });
+		if (checkinRecords.length > 0) result.push({ title: t.records.checkinRecords, icon: 'star', records: checkinRecords });
+		if (weightRecords.length > 0) result.push({ title: t.records.weightRecords, icon: 'scale', records: weightRecords });
 		return result;
 	});
 
@@ -335,11 +337,11 @@
 		const checkinCount = checkinRecords.length;
 		const bodyCount = weightRecords.length;
 
-		if (strengthCount > 0) cats.push({ name: 'Strength PRs', count: strengthCount, color: 'var(--c-accent)' });
-		if (cardioCount > 0) cats.push({ name: 'Cardio PRs', count: cardioCount, color: '#3b82f6' });
-		if (habitCount > 0) cats.push({ name: 'Habit streaks', count: habitCount, color: 'var(--c-done)' });
-		if (checkinCount > 0) cats.push({ name: 'Check-in peaks', count: checkinCount, color: '#f59e0b' });
-		if (bodyCount > 0) cats.push({ name: 'Body composition', count: bodyCount, color: '#8b5cf6' });
+		if (strengthCount > 0) cats.push({ name: t.records.strengthPRs, count: strengthCount, color: 'var(--c-accent)' });
+		if (cardioCount > 0) cats.push({ name: t.records.cardioPRs, count: cardioCount, color: '#3b82f6' });
+		if (habitCount > 0) cats.push({ name: t.records.habitStreaks, count: habitCount, color: 'var(--c-done)' });
+		if (checkinCount > 0) cats.push({ name: t.records.checkinPeaks, count: checkinCount, color: '#f59e0b' });
+		if (bodyCount > 0) cats.push({ name: t.records.bodyComposition, count: bodyCount, color: '#8b5cf6' });
 		return cats;
 	});
 
@@ -394,25 +396,25 @@
 	);
 
 	const daysSinceMessage = $derived(
-		daysSinceLastPR < 0 ? 'No records yet' :
-		daysSinceLastPR === 0 ? 'You set a PR today!' :
-		daysSinceLastPR < 7 ? 'On fire! Keep pushing!' :
-		daysSinceLastPR <= 30 ? 'Time to chase a new record' :
-		'Go break some records!'
+		daysSinceLastPR < 0 ? t.records.noRecords :
+		daysSinceLastPR === 0 ? t.records.prToday :
+		daysSinceLastPR < 7 ? t.records.onFire :
+		daysSinceLastPR <= 30 ? t.records.chaseRecord :
+		t.records.breakRecords
 	);
 </script>
 
 <svelte:head>
-	<title>Records | Darink</title>
+	<title>{t.records.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Records" />
+<PageHeader title={t.records.title} />
 
 {#if !hasAnyRecords}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-	<p>No records yet</p>
-	<p class="empty-hint">Start logging entries to see your personal bests and milestones here.</p>
+	<p>{t.records.noRecords}</p>
+	<p class="empty-hint">{t.records.noRecordsHint}</p>
 </div>
 {:else}
 {#each sections as section}
@@ -452,12 +454,12 @@
 <!-- Days Since Last PR -->
 {#if daysSinceLastPR >= 0}
 <section class="section">
-	<h3>Days Since Last PR</h3>
+	<h3>{t.records.daysSincePR}</h3>
 	<div class="days-since-card" style="border-color: {daysSinceColor}">
 		<span class="days-since-number" style="color: {daysSinceColor}">
 			{daysSinceLastPR}
 		</span>
-		<span class="days-since-label">day{daysSinceLastPR !== 1 ? 's' : ''} ago</span>
+		<span class="days-since-label">{t.records.daysAgoLabel}</span>
 		<span class="days-since-message" style="color: {daysSinceColor}">{daysSinceMessage}</span>
 	</div>
 </section>
@@ -466,7 +468,7 @@
 <!-- PR Timeline -->
 {#if timelinePoints.length > 1}
 <section class="section">
-	<h3>PR Timeline</h3>
+	<h3>{t.records.prTimeline}</h3>
 	<div class="timeline-chart-container">
 		<svg class="timeline-svg" viewBox="0 0 800 180" preserveAspectRatio="xMidYMid meet">
 			<!-- Category labels -->
@@ -504,7 +506,7 @@
 <!-- Records by Category -->
 {#if categoryBreakdown.length > 0}
 <section class="section">
-	<h3>Records by Category</h3>
+	<h3>{t.records.categoryBreakdown}</h3>
 	<div class="category-breakdown">
 		{#each categoryBreakdown as cat}
 			{@const pct = totalCategoryRecords > 0 ? Math.round((cat.count / totalCategoryRecords) * 100) : 0}
@@ -527,7 +529,7 @@
 <!-- Recent Achievements -->
 {#if recentAchievements.length > 0}
 <section class="section">
-	<h3>Recent Achievements</h3>
+	<h3>{t.records.recentAchievements}</h3>
 	<div class="achievements-list">
 		{#each recentAchievements as ach}
 			<div class="achievement-card">

@@ -3,8 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
 
+	const { t } = useLocale();
 	const store = useEntries('signal.sleep');
 	const allStore = useEntries();
 
@@ -50,7 +52,7 @@
 
 	const weeklyPattern = $derived.by(() => {
 		if (store.items.length < 7) return null;
-		const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+		const dayNames = [t.days.sun, t.days.mon, t.days.tue, t.days.wed, t.days.thu, t.days.fri, t.days.sat];
 		const buckets: number[][] = Array.from({ length: 7 }, () => []);
 		for (const e of store.items) {
 			const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
@@ -103,27 +105,27 @@
 		entries.add('signal.sleep', { date, hours, quality, dreams, bedtime, wakeTime, notes });
 		date = new Date().toISOString().slice(0, 10);
 		notes = '';
-		toast.show('Sleep logged');
+		toast.show(t.sleep.sleepLogged);
 	}
 </script>
 
 <svelte:head>
-  <title>Sleep | Darink</title>
+  <title>{t.sleep.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Sleep" back="/signals" />
+<PageHeader title={t.sleep.title} back="/signals" />
 
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Hours ({hours}) <input type="number" min="0" max="14" step="0.5" bind:value={hours} /></label>
-	<label>Quality ({quality}/10) <input type="range" min="1" max="10" bind:value={quality} /></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
+	<label>{t.sleep.hoursLabel} ({hours}) <input type="number" min="0" max="14" step="0.5" bind:value={hours} /></label>
+	<label>{t.sleep.qualityLabel.replace('(/10)', `(${quality}/10)`)} <input type="range" min="1" max="10" bind:value={quality} /></label>
 	<div class="row">
-		<label>Bedtime <input type="time" bind:value={bedtime} /></label>
-		<label>Wake <input type="time" bind:value={wakeTime} /></label>
+		<label>{t.sleep.bedtimeLabel} <input type="time" bind:value={bedtime} /></label>
+		<label>{t.sleep.wakeLabel} <input type="time" bind:value={wakeTime} /></label>
 	</div>
-	<label class="checkbox"><input type="checkbox" bind:checked={dreams} /> Vivid dreams</label>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log sleep</button>
+	<label class="checkbox"><input type="checkbox" bind:checked={dreams} /> {t.sleep.vividDreams}</label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
+	<button class="primary" onclick={submit}>{t.sleep.logSleep}</button>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -139,20 +141,20 @@
 			wakeTime: fd.get('wakeTime') as string,
 			dreams: (fd.get('dreams') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date as string ?? ''} /></label>
-		<label>Hours <input type="number" name="hours" min="0" max="14" step="0.5" value={data.hours} /></label>
-		<label>Quality <input type="range" name="quality" min="1" max="10" value={data.quality} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date as string ?? ''} /></label>
+		<label>{t.sleep.hoursLabel} <input type="number" name="hours" min="0" max="14" step="0.5" value={data.hours} /></label>
+		<label>{t.sleep.qualityLabel} <input type="range" name="quality" min="1" max="10" value={data.quality} /></label>
 		<div class="row">
-			<label>Bedtime <input type="time" name="bedtime" value={data.bedtime} /></label>
-			<label>Wake <input type="time" name="wakeTime" value={data.wakeTime} /></label>
+			<label>{t.sleep.bedtimeLabel} <input type="time" name="bedtime" value={data.bedtime} /></label>
+			<label>{t.sleep.wakeLabel} <input type="time" name="wakeTime" value={data.wakeTime} /></label>
 		</div>
-		<label>Dreams <textarea name="dreams" rows="2">{data.dreams ?? ''}</textarea></label>
+		<label>{t.sleep.vividDreams} <textarea name="dreams" rows="2">{data.dreams ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -160,8 +162,8 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-	<p>No sleep entries yet</p>
-	<p class="empty-hint">Log your sleep to see quality and duration trends.</p>
+	<p>{t.sleep.noEntries}</p>
+	<p class="empty-hint">{t.sleep.noEntriesHint}</p>
 </div>
 {/if}
 
@@ -178,7 +180,7 @@
 {@const rangeV = maxV - minV || 1}
 {@const stepX = 280 / Math.max(pts.length - 1, 1)}
 <section class="chart-section">
-	<h2>Sleep Quality Trend</h2>
+	<h2>{t.sleep.sleepQualityTrend}</h2>
 	<svg class="line-chart" viewBox="0 0 280 100" preserveAspectRatio="none">
 		<polyline fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linejoin="round"
 			points={pts.map((p, i) => `${i * stepX},${100 - ((p.value - minV) / rangeV) * 80 - 10}`).join(' ')} />
@@ -193,7 +195,7 @@
 {@const rangeV = maxV - minV || 1}
 {@const stepX = 280 / Math.max(pts.length - 1, 1)}
 <section class="chart-section">
-	<h2>Hours Trend</h2>
+	<h2>{t.sleep.hoursTrend}</h2>
 	<svg class="line-chart" viewBox="0 0 280 100" preserveAspectRatio="none">
 		<polyline fill="none" stroke="#6ec6ff" stroke-width="2" stroke-linejoin="round"
 			points={pts.map((p, i) => `${i * stepX},${100 - ((p.value - minV) / rangeV) * 80 - 10}`).join(' ')} />
@@ -207,23 +209,23 @@
 {@const bestEntry = recent30.reduce((a, b) => Number(a.data.quality) >= Number(b.data.quality) ? a : b)}
 {@const worstEntry = recent30.reduce((a, b) => Number(a.data.quality) <= Number(b.data.quality) ? a : b)}
 <section class="metrics">
-	<h2>Averages (last 30 days)</h2>
+	<h2>{t.sleep.averages30}</h2>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value">{avgHours}</span>
-			<span class="metric-label">Avg Hours</span>
+			<span class="metric-label">{t.sleep.avgHours}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{avgQuality}</span>
-			<span class="metric-label">Avg Quality</span>
+			<span class="metric-label">{t.sleep.avgQuality}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{new Date(bestEntry.createdAt).toLocaleDateString()}</span>
-			<span class="metric-label">Best Quality</span>
+			<span class="metric-label">{t.sleep.bestQuality}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{new Date(worstEntry.createdAt).toLocaleDateString()}</span>
-			<span class="metric-label">Worst Quality</span>
+			<span class="metric-label">{t.sleep.worstQuality}</span>
 		</div>
 	</div>
 </section>
@@ -231,21 +233,21 @@
 
 {#if sleepMoodCorrelation}
 <section class="analytics">
-	<h2>Sleep–Mood Correlation</h2>
-	<p class="hint">Comparing check-in mood &amp; energy on days with ≥7h sleep vs &lt;7h</p>
+	<h2>{t.sleep.sleepMoodCorrelation}</h2>
+	<p class="hint">{t.sleep.sleepMoodHint}</p>
 	<div class="corr-grid">
 		<div class="corr-card">
-			<span class="corr-label">≥7h sleep (n={sleepMoodCorrelation.goodN})</span>
+			<span class="corr-label">≥7h {t.common.sleep.toLowerCase()} (n={sleepMoodCorrelation.goodN})</span>
 			<div class="corr-bars">
-				<div class="corr-row"><span>Mood</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.goodMood * 10}%;background:var(--c-done)"></div></div><span>{sleepMoodCorrelation.goodMood}</span></div>
-				<div class="corr-row"><span>Energy</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.goodEnergy * 10}%;background:#6ec6ff"></div></div><span>{sleepMoodCorrelation.goodEnergy}</span></div>
+				<div class="corr-row"><span>{t.common.mood}</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.goodMood * 10}%;background:var(--c-done)"></div></div><span>{sleepMoodCorrelation.goodMood}</span></div>
+				<div class="corr-row"><span>{t.common.energy}</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.goodEnergy * 10}%;background:#6ec6ff"></div></div><span>{sleepMoodCorrelation.goodEnergy}</span></div>
 			</div>
 		</div>
 		<div class="corr-card">
-			<span class="corr-label">&lt;7h sleep (n={sleepMoodCorrelation.poorN})</span>
+			<span class="corr-label">&lt;7h {t.common.sleep.toLowerCase()} (n={sleepMoodCorrelation.poorN})</span>
 			<div class="corr-bars">
-				<div class="corr-row"><span>Mood</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.poorMood * 10}%;background:#e8a735"></div></div><span>{sleepMoodCorrelation.poorMood}</span></div>
-				<div class="corr-row"><span>Energy</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.poorEnergy * 10}%;background:#e8a735"></div></div><span>{sleepMoodCorrelation.poorEnergy}</span></div>
+				<div class="corr-row"><span>{t.common.mood}</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.poorMood * 10}%;background:#e8a735"></div></div><span>{sleepMoodCorrelation.poorMood}</span></div>
+				<div class="corr-row"><span>{t.common.energy}</span><div class="bar-bg"><div class="bar-fill" style="width:{sleepMoodCorrelation.poorEnergy * 10}%;background:#e8a735"></div></div><span>{sleepMoodCorrelation.poorEnergy}</span></div>
 			</div>
 		</div>
 	</div>
@@ -254,7 +256,7 @@
 
 {#if weeklyPattern}
 <section class="analytics">
-	<h2>Weekly Sleep Pattern</h2>
+	<h2>{t.sleep.weeklySleepPattern}</h2>
 	<div class="week-chart">
 		{#each weeklyPattern.data as day}
 			<div class="week-bar-col">
@@ -269,19 +271,19 @@
 
 {#if sleepDebt}
 <section class="analytics">
-	<h2>Sleep Debt (Last 7 Days)</h2>
+	<h2>{t.sleep.sleepDebtLast7}</h2>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value" style="color:{sleepDebt.debt <= 0 ? 'var(--c-done)' : sleepDebt.debt <= 5 ? '#e8a735' : '#e53e3e'}">{sleepDebt.debt > 0 ? '+' : ''}{sleepDebt.debt}h</span>
-			<span class="metric-label">Sleep debt</span>
+			<span class="metric-label">{t.sleep.sleepDebtLabel}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{sleepDebt.avgRecent}h</span>
-			<span class="metric-label">Avg (7d)</span>
+			<span class="metric-label">{t.common.average} (7d)</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{sleepDebt.target}h</span>
-			<span class="metric-label">Target</span>
+			<span class="metric-label">{t.sleep.target}</span>
 		</div>
 	</div>
 </section>
@@ -289,20 +291,20 @@
 
 {#if trainingRecovery}
 <section class="analytics">
-	<h2>Training Recovery</h2>
-	<p class="hint">Sleep quality on nights after training vs rest days</p>
+	<h2>{t.sleep.trainingRecovery}</h2>
+	<p class="hint">{t.sleep.trainingRecoveryHint}</p>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value">{trainingRecovery.postTrain}/10</span>
-			<span class="metric-label">Post-training</span>
+			<span class="metric-label">{t.sleep.postTraining}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{trainingRecovery.restDay}/10</span>
-			<span class="metric-label">Rest day</span>
+			<span class="metric-label">{t.sleep.restDay}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value" style="color:{trainingRecovery.postTrain >= trainingRecovery.restDay ? 'var(--c-done)' : '#e53e3e'}">{trainingRecovery.postTrain >= trainingRecovery.restDay ? '+' : ''}{+(trainingRecovery.postTrain - trainingRecovery.restDay).toFixed(1)}</span>
-			<span class="metric-label">Difference</span>
+			<span class="metric-label">{t.sleep.difference}</span>
 		</div>
 	</div>
 </section>

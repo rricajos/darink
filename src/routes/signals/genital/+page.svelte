@@ -3,8 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
 
+	const { t } = useLocale();
 	const store = useEntries('signal.genital');
 	const allStore = useEntries();
 
@@ -58,7 +60,7 @@
 
 	const meWeeklyPattern = $derived.by(() => {
 		if (store.items.length < 7) return null;
-		const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+		const dayNames = [t.days.sun, t.days.mon, t.days.tue, t.days.wed, t.days.thu, t.days.fri, t.days.sat];
 		const buckets: number[][] = Array.from({ length: 7 }, () => []);
 		for (const e of store.items) {
 			const d = e.createdAt.slice(0, 10);
@@ -93,22 +95,22 @@
 	function submit() {
 		entries.add('signal.genital', { morningErection, libido, sensitivity, notes });
 		notes = '';
-		toast.show('Signal logged');
+		toast.show(t.genital.signalLogged);
 	}
 </script>
 
 <svelte:head>
-  <title>Genital | Darink</title>
+  <title>{t.genital.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Genital Signals" back="/signals" />
+<PageHeader title={t.genital.genitalSignals} back="/signals" />
 
 <section class="form">
-	<label>Morning erection ({morningErection}/3) <input type="range" min="0" max="3" bind:value={morningErection} /></label>
-	<label>Libido ({libido}/10) <input type="range" min="1" max="10" bind:value={libido} /></label>
-	<label>Sensitivity ({sensitivity}/10) <input type="range" min="1" max="10" bind:value={sensitivity} /></label>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log signals</button>
+	<label>{t.genital.morningErection} ({morningErection}/3) <input type="range" min="0" max="3" bind:value={morningErection} /></label>
+	<label>{t.genital.libido} ({libido}/10) <input type="range" min="1" max="10" bind:value={libido} /></label>
+	<label>{t.genital.sensitivity} ({sensitivity}/10) <input type="range" min="1" max="10" bind:value={sensitivity} /></label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
+	<button class="primary" onclick={submit}>{t.genital.logSignals}</button>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -122,23 +124,23 @@
 			sensitivity: Number(fd.get('sensitivity')),
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
 		<label>
-			Morning erection
+			{t.genital.morningErection}
 			<select name="morningErection">
 				<option value="1" selected={Number(data.morningErection) === 1}>1</option>
 				<option value="2" selected={Number(data.morningErection) === 2}>2</option>
 				<option value="3" selected={Number(data.morningErection) === 3}>3</option>
 			</select>
 		</label>
-		<label>Libido <input type="range" name="libido" min="1" max="10" value={data.libido} /></label>
-		<label>Sensitivity <input type="range" name="sensitivity" min="1" max="10" value={data.sensitivity} /></label>
-		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<label>{t.genital.libido} <input type="range" name="libido" min="1" max="10" value={data.libido} /></label>
+		<label>{t.genital.sensitivity} <input type="range" name="sensitivity" min="1" max="10" value={data.sensitivity} /></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -146,14 +148,14 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-	<p>No genital signal entries yet</p>
-	<p class="empty-hint">Track these signals to monitor hormonal health markers.</p>
+	<p>{t.genital.noEntries}</p>
+	<p class="empty-hint">{t.genital.noEntriesHint}</p>
 </div>
 {/if}
 
 <EntryList items={store.items} {editForm} limit={10}>
 	{#snippet row(item)}
-		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">Libido: {item.data.libido}/10 · Sensitivity: {item.data.sensitivity}/10 · ME: {item.data.morningErection}/3</span></div>
+		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">{t.genital.libido}: {item.data.libido}/10 · {t.genital.sensitivity}: {item.data.sensitivity}/10 · ME: {item.data.morningErection}/3</span></div>
 	{/snippet}
 </EntryList>
 
@@ -166,7 +168,7 @@
 {@const rangeV = maxV - minV || 1}
 {@const stepX = 280 / Math.max(ptsL.length - 1, 1)}
 <section class="chart-section">
-	<h2>Libido &amp; Sensitivity Trend</h2>
+	<h2>{t.genital.libSensTrend}</h2>
 	<svg class="line-chart" viewBox="0 0 280 100" preserveAspectRatio="none">
 		<polyline fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linejoin="round"
 			points={ptsL.map((p, i) => `${i * stepX},${100 - ((p.value - minV) / rangeV) * 80 - 10}`).join(' ')} />
@@ -174,8 +176,8 @@
 			points={ptsS.map((p, i) => `${i * stepX},${100 - ((p.value - minV) / rangeV) * 80 - 10}`).join(' ')} />
 	</svg>
 	<div class="legend">
-		<span><span class="dot" style="background:var(--c-accent)"></span> Libido</span>
-		<span><span class="dot" style="background:#ab47bc"></span> Sensitivity</span>
+		<span><span class="dot" style="background:var(--c-accent)"></span> {t.genital.libido}</span>
+		<span><span class="dot" style="background:#ab47bc"></span> {t.genital.sensitivity}</span>
 	</div>
 </section>
 {/if}
@@ -185,19 +187,19 @@
 {@const avgSensitivity = (last30.reduce((s, e) => s + Number(e.data.sensitivity), 0) / last30.length).toFixed(1)}
 {@const avgME = (last30.reduce((s, e) => s + Number(e.data.morningErection), 0) / last30.length).toFixed(1)}
 <section class="metrics">
-	<h2>Averages</h2>
+	<h2>{t.genital.averages}</h2>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value">{avgLibido}</span>
-			<span class="metric-label">Avg Libido</span>
+			<span class="metric-label">{t.genital.avgLibido}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{avgSensitivity}</span>
-			<span class="metric-label">Avg Sensitivity</span>
+			<span class="metric-label">{t.genital.avgSensitivity}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{avgME}</span>
-			<span class="metric-label">Avg ME</span>
+			<span class="metric-label">{t.genital.avgME}</span>
 		</div>
 	</div>
 </section>
@@ -205,16 +207,16 @@
 
 {#if sleepLibidoLink}
 <section class="analytics">
-	<h2>Sleep–Libido Link</h2>
-	<p class="hint">Avg libido on good sleep (≥7h) vs poor sleep (&lt;7h) days</p>
+	<h2>{t.genital.sleepLibidoLink}</h2>
+	<p class="hint">{t.genital.sleepLibidoHint}</p>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value" style="color:var(--c-done)">{sleepLibidoLink.goodSleep}/10</span>
-			<span class="metric-label">≥7h sleep (n={sleepLibidoLink.goodN})</span>
+			<span class="metric-label">≥7h {t.common.sleep.toLowerCase()} (n={sleepLibidoLink.goodN})</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value" style="color:#e8a735">{sleepLibidoLink.poorSleep}/10</span>
-			<span class="metric-label">&lt;7h sleep (n={sleepLibidoLink.poorN})</span>
+			<span class="metric-label">&lt;7h {t.common.sleep.toLowerCase()} (n={sleepLibidoLink.poorN})</span>
 		</div>
 	</div>
 </section>
@@ -222,16 +224,16 @@
 
 {#if trainingLibidoLink}
 <section class="analytics">
-	<h2>Training–Libido Link</h2>
-	<p class="hint">Avg libido on training days vs rest days</p>
+	<h2>{t.genital.trainingLibidoLink}</h2>
+	<p class="hint">{t.genital.trainLibidoHint}</p>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value">{trainingLibidoLink.train}/10</span>
-			<span class="metric-label">Training days</span>
+			<span class="metric-label">{t.genital.trainingDays}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{trainingLibidoLink.rest}/10</span>
-			<span class="metric-label">Rest days</span>
+			<span class="metric-label">{t.genital.restDays}</span>
 		</div>
 	</div>
 </section>
@@ -239,7 +241,7 @@
 
 {#if meWeeklyPattern}
 <section class="analytics">
-	<h2>Morning Erection Pattern</h2>
+	<h2>{t.genital.morningErectionPattern}</h2>
 	<div class="week-chart">
 		{#each meWeeklyPattern.data as day}
 			<div class="week-bar-col">
@@ -254,16 +256,16 @@
 
 {#if supplementLibidoLink}
 <section class="analytics">
-	<h2>Supplement Impact</h2>
-	<p class="hint">Avg libido on supplement days vs non-supplement days</p>
+	<h2>{t.genital.supplementImpact}</h2>
+	<p class="hint">{t.genital.suppImpactHint}</p>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value" style="color:var(--c-done)">{supplementLibidoLink.supp}/10</span>
-			<span class="metric-label">Supplement days</span>
+			<span class="metric-label">{t.genital.supplementDays}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value" style="color:var(--c-text-muted)">{supplementLibidoLink.noSupp}/10</span>
-			<span class="metric-label">No supplement</span>
+			<span class="metric-label">{t.genital.noSupplement}</span>
 		</div>
 	</div>
 </section>

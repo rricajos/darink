@@ -7,6 +7,9 @@
 	import { onNavigate } from '$app/navigation';
 	import { goto } from '$app/navigation';
 	import { theme, ui } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
+
+	const { t } = useLocale();
 
 	let { children } = $props();
 
@@ -79,13 +82,13 @@
 	}
 </script>
 
-<a href="#main-content" class="skip-link">Skip to content</a>
+<a href="#main-content" class="skip-link">{t.layout.skipToContent}</a>
 
 {#if showInstallBanner}
 	<div class="install-banner">
-		<span style="flex:1">Install Darink for offline access</span>
-		<button onclick={installApp}>Install</button>
-		<button class="dismiss" onclick={dismissInstall} aria-label="Dismiss">
+		<span style="flex:1">{t.layout.installBanner}</span>
+		<button onclick={installApp}>{t.layout.install}</button>
+		<button class="dismiss" onclick={dismissInstall} aria-label={t.layout.dismiss}>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 		</button>
 	</div>

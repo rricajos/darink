@@ -3,8 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
 
+	const { t } = useLocale();
 	const store = useEntries('signal.skin');
 	const allStore = useEntries();
 
@@ -82,23 +84,23 @@
 	function submit() {
 		entries.add('signal.skin', { acneZone, oiliness, elasticity, healing, notes });
 		acneZone = ''; notes = '';
-		toast.show('Skin logged');
+		toast.show(t.skin.skinLogged);
 	}
 </script>
 
 <svelte:head>
-  <title>Skin | Darink</title>
+  <title>{t.skin.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Skin" back="/signals" />
+<PageHeader title={t.skin.title} back="/signals" />
 
 <section class="form">
-	<label>Acne zone <input type="text" bind:value={acneZone} placeholder="Forehead, jaw, back..." /></label>
-	<label>Oiliness ({oiliness}/5) <input type="range" min="1" max="5" bind:value={oiliness} /></label>
-	<label>Elasticity ({elasticity}/10) <input type="range" min="1" max="10" bind:value={elasticity} /></label>
-	<label>Healing speed ({healing}/10) <input type="range" min="1" max="10" bind:value={healing} /></label>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
-	<button class="primary" onclick={submit}>Log skin</button>
+	<label>{t.skin.acneZone} <input type="text" bind:value={acneZone} placeholder={t.skin.acnePlaceholder} /></label>
+	<label>{t.skin.oiliness} ({oiliness}/5) <input type="range" min="1" max="5" bind:value={oiliness} /></label>
+	<label>{t.skin.elasticity} ({elasticity}/10) <input type="range" min="1" max="10" bind:value={elasticity} /></label>
+	<label>{t.skin.healingSpeed} ({healing}/10) <input type="range" min="1" max="10" bind:value={healing} /></label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
+	<button class="primary" onclick={submit}>{t.skin.logSkin}</button>
 </section>
 
 {#snippet editForm(item: Entry, done: () => void)}
@@ -113,17 +115,17 @@
 			healing: Number(fd.get('healing')),
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Acne zone <input type="text" name="acneZone" value={data.acneZone ?? ''} /></label>
-		<label>Oiliness <input type="range" name="oiliness" min="1" max="5" value={data.oiliness} /></label>
-		<label>Elasticity <input type="range" name="elasticity" min="1" max="10" value={data.elasticity} /></label>
-		<label>Healing speed <input type="range" name="healing" min="1" max="5" value={data.healing} /></label>
-		<label>Notes <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
+		<label>{t.skin.acneZone} <input type="text" name="acneZone" value={data.acneZone ?? ''} /></label>
+		<label>{t.skin.oiliness} <input type="range" name="oiliness" min="1" max="5" value={data.oiliness} /></label>
+		<label>{t.skin.elasticity} <input type="range" name="elasticity" min="1" max="10" value={data.elasticity} /></label>
+		<label>{t.skin.healingSpeed} <input type="range" name="healing" min="1" max="5" value={data.healing} /></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes ?? ''}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -131,14 +133,14 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-	<p>No skin entries yet</p>
-	<p class="empty-hint">Track skin health to spot patterns in oiliness and elasticity.</p>
+	<p>{t.skin.noEntries}</p>
+	<p class="empty-hint">{t.skin.noEntriesHint}</p>
 </div>
 {/if}
 
 <EntryList items={store.items} {editForm} limit={10}>
 	{#snippet row(item)}
-		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">Oiliness: {item.data.oiliness}/5 · Elasticity: {item.data.elasticity}/10{item.data.acneZone ? ` · ${item.data.acneZone}` : ''}</span></div>
+		<div><span class="date">{new Date(item.createdAt).toLocaleDateString()}</span> <span class="meta">{t.skin.oiliness}: {item.data.oiliness}/5 · {t.skin.elasticity}: {item.data.elasticity}/10{item.data.acneZone ? ` · ${item.data.acneZone}` : ''}</span></div>
 	{/snippet}
 </EntryList>
 
@@ -151,7 +153,7 @@
 {@const rangeV = maxV - minV || 1}
 {@const stepX = 280 / Math.max(ptsO.length - 1, 1)}
 <section class="chart-section">
-	<h2>Oiliness &amp; Elasticity Trend</h2>
+	<h2>{t.skin.oilElastTrend}</h2>
 	<svg class="line-chart" viewBox="0 0 280 100" preserveAspectRatio="none">
 		<polyline fill="none" stroke="#ff9800" stroke-width="2" stroke-linejoin="round"
 			points={ptsO.map((p, i) => `${i * stepX},${100 - ((p.value - minV) / rangeV) * 80 - 10}`).join(' ')} />
@@ -159,8 +161,8 @@
 			points={ptsE.map((p, i) => `${i * stepX},${100 - ((p.value - minV) / rangeV) * 80 - 10}`).join(' ')} />
 	</svg>
 	<div class="legend">
-		<span><span class="dot" style="background:#ff9800"></span> Oiliness (x2)</span>
-		<span><span class="dot" style="background:var(--c-accent)"></span> Elasticity</span>
+		<span><span class="dot" style="background:#ff9800"></span> {t.skin.oilX2}</span>
+		<span><span class="dot" style="background:var(--c-accent)"></span> {t.skin.elasticity}</span>
 	</div>
 </section>
 {/if}
@@ -169,15 +171,15 @@
 {@const avgOiliness = (last30.reduce((s, e) => s + Number(e.data.oiliness), 0) / last30.length).toFixed(1)}
 {@const avgElasticity = (last30.reduce((s, e) => s + Number(e.data.elasticity), 0) / last30.length).toFixed(1)}
 <section class="metrics">
-	<h2>Averages</h2>
+	<h2>{t.skin.averages}</h2>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value">{avgOiliness}</span>
-			<span class="metric-label">Avg Oiliness</span>
+			<span class="metric-label">{t.skin.avgOiliness}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value">{avgElasticity}</span>
-			<span class="metric-label">Avg Elasticity</span>
+			<span class="metric-label">{t.skin.avgElasticity}</span>
 		</div>
 	</div>
 </section>
@@ -185,16 +187,16 @@
 
 {#if hydrationSkinLink}
 <section class="analytics">
-	<h2>Hydration–Skin Link</h2>
-	<p class="hint">Avg elasticity on high vs low hydration days</p>
+	<h2>{t.skin.hydrationLink}</h2>
+	<p class="hint">{t.skin.hydrationHint}</p>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value" style="color:var(--c-done)">{hydrationSkinLink.highHyd}/10</span>
-			<span class="metric-label">High hydration (n={hydrationSkinLink.highN})</span>
+			<span class="metric-label">{t.skin.highHydration} (n={hydrationSkinLink.highN})</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value" style="color:#e8a735">{hydrationSkinLink.lowHyd}/10</span>
-			<span class="metric-label">Low hydration (n={hydrationSkinLink.lowN})</span>
+			<span class="metric-label">{t.skin.lowHydration} (n={hydrationSkinLink.lowN})</span>
 		</div>
 	</div>
 </section>
@@ -202,7 +204,7 @@
 
 {#if acneZoneFreq.zones.length > 0}
 <section class="analytics">
-	<h2>Acne Zone Frequency</h2>
+	<h2>{t.skin.acneFrequency}</h2>
 	<div class="zone-bars">
 		{#each acneZoneFreq.zones as [zone, count]}
 			<div class="zone-row">
@@ -217,16 +219,16 @@
 
 {#if skinMoodLink}
 <section class="analytics">
-	<h2>Skin–Mood Link</h2>
-	<p class="hint">Average mood when skin elasticity is high (≥7) vs low (&lt;5)</p>
+	<h2>{t.skin.skinMoodLink}</h2>
+	<p class="hint">{t.skin.skinMoodHint}</p>
 	<div class="metrics-row">
 		<div class="metric-card">
 			<span class="metric-value" style="color:var(--c-done)">{skinMoodLink.highSkinMood}</span>
-			<span class="metric-label">Good skin days</span>
+			<span class="metric-label">{t.skin.goodSkinDays}</span>
 		</div>
 		<div class="metric-card">
 			<span class="metric-value" style="color:#e8a735">{skinMoodLink.lowSkinMood}</span>
-			<span class="metric-label">Poor skin days</span>
+			<span class="metric-label">{t.skin.poorSkinDays}</span>
 		</div>
 	</div>
 </section>

@@ -2,7 +2,10 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { useEntries } from '$lib/stores/entries.svelte';
 	import { ui } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import { onMount } from 'svelte';
+
+	const { t } = useLocale();
 
 	interface Goal {
 		id: string;
@@ -13,13 +16,13 @@
 		unit: string;
 	}
 
-	const TEMPLATES: Goal[] = [
-		{ id: '', label: 'Sleep 8 hours', type: 'daily', metric: 'signal.sleep.hours', target: 8, unit: 'h' },
-		{ id: '', label: 'Drink 3L water', type: 'daily', metric: 'intake.water', target: 3, unit: 'L' },
-		{ id: '', label: 'Workout 4x/week', type: 'weekly', metric: 'training.count', target: 4, unit: 'sessions' },
-		{ id: '', label: 'Meditate daily', type: 'daily', metric: 'habit.meditation', target: 1, unit: 'sessions' },
-		{ id: '', label: 'Check-in daily', type: 'daily', metric: 'checkin.count', target: 1, unit: '' },
-	];
+	const TEMPLATES = $derived.by(() => [
+		{ id: '', label: t.goals.sleep8, type: 'daily' as const, metric: 'signal.sleep.hours', target: 8, unit: 'h' },
+		{ id: '', label: t.goals.drink3l, type: 'daily' as const, metric: 'intake.water', target: 3, unit: 'L' },
+		{ id: '', label: t.goals.workout4x, type: 'weekly' as const, metric: 'training.count', target: 4, unit: 'sessions' },
+		{ id: '', label: t.goals.meditatDaily, type: 'daily' as const, metric: 'habit.meditation', target: 1, unit: 'sessions' },
+		{ id: '', label: t.goals.checkinDaily, type: 'daily' as const, metric: 'checkin.count', target: 1, unit: '' },
+	]);
 
 	const store = useEntries();
 
@@ -264,7 +267,7 @@
 		const now = new Date();
 		const dayOfWeek = now.getDay();
 		const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-		const labels = ['This week', 'Last week', '2 weeks ago', '3 weeks ago'];
+		const labels = [t.goals.thisWeek, t.goals.lastWeek, t.goals.weeksAgo2, t.goals.weeksAgo3];
 		const weeks: { label: string; pct: number; met: number; total: number }[] = [];
 
 		for (let w = 0; w < 4; w++) {
@@ -336,10 +339,10 @@
 </script>
 
 <svelte:head>
-  <title>Goals | Darink</title>
+  <title>{t.goals.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Goals" />
+<PageHeader title={t.goals.title} />
 
 <!-- Summary cards -->
 {#if goals.length > 0}
@@ -348,19 +351,19 @@
 		{#if dailyGoals.length > 0}
 		<div class="metric-card">
 			<span class="metric-value">{dailyHit}/{dailyGoals.length}</span>
-			<span class="metric-label">Daily goals</span>
+			<span class="metric-label">{t.goals.dailyGoals}</span>
 		</div>
 		{/if}
 		{#if weeklyGoals.length > 0}
 		<div class="metric-card">
 			<span class="metric-value">{weeklyHit}/{weeklyGoals.length}</span>
-			<span class="metric-label">Weekly goals</span>
+			<span class="metric-label">{t.goals.weeklyGoals}</span>
 		</div>
 		{/if}
 		{#if dailyGoals.length > 0}
 		<div class="metric-card">
 			<span class="metric-value">{streak}</span>
-			<span class="metric-label">Day streak</span>
+			<span class="metric-label">{t.goals.dayStreak}</span>
 		</div>
 		{/if}
 	</div>
@@ -370,7 +373,7 @@
 <!-- 30-Day Completion Calendar -->
 {#if calendarDays.length > 0}
 <section class="calendar-section">
-	<h2>Last 30 days</h2>
+	<h2>{t.goals.last30days}</h2>
 	<div class="calendar-grid">
 		{#each calendarDays as cell}
 			<div
@@ -389,7 +392,7 @@
 <!-- Weekly Completion Rate -->
 {#if weeklyRates.length > 0}
 <section class="weekly-section">
-	<h2>Weekly completion</h2>
+	<h2>{t.goals.weeklyCompletion}</h2>
 	<div class="weekly-bars">
 		{#each weeklyRates as week}
 			{@const color = week.pct >= 80 ? '#22c55e' : week.pct >= 50 ? '#eab308' : '#ef4444'}
@@ -413,7 +416,7 @@
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
 		</div>
 		<div class="best-streak-info">
-			<span class="best-streak-value">Best streak: {bestStreak.days} days</span>
+			<span class="best-streak-value">{t.goals.bestStreak}: {bestStreak.days} {t.common.days}</span>
 			<span class="best-streak-range">{bestStreak.from} &ndash; {bestStreak.to}</span>
 		</div>
 	</div>
@@ -432,7 +435,7 @@
 					<span class="goal-label">{gp.goal.label}</span>
 					<span class="goal-type-badge">{gp.goal.type}</span>
 				</div>
-				<button class="remove-btn" onclick={() => removeGoal(gp.goal.id)} aria-label="Remove goal">
+				<button class="remove-btn" onclick={() => removeGoal(gp.goal.id)} aria-label={t.goals.removeGoal}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 				</button>
 			</div>
@@ -455,7 +458,7 @@
 			{#if gp.done}
 			<div class="done-badge">
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-				<span>Completed</span>
+				<span>{t.goals.completed}</span>
 			</div>
 			{/if}
 		</div>
@@ -464,50 +467,50 @@
 {:else}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-	<p>No goals set yet</p>
-	<p class="empty-hint">Set daily or weekly targets to stay on track with your health habits.</p>
+	<p>{t.goals.noGoalsYet}</p>
+	<p class="empty-hint">{t.goals.noGoalsHint}</p>
 </div>
 {/if}
 
 <!-- Add goal button / form -->
 {#if !showForm}
 <section class="add-section">
-	<button class="primary" onclick={() => { showForm = true; }}>Add goal</button>
+	<button class="primary" onclick={() => { showForm = true; }}>{t.goals.addGoal}</button>
 </section>
 {:else}
 <section class="form">
-	<h2>New goal</h2>
+	<h2>{t.goals.newGoal}</h2>
 	<label>
-		Template
+		{t.goals.template}
 		<select bind:value={selectedTemplate} onchange={onTemplateChange}>
 			{#each TEMPLATES as tpl, i}
 				<option value={String(i)}>{tpl.label}</option>
 			{/each}
-			<option value="custom">Custom</option>
+			<option value="custom">{t.goals.customGoal}</option>
 		</select>
 	</label>
 
 	{#if selectedTemplate === 'custom'}
-	<label>Label <input type="text" bind:value={customLabel} placeholder="Goal name" /></label>
+	<label>{t.goals.label} <input type="text" bind:value={customLabel} placeholder={t.goals.goalName} /></label>
 	<div class="row">
 		<label>
-			Type
+			{t.goals.type}
 			<select bind:value={customType}>
-				<option value="daily">Daily</option>
-				<option value="weekly">Weekly</option>
+				<option value="daily">{t.common.daily}</option>
+				<option value="weekly">{t.common.weekly}</option>
 			</select>
 		</label>
-		<label>Metric <input type="text" bind:value={customMetric} placeholder="entry type" /></label>
+		<label>{t.goals.metric} <input type="text" bind:value={customMetric} placeholder={t.goals.entryType} /></label>
 	</div>
 	<div class="row">
-		<label>Target <input type="number" min="1" step="1" bind:value={customTarget} /></label>
-		<label>Unit <input type="text" bind:value={customUnit} placeholder="h, L, sessions..." /></label>
+		<label>{t.goals.targetLabel} <input type="number" min="1" step="1" bind:value={customTarget} /></label>
+		<label>{t.goals.unitLabel} <input type="text" bind:value={customUnit} placeholder="h, L, sessions..." /></label>
 	</div>
 	{/if}
 
 	<div class="form-actions">
-		<button class="primary" onclick={addGoal}>Add</button>
-		<button onclick={resetForm}>Cancel</button>
+		<button class="primary" onclick={addGoal}>{t.common.add}</button>
+		<button onclick={resetForm}>{t.common.cancel}</button>
 	</div>
 </section>
 {/if}

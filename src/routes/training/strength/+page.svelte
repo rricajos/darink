@@ -3,7 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
+
+	const { t } = useLocale();
 
 	const store = useEntries('training.strength');
 
@@ -20,7 +23,7 @@
 		entries.add('training.strength', { date, exercise: exercise.trim(), sets, reps, weight, rir, notes });
 		exercise = ''; notes = '';
 		date = new Date().toISOString().slice(0, 10);
-		toast.show('Set logged');
+		toast.show(t.training.setLogged);
 	}
 
 	function repeatLast() {
@@ -32,7 +35,7 @@
 		weight = last.data.weight as number;
 		rir = last.data.rir as number;
 		notes = (last.data.notes as string) || '';
-		toast.show('Fields pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	const quickExercises = $derived.by(() => {
@@ -63,7 +66,7 @@
 		reps = item.last.reps as number;
 		weight = item.last.weight as number;
 		rir = item.last.rir as number;
-		toast.show('Pre-filled');
+		toast.show(t.common.prefilled);
 	}
 
 	/* ── Analytics ── */
@@ -215,14 +218,14 @@
 </script>
 
 <svelte:head>
-  <title>Strength | Darink</title>
+  <title>{t.training.strength} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Strength" back="/training" />
+<PageHeader title={t.training.strength} back="/training" />
 
 {#if quickExercises.length > 0}
 <section class="quick-add">
-	<h2>Quick add</h2>
+	<h2>{t.training.quickAdd}</h2>
 	<div class="quick-chips">
 		{#each quickExercises as item}
 			<button class="quick-chip" onclick={() => prefillExercise(item)}>
@@ -235,19 +238,19 @@
 {/if}
 
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Exercise <input type="text" bind:value={exercise} placeholder="Squat, Bench..." /></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
+	<label>{t.training.exercise} <input type="text" bind:value={exercise} placeholder="Squat, Bench..." /></label>
 	<div class="row">
-		<label>Sets <input type="number" min="1" max="20" bind:value={sets} /></label>
-		<label>Reps <input type="number" min="1" max="100" bind:value={reps} /></label>
-		<label>Weight (kg) <input type="number" min="0" step="0.5" bind:value={weight} /></label>
-		<label>RIR <input type="number" min="0" max="10" bind:value={rir} /></label>
+		<label>{t.training.sets} <input type="number" min="1" max="20" bind:value={sets} /></label>
+		<label>{t.training.reps} <input type="number" min="1" max="100" bind:value={reps} /></label>
+		<label>{t.training.weightKg} <input type="number" min="0" step="0.5" bind:value={weight} /></label>
+		<label>{t.training.rir} <input type="number" min="0" max="10" bind:value={rir} /></label>
 	</div>
-	<label>Notes <textarea bind:value={notes} rows="2"></textarea></label>
+	<label>{t.common.notes} <textarea bind:value={notes} rows="2"></textarea></label>
 	<div class="form-actions">
-		<button class="primary" onclick={submit}>Log set</button>
+		<button class="primary" onclick={submit}>{t.training.logSet}</button>
 		{#if store.items.length > 0}
-			<button onclick={repeatLast}>Repeat last</button>
+			<button onclick={repeatLast}>{t.common.repeatLast}</button>
 		{/if}
 	</div>
 </section>
@@ -266,21 +269,21 @@
 			rir: Number(fd.get('rir')),
 			notes: (fd.get('notes') as string).trim()
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date || ''} /></label>
-		<label>Exercise <input type="text" name="exercise" value={data.exercise} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date || ''} /></label>
+		<label>{t.training.exercise} <input type="text" name="exercise" value={data.exercise} /></label>
 		<div class="row">
-			<label>Sets <input type="number" name="sets" min="1" max="20" value={data.sets} /></label>
-			<label>Reps <input type="number" name="reps" min="1" max="100" value={data.reps} /></label>
-			<label>Weight (kg) <input type="number" name="weight" min="0" step="0.5" value={data.weight} /></label>
-			<label>RIR <input type="number" name="rir" min="0" max="10" value={data.rir} /></label>
+			<label>{t.training.sets} <input type="number" name="sets" min="1" max="20" value={data.sets} /></label>
+			<label>{t.training.reps} <input type="number" name="reps" min="1" max="100" value={data.reps} /></label>
+			<label>{t.training.weightKg} <input type="number" name="weight" min="0" step="0.5" value={data.weight} /></label>
+			<label>{t.training.rir} <input type="number" name="rir" min="0" max="10" value={data.rir} /></label>
 		</div>
-		<label>Notes <textarea name="notes" rows="2">{data.notes}</textarea></label>
+		<label>{t.common.notes} <textarea name="notes" rows="2">{data.notes}</textarea></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -296,19 +299,19 @@
 
 <!-- 1. Quick Stats -->
 <section class="analytics-section">
-	<h2>Stats</h2>
+	<h2>{t.training.stats}</h2>
 	<div class="stats-row">
 		<div class="stat-card">
 			<span class="stat-value">{totalSets}</span>
-			<span class="stat-label">Total sets</span>
+			<span class="stat-label">{t.training.totalSets}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">{fmtVol(totalVolume)}</span>
-			<span class="stat-label">Volume (kg)</span>
+			<span class="stat-label">{t.training.volumeKg}</span>
 		</div>
 		<div class="stat-card">
 			<span class="stat-value">{sessionsThisWeek}</span>
-			<span class="stat-label">This week</span>
+			<span class="stat-label">{t.common.thisWeek}</span>
 		</div>
 	</div>
 </section>
@@ -316,7 +319,7 @@
 <!-- 2. Exercise Progression Charts -->
 {#if topExerciseCharts.length > 0}
 <section class="analytics-section">
-	<h2>Progression</h2>
+	<h2>{t.training.progression}</h2>
 	{#each topExerciseCharts as chart}
 		<div class="chart-card">
 			<div class="chart-header">
@@ -337,11 +340,11 @@
 					{/each}
 				</svg>
 				<div class="chart-legend">
-					<span class="legend-item"><span class="legend-line accent"></span> Weight</span>
-					<span class="legend-item"><span class="legend-line e1rm"></span> e1RM</span>
+					<span class="legend-item"><span class="legend-line accent"></span> {t.training.weight}</span>
+					<span class="legend-item"><span class="legend-line e1rm"></span> {t.training.e1rm}</span>
 				</div>
 			{:else}
-				<p class="chart-empty">Need 2+ entries to chart</p>
+				<p class="chart-empty">{t.training.needMoreEntries}</p>
 			{/if}
 		</div>
 	{/each}
@@ -351,7 +354,7 @@
 <!-- 3. Volume Per Session -->
 {#if volumePerSession.length > 1}
 <section class="analytics-section">
-	<h2>Volume per session</h2>
+	<h2>{t.training.volumePerSession}</h2>
 	<div class="chart-card">
 		<svg class="chart-svg bar-chart" viewBox="0 0 280 100">
 			{#each volumePerSession as session, i}
@@ -374,11 +377,11 @@
 
 <!-- 4. Personal Records -->
 <section class="analytics-section">
-	<h2>Personal records</h2>
+	<h2>{t.training.personalRecords}</h2>
 	{#if personalRecords.bestSessionVol > 0}
 	<div class="pr-best-session">
 		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-		<span>Best session: <strong>{fmtVol(personalRecords.bestSessionVol)}kg</strong> on {personalRecords.bestSessionDate}</span>
+		<span>{t.training.bestSession}: <strong>{fmtVol(personalRecords.bestSessionVol)}kg</strong> {personalRecords.bestSessionDate}</span>
 	</div>
 	{/if}
 	<div class="pr-grid">
@@ -395,7 +398,7 @@
 <!-- 5. Muscle Group Balance -->
 {#if muscleBalance.length > 0}
 <section class="analytics-section">
-	<h2>Muscle balance</h2>
+	<h2>{t.training.muscleBalance}</h2>
 	<div class="muscle-bars">
 		{#each muscleBalance as mg}
 			<div class="muscle-row">

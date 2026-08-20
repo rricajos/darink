@@ -1,14 +1,17 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { useEntries } from '$lib/stores/entries.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
 
-	const types = [
-		{ href: '/signals/sleep', label: 'Sleep', desc: 'Hours, quality, dreams, wake time', icon: 'moon' },
-		{ href: '/signals/skin', label: 'Skin', desc: 'Acne zones, oiliness, elasticity', icon: 'skin' },
-		{ href: '/signals/hair', label: 'Hair', desc: 'Density, shedding, miniaturization', icon: 'hair' },
-		{ href: '/signals/genital', label: 'Genital', desc: 'Erections, libido, sensitivity', icon: 'genital' }
-	];
+	const { t } = useLocale();
+
+	const types = $derived.by(() => [
+		{ href: '/signals/sleep', label: t.signals.sleep, desc: t.signals.sleepDesc, icon: 'moon' },
+		{ href: '/signals/skin', label: t.signals.skin, desc: t.signals.skinDesc, icon: 'skin' },
+		{ href: '/signals/hair', label: t.signals.hair, desc: t.signals.hairDesc, icon: 'hair' },
+		{ href: '/signals/genital', label: t.signals.genital, desc: t.signals.genitalDesc, icon: 'genital' }
+	]);
 
 	const sleepStore = useEntries('signal.sleep');
 	const skinStore = useEntries('signal.skin');
@@ -143,10 +146,10 @@
 
 	function corrLabel(r: number): string {
 		const abs = Math.abs(r);
-		if (abs >= 0.7) return 'Strong';
-		if (abs >= 0.4) return 'Moderate';
-		if (abs >= 0.2) return 'Weak';
-		return 'None';
+		if (abs >= 0.7) return t.common.strong;
+		if (abs >= 0.4) return t.common.moderate;
+		if (abs >= 0.2) return t.common.weak;
+		return t.signals.none;
 	}
 
 	function corrColor(r: number): string {
@@ -170,9 +173,9 @@
 
 	const correlationPairs = $derived.by((): CorrPair[] => {
 		return [
-			{ labelA: 'Sleep Quality', labelB: 'Skin Elasticity', r: pearson(sleepQualityVals, skinElasticityVals) },
-			{ labelA: 'Sleep Hours', labelB: 'Libido', r: pearson(sleepHoursVals, genitalLibidoVals) },
-			{ labelA: 'Skin Oiliness', labelB: 'Hair Density', r: pearson(skinOilinessVals, hairDensityVals) }
+			{ labelA: t.signals.sleepQuality, labelB: t.signals.skinElasticityLabel, r: pearson(sleepQualityVals, skinElasticityVals) },
+			{ labelA: t.signals.sleepHoursLabel, labelB: t.genital.libido, r: pearson(sleepHoursVals, genitalLibidoVals) },
+			{ labelA: t.skin.oiliness, labelB: t.hair.density, r: pearson(skinOilinessVals, hairDensityVals) }
 		];
 	});
 
@@ -195,10 +198,10 @@
 	const trendAlerts = $derived.by((): TrendAlert[] => {
 		const alerts: TrendAlert[] = [];
 		const checks: [string, number[]][] = [
-			['Sleep', sleepSorted.map(e => Number(e.data.quality))],
-			['Skin', skinSorted.map(e => Number(e.data.elasticity))],
-			['Hair', hairSorted.map(e => Number(e.data.density))],
-			['Genital', genitalSorted.map(e => Number(e.data.libido))]
+			[t.signals.sleep, sleepSorted.map(e => Number(e.data.quality))],
+			[t.signals.skin, skinSorted.map(e => Number(e.data.elasticity))],
+			[t.signals.hair, hairSorted.map(e => Number(e.data.density))],
+			[t.signals.genital, genitalSorted.map(e => Number(e.data.libido))]
 		];
 		for (const [label, vals] of checks) {
 			const dir = detectTrend(vals);
@@ -214,13 +217,13 @@
 
 	const mostTracked = $derived.by(() => {
 		const counts = [
-			{ label: 'Sleep', count: sleepSorted.length },
-			{ label: 'Skin', count: skinSorted.length },
-			{ label: 'Hair', count: hairSorted.length },
-			{ label: 'Genital', count: genitalSorted.length }
+			{ label: t.signals.sleep, count: sleepSorted.length },
+			{ label: t.signals.skin, count: skinSorted.length },
+			{ label: t.signals.hair, count: hairSorted.length },
+			{ label: t.signals.genital, count: genitalSorted.length }
 		];
 		const max = counts.reduce((a, b) => (b.count > a.count ? b : a));
-		return max.count > 0 ? max.label : 'None';
+		return max.count > 0 ? max.label : t.signals.none;
 	});
 
 	const avgFrequency = $derived.by(() => {
@@ -240,27 +243,27 @@
 </script>
 
 <svelte:head>
-  <title>Signals | Darink</title>
+  <title>{t.signals.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Body Signals" />
+<PageHeader title={t.signals.bodySignals} />
 
 <section class="grid">
-	{#each types as t}
-		<a href={t.href} class="card">
+	{#each types as sig}
+		<a href={sig.href} class="card">
 			<div class="card-header">
-				{#if t.icon === 'moon'}
+				{#if sig.icon === 'moon'}
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-				{:else if t.icon === 'skin'}
+				{:else if sig.icon === 'skin'}
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-				{:else if t.icon === 'hair'}
+				{:else if sig.icon === 'hair'}
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
-				{:else if t.icon === 'genital'}
+				{:else if sig.icon === 'genital'}
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
 				{/if}
-				<strong>{t.label}</strong>
+				<strong>{sig.label}</strong>
 			</div>
-			<span>{t.desc}</span>
+			<span>{sig.desc}</span>
 		</a>
 	{/each}
 </section>
@@ -268,15 +271,15 @@
 {#if !hasAnyData}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h6"/><path d="M22 12h-6"/><path d="M12 2v6"/><path d="M12 22v-6"/><circle cx="12" cy="12" r="4"/></svg>
-	<p>No body signals tracked yet</p>
-	<p class="empty-hint">Track body signals to monitor your health over time.</p>
+	<p>{t.signals.noSignals}</p>
+	<p class="empty-hint">{t.signals.noSignalsHint}</p>
 </div>
 {/if}
 
 <!-- Latest Values Summary -->
 {#if hasAnyData}
 <section class="overview">
-	<h2>Latest Values</h2>
+	<h2>{t.signals.latestValues}</h2>
 	<div class="metrics-grid">
 		{#if sleepLast}
 			{@const d = sleepLast.data}
@@ -289,24 +292,24 @@
 		{#if skinLast}
 			{@const d = skinLast.data}
 			<a href="/signals/skin" class="metric-card">
-				<span class="metric-value">Oil {d.oiliness}/5</span>
-				<span class="metric-sub">Elast {d.elasticity}/10</span>
+				<span class="metric-value">{t.skin.oiliness} {d.oiliness}/5</span>
+				<span class="metric-sub">{t.skin.elasticity} {d.elasticity}/10</span>
 				<span class="metric-label">{fmtDate(skinLast.createdAt)}</span>
 			</a>
 		{/if}
 		{#if hairLast}
 			{@const d = hairLast.data}
 			<a href="/signals/hair" class="metric-card">
-				<span class="metric-value">Dens {d.density}/10</span>
-				<span class="metric-sub">Shed {d.shedding}/10</span>
+				<span class="metric-value">{t.hair.density} {d.density}/10</span>
+				<span class="metric-sub">{t.hair.shedding} {d.shedding}/10</span>
 				<span class="metric-label">{fmtDate(hairLast.createdAt)}</span>
 			</a>
 		{/if}
 		{#if genitalLast}
 			{@const d = genitalLast.data}
 			<a href="/signals/genital" class="metric-card">
-				<span class="metric-value">Lib {d.libido}/10</span>
-				<span class="metric-sub">Sens {d.sensitivity}/10 · ME {d.morningErection}/3</span>
+				<span class="metric-value">{t.genital.libido} {d.libido}/10</span>
+				<span class="metric-sub">{t.genital.sensitivity} {d.sensitivity}/10 · {t.checkin.morningErection} {d.morningErection}/3</span>
 				<span class="metric-label">{fmtDate(genitalLast.createdAt)}</span>
 			</a>
 		{/if}
@@ -317,12 +320,12 @@
 <!-- Sparkline Trends -->
 {#if sleepSparkline.length > 3 || skinSparkline.length > 3 || hairSparkline.length > 3 || genitalSparkline.length > 3}
 <section class="overview">
-	<h2>Trends (last 14)</h2>
+	<h2>{t.signals.trendsLast14}</h2>
 	<div class="sparkline-grid">
 		{#if sleepSparkline.length > 3}
 			{@const path = sparklinePath(sleepSparkline)}
 			<div class="sparkline-card">
-				<span class="sparkline-label">Sleep (hours)</span>
+				<span class="sparkline-label">{t.signals.sleepHours}</span>
 				<svg class="sparkline" viewBox="0 0 60 20">
 					<polyline fill="none" stroke="var(--c-accent)" stroke-width="1.5" stroke-linejoin="round" points={path} />
 				</svg>
@@ -331,7 +334,7 @@
 		{#if skinSparkline.length > 3}
 			{@const path = sparklinePath(skinSparkline)}
 			<div class="sparkline-card">
-				<span class="sparkline-label">Skin (elasticity)</span>
+				<span class="sparkline-label">{t.signals.skinElasticity}</span>
 				<svg class="sparkline" viewBox="0 0 60 20">
 					<polyline fill="none" stroke="var(--c-accent)" stroke-width="1.5" stroke-linejoin="round" points={path} />
 				</svg>
@@ -340,7 +343,7 @@
 		{#if hairSparkline.length > 3}
 			{@const path = sparklinePath(hairSparkline)}
 			<div class="sparkline-card">
-				<span class="sparkline-label">Hair (density)</span>
+				<span class="sparkline-label">{t.signals.hairDensity}</span>
 				<svg class="sparkline" viewBox="0 0 60 20">
 					<polyline fill="none" stroke="var(--c-accent)" stroke-width="1.5" stroke-linejoin="round" points={path} />
 				</svg>
@@ -349,7 +352,7 @@
 		{#if genitalSparkline.length > 3}
 			{@const path = sparklinePath(genitalSparkline)}
 			<div class="sparkline-card">
-				<span class="sparkline-label">Genital (libido)</span>
+				<span class="sparkline-label">{t.signals.genitalLibido}</span>
 				<svg class="sparkline" viewBox="0 0 60 20">
 					<polyline fill="none" stroke="var(--c-accent)" stroke-width="1.5" stroke-linejoin="round" points={path} />
 				</svg>
@@ -361,13 +364,13 @@
 
 <!-- Weekly Signal Coverage -->
 <section class="overview">
-	<h2>This Week</h2>
+	<h2>{t.common.thisWeek}</h2>
 	<div class="coverage-row">
 		{#each [
-			{ label: 'Sleep', count: sleepWeek },
-			{ label: 'Skin', count: skinWeek },
-			{ label: 'Hair', count: hairWeek },
-			{ label: 'Genital', count: genitalWeek }
+			{ label: t.signals.sleep, count: sleepWeek },
+			{ label: t.signals.skin, count: skinWeek },
+			{ label: t.signals.hair, count: hairWeek },
+			{ label: t.signals.genital, count: genitalWeek }
 		] as sig}
 			<span class="chip" class:chip-done={sig.count > 0}>
 				{#if sig.count > 0}
@@ -384,7 +387,7 @@
 <!-- Composite Signal Score -->
 {#if compositeScore !== null}
 <section class="overview">
-	<h2>Composite Signal Score</h2>
+	<h2>{t.signals.compositeScore}</h2>
 	<div class="gauge-container">
 		<svg class="gauge-svg" viewBox="0 0 100 75">
 			<path d={gaugeTrackArc()} fill="none" stroke="var(--c-border)" stroke-width="7" stroke-linecap="round" />
@@ -394,16 +397,16 @@
 		</svg>
 		<div class="gauge-breakdown">
 			{#if sleepLast}
-				<span class="gauge-item">Sleep 40%</span>
+				<span class="gauge-item">{t.signals.sleep} 40%</span>
 			{/if}
 			{#if skinLast}
-				<span class="gauge-item">Skin 20%</span>
+				<span class="gauge-item">{t.signals.skin} 20%</span>
 			{/if}
 			{#if hairLast}
-				<span class="gauge-item">Hair 15%</span>
+				<span class="gauge-item">{t.signals.hair} 15%</span>
 			{/if}
 			{#if genitalLast}
-				<span class="gauge-item">Genital 25%</span>
+				<span class="gauge-item">{t.signals.genital} 25%</span>
 			{/if}
 		</div>
 	</div>
@@ -413,7 +416,7 @@
 <!-- Trend Alerts -->
 {#if trendAlerts.length > 0}
 <section class="overview">
-	<h2>Trend Alerts</h2>
+	<h2>{t.signals.trendAlerts}</h2>
 	<div class="alerts-grid">
 		{#each trendAlerts as alert}
 			<div class="alert-card" class:alert-declining={alert.direction === 'declining'} class:alert-improving={alert.direction === 'improving'}>
@@ -425,9 +428,9 @@
 				<div class="alert-text">
 					<strong>{alert.label}</strong>
 					{#if alert.direction === 'declining'}
-						<span>Declining trend detected</span>
+						<span>{t.signals.declining}</span>
 					{:else}
-						<span>Improving trend</span>
+						<span>{t.signals.improving}</span>
 					{/if}
 				</div>
 			</div>
@@ -439,14 +442,14 @@
 <!-- Cross-Signal Correlation Matrix -->
 {#if hasCorrelations}
 <section class="overview">
-	<h2>Cross-Signal Correlations</h2>
+	<h2>{t.signals.crossCorrelations}</h2>
 	<div class="corr-grid">
 		{#each correlationPairs as pair}
 			{#if pair.r !== null}
 				<div class="corr-card">
 					<div class="corr-labels">
 						<span class="corr-signal">{pair.labelA}</span>
-						<span class="corr-vs">vs</span>
+						<span class="corr-vs">{t.signals.vs}</span>
 						<span class="corr-signal">{pair.labelB}</span>
 					</div>
 					<div class="corr-value" style="color: {corrColor(pair.r)}">
@@ -465,19 +468,19 @@
 <!-- Signal Summary Stats -->
 {#if totalEntries > 0}
 <section class="overview summary-section">
-	<h2>Signal Summary</h2>
+	<h2>{t.signals.signalSummary}</h2>
 	<div class="summary-grid">
 		<div class="summary-card">
 			<span class="summary-value">{totalEntries}</span>
-			<span class="summary-label">Total entries</span>
+			<span class="summary-label">{t.signals.totalEntries}</span>
 		</div>
 		<div class="summary-card">
 			<span class="summary-value">{mostTracked}</span>
-			<span class="summary-label">Most tracked</span>
+			<span class="summary-label">{t.signals.mostTracked}</span>
 		</div>
 		<div class="summary-card">
-			<span class="summary-value">{avgFrequency}/wk</span>
-			<span class="summary-label">Avg frequency</span>
+			<span class="summary-value">{avgFrequency}/{t.common.week}</span>
+			<span class="summary-label">{t.signals.avgFrequency}</span>
 		</div>
 	</div>
 </section>

@@ -3,8 +3,10 @@
 	import EntryList from '$lib/components/EntryList.svelte';
 	import { useEntries, entries } from '$lib/stores/entries.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 	import type { Entry } from '$lib/db';
 
+	const { t } = useLocale();
 	const store = useEntries('journal');
 
 	let date = $state(new Date().toISOString().slice(0, 10));
@@ -21,7 +23,7 @@
 		text = '';
 		moodVal = 5;
 		date = new Date().toISOString().slice(0, 10);
-		toast.show('Journal entry saved');
+		toast.show(t.journal.entrySaved);
 	}
 
 	function wordCount(str: string): number {
@@ -102,18 +104,7 @@
 	});
 
 	// --- Writing prompts ---
-	const prompts = [
-		'How is your body feeling today?',
-		'What are you grateful for?',
-		'Describe your energy levels',
-		'What challenged you today?',
-		'How did your training feel?',
-		'Any new symptoms or changes?',
-		'What did you eat that made you feel good?',
-		'How is your sleep quality lately?',
-		'What habit are you most proud of?',
-		'What would you change about today?'
-	];
+	const prompts = $derived(t.journal.prompts);
 
 	let promptIndex = $state(Math.floor(Math.random() * 10));
 
@@ -127,29 +118,29 @@
 </script>
 
 <svelte:head>
-  <title>Journal | Darink</title>
+  <title>{t.journal.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Journal" />
+<PageHeader title={t.journal.title} />
 
 {#if store.items.length > 0}
 <section class="search-section">
 	<div class="search-box">
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-		<input type="text" class="search-input" placeholder="Search journal entries..." bind:value={searchQuery} />
+		<input type="text" class="search-input" placeholder={t.journal.searchJournal} bind:value={searchQuery} />
 	</div>
 	{#if searchQuery.trim()}
-		<p class="search-count">{filteredItems.length} result{filteredItems.length !== 1 ? 's' : ''} found</p>
+		<p class="search-count">{filteredItems.length} {t.journal.resultsFound}</p>
 	{/if}
 </section>
 {/if}
 
 <section class="form">
-	<label>Date <input type="date" bind:value={date} /></label>
-	<label>Entry <textarea rows="5" bind:value={text} placeholder="Write your thoughts..."></textarea></label>
+	<label>{t.common.date} <input type="date" bind:value={date} /></label>
+	<label>{t.journal.entry} <textarea rows="5" bind:value={text} placeholder={t.journal.textPlaceholder}></textarea></label>
 	<div class="row">
 		<label>
-			Mood (1-10)
+			{t.journal.moodLabel}
 			<select bind:value={moodVal}>
 				{#each Array.from({ length: 10 }, (_, i) => i + 1) as v}
 					<option value={v}>{v}</option>
@@ -157,16 +148,16 @@
 			</select>
 		</label>
 	</div>
-	<button class="primary" onclick={submit}>Save entry</button>
+	<button class="primary" onclick={submit}>{t.journal.saveEntry}</button>
 </section>
 
 <section class="prompts-section">
-	<p class="prompts-label">Need inspiration?</p>
+	<p class="prompts-label">{t.journal.needInspiration}</p>
 	<div class="prompt-card">
 		<p class="prompt-text">{prompts[promptIndex]}</p>
 		<button class="prompt-btn" onclick={nextPrompt}>
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-			Another prompt
+			{t.journal.anotherPrompt}
 		</button>
 	</div>
 </section>
@@ -181,14 +172,14 @@
 			text: (fd.get('text') as string).trim(),
 			mood: Number(fd.get('mood'))
 		});
-		toast.show('Updated');
+		toast.show(t.journal.updated);
 		done();
 	}}>
-		<label>Date <input type="date" name="date" value={data.date} /></label>
-		<label>Entry <textarea rows="5" name="text">{data.text}</textarea></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date} /></label>
+		<label>{t.journal.entry} <textarea rows="5" name="text">{data.text}</textarea></label>
 		<div class="row">
 			<label>
-				Mood (1-10)
+				{t.journal.moodLabel}
 				<select name="mood">
 					{#each Array.from({ length: 10 }, (_, i) => i + 1) as v}
 						<option value={v} selected={Number(data.mood) === v}>{v}</option>
@@ -197,8 +188,8 @@
 			</label>
 		</div>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
@@ -206,8 +197,8 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
-	<p>No journal entries yet</p>
-	<p class="empty-hint">Start journaling to capture thoughts, reflections, and context around your health journey.</p>
+	<p>{t.journal.noEntries}</p>
+	<p class="empty-hint">{t.journal.emptyHint}</p>
 </div>
 {/if}
 
@@ -226,46 +217,46 @@
 
 {#if store.items.length > 0}
 	<section class="metrics">
-		<h2>Word count</h2>
+		<h2>{t.journal.wordCount}</h2>
 		<div class="metrics-row">
 			<div class="metric-card">
 				<span class="metric-value">{weekWords}</span>
-				<span class="metric-label">This week</span>
+				<span class="metric-label">{t.common.thisWeek}</span>
 			</div>
 			<div class="metric-card">
 				<span class="metric-value">{allTimeWords}</span>
-				<span class="metric-label">All time</span>
+				<span class="metric-label">{t.journal.allTime}</span>
 			</div>
 		</div>
 	</section>
 
 	<section class="metrics">
-		<h2>Streak</h2>
+		<h2>{t.common.streak}</h2>
 		<div class="metrics-row">
 			<div class="metric-card">
-				<span class="metric-value">{streaks.current} day{streaks.current !== 1 ? 's' : ''}</span>
-				<span class="metric-label">Streak</span>
+				<span class="metric-value">{streaks.current} {t.common.days}</span>
+				<span class="metric-label">{t.common.streak}</span>
 			</div>
 			<div class="metric-card">
-				<span class="metric-value">{streaks.longest} day{streaks.longest !== 1 ? 's' : ''}</span>
-				<span class="metric-label">Longest streak</span>
+				<span class="metric-value">{streaks.longest} {t.common.days}</span>
+				<span class="metric-label">{t.journal.longestStreak}</span>
 			</div>
 		</div>
 	</section>
 
 	<section class="metrics">
-		<h2>Average mood</h2>
+		<h2>{t.journal.avgMood}</h2>
 		<div class="metrics-row">
 			<div class="metric-card">
 				<span class="metric-value avg-mood" class:mood-good={avgMood >= 7} class:mood-mid={avgMood >= 4 && avgMood < 7} class:mood-low={avgMood < 4}>{avgMood.toFixed(1)}</span>
-				<span class="metric-label">Avg mood</span>
+				<span class="metric-label">{t.journal.avgMood}</span>
 			</div>
 		</div>
 	</section>
 
 	{#if moodChartData.length >= 2}
 		<section class="metrics">
-			<h2>Mood trend</h2>
+			<h2>{t.journal.moodTrend}</h2>
 			<div class="chart-card">
 				<svg viewBox="0 0 280 100" class="mood-chart">
 					{#each moodChartData as mood, i}

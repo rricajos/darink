@@ -6,7 +6,9 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ui } from '$lib/db';
 	import type { Entry } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
+	const { t } = useLocale();
 	const store = useEntries('hydration');
 	const checkinStore = useEntries('checkin');
 
@@ -22,7 +24,7 @@
 
 	function saveTarget() {
 		ui.patch({ hydrationTarget: target });
-		toast.show('Target updated');
+		toast.show(t.hydration.targetUpdated);
 	}
 
 	/* --- Quick log --- */
@@ -30,7 +32,7 @@
 
 	function quickLog(amount: number, source: string = 'water') {
 		entries.add('hydration', { date: todayStr, amount, source });
-		toast.show(`+${amount}ml logged`);
+		toast.show(`+${amount}ml ${t.hydration.logged}`);
 	}
 
 	/* --- Custom form --- */
@@ -42,7 +44,7 @@
 		if (isNaN(amt) || amt <= 0) return;
 		entries.add('hydration', { date: todayStr, amount: amt, source: customSource });
 		customAmount = '';
-		toast.show(`+${amt}ml logged`);
+		toast.show(`+${amt}ml ${t.hydration.logged}`);
 	}
 
 	/* --- Today's progress --- */
@@ -84,13 +86,13 @@
 	});
 
 	/* --- Source labels --- */
-	const sourceLabels: Record<string, string> = {
-		water: 'Water',
-		tea: 'Tea',
-		coffee: 'Coffee',
-		juice: 'Juice',
-		other: 'Other'
-	};
+	const sourceLabels = $derived.by(() => ({
+		water: t.hydration.water,
+		tea: t.hydration.tea,
+		coffee: t.hydration.coffee,
+		juice: t.hydration.juice,
+		other: t.hydration.other
+	}) as Record<string, string>);
 
 	const sourceColors: Record<string, string> = {
 		water: '#4aa3ff',
@@ -133,27 +135,27 @@
 		let strength: string;
 		let color: string;
 		if (absR < 0.2) {
-			strength = 'Very weak';
+			strength = t.hydration.veryWeak;
 			color = 'var(--c-text-muted)';
 		} else if (absR < 0.4) {
-			strength = 'Weak';
+			strength = t.common.weak;
 			color = r > 0 ? '#22c55e' : '#ef4444';
 		} else if (absR < 0.6) {
-			strength = 'Moderate';
+			strength = t.common.moderate;
 			color = r > 0 ? '#22c55e' : '#ef4444';
 		} else if (absR < 0.8) {
-			strength = 'Strong';
+			strength = t.common.strong;
 			color = r > 0 ? '#16a34a' : '#dc2626';
 		} else {
-			strength = 'Very strong';
+			strength = t.hydration.veryStrong;
 			color = r > 0 ? '#16a34a' : '#dc2626';
 		}
 		const message =
 			r > 0.2
-				? 'Higher hydration days tend to have better energy'
+				? t.hydration.higherBetter
 				: r < -0.2
-					? 'Higher hydration days tend to have lower energy'
-					: 'No clear link between hydration and energy';
+					? t.hydration.higherLower
+					: t.hydration.noLink;
 		return { r, strength, color, message, n };
 	});
 
@@ -257,14 +259,14 @@
 </script>
 
 <svelte:head>
-  <title>Hydration | Darink</title>
+  <title>{t.hydration.title} | Darink</title>
 </svelte:head>
 
-<PageHeader title="Hydration" />
+<PageHeader title={t.hydration.title} />
 
 <!-- Daily Target -->
 <section class="target-section">
-	<h2>Daily Target</h2>
+	<h2>{t.hydration.dailyTarget}</h2>
 	<div class="target-row">
 		<input
 			type="number"
@@ -275,7 +277,7 @@
 			step="100"
 		/>
 		<span class="target-unit">ml</span>
-		<button class="target-save" onclick={saveTarget} aria-label="Save target">
+		<button class="target-save" onclick={saveTarget} aria-label={t.common.save}>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
 		</button>
 	</div>
@@ -310,34 +312,34 @@
 			<text x="90" y="105" text-anchor="middle" class="ring-total">{todayTotal}ml</text>
 		</svg>
 	</div>
-	<div class="progress-label">of {target}ml target</div>
+	<div class="progress-label">{t.hydration.ofTarget.replace('{target}', String(target))}</div>
 </section>
 
 <!-- Quick Tap Buttons -->
 <section class="quick-section">
-	<h2>Quick Add</h2>
+	<h2>{t.hydration.quickAdd}</h2>
 	<div class="quick-row">
 		<button class="quick-btn" onclick={() => quickLog(250)}>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
 			<span class="quick-label">250ml</span>
-			<span class="quick-desc">Glass</span>
+			<span class="quick-desc">{t.hydration.glass}</span>
 		</button>
 		<button class="quick-btn" onclick={() => quickLog(500)}>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v6a6 6 0 0 0 12 0V2"/><path d="M6 8h12"/><path d="M10 18h4"/><path d="M12 12v10"/></svg>
 			<span class="quick-label">500ml</span>
-			<span class="quick-desc">Bottle</span>
+			<span class="quick-desc">{t.hydration.bottle}</span>
 		</button>
 		<button class="quick-btn" onclick={() => quickLog(750)}>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 20H8"/><path d="M17 3l1 12"/><path d="M12 3l1 12"/><path d="M6.5 3l1 12"/><path d="M4.5 15h16"/><path d="M5.5 20h13"/></svg>
 			<span class="quick-label">750ml</span>
-			<span class="quick-desc">Large</span>
+			<span class="quick-desc">{t.hydration.large}</span>
 		</button>
 	</div>
 </section>
 
 <!-- Custom Amount -->
 <section class="custom-section">
-	<h2>Custom Amount</h2>
+	<h2>{t.hydration.customAmount}</h2>
 	<div class="custom-row">
 		<input
 			type="number"
@@ -347,23 +349,23 @@
 			min="1"
 		/>
 		<select class="custom-select" bind:value={customSource}>
-			<option value="water">Water</option>
-			<option value="tea">Tea</option>
-			<option value="coffee">Coffee</option>
-			<option value="juice">Juice</option>
-			<option value="other">Other</option>
+			<option value="water">{t.hydration.water}</option>
+			<option value="tea">{t.hydration.tea}</option>
+			<option value="coffee">{t.hydration.coffee}</option>
+			<option value="juice">{t.hydration.juice}</option>
+			<option value="other">{t.hydration.other}</option>
 		</select>
-		<button class="primary custom-add" onclick={submitCustom}>Add</button>
+		<button class="primary custom-add" onclick={submitCustom}>{t.common.add}</button>
 	</div>
 </section>
 
 <!-- Weekly Bar Chart -->
 <section class="chart-section">
-	<h2>Last 7 Days</h2>
+	<h2>{t.hydration.last7days}</h2>
 	<svg class="week-chart" viewBox="0 0 280 120" preserveAspectRatio="xMidYMid meet">
 		<!-- Target line -->
 		<line x1="0" y1="10" x2="280" y2="10" stroke="var(--c-text-muted)" stroke-width="0.5" stroke-dasharray="4 2" />
-		<text x="275" y="8" text-anchor="end" font-size="6" fill="var(--c-text-muted)">target</text>
+		<text x="275" y="8" text-anchor="end" font-size="6" fill="var(--c-text-muted)">{t.today_page.target}</text>
 		{#each weeklyData as day, i}
 			{@const barW = 280 / 7}
 			{@const maxRatio = Math.max(...weeklyData.map((d) => d.ratio), 1)}
@@ -400,7 +402,7 @@
 <!-- Hydration-Energy Correlation -->
 {#if correlationData}
 <section class="insight-section">
-	<h2>Hydration-Energy Link</h2>
+	<h2>{t.hydration.hydrationEnergyLink}</h2>
 	<div class="correlation-card" style="border-left: 3px solid {correlationData.color}">
 		<div class="correlation-header">
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
@@ -408,7 +410,7 @@
 			<span class="correlation-strength">{correlationData.strength}</span>
 		</div>
 		<p class="correlation-msg">{correlationData.message}</p>
-		<p class="correlation-meta">Based on {correlationData.n} days with both hydration and check-in data</p>
+		<p class="correlation-meta">{t.hydration.basedOnDays.replace('{n}', String(correlationData.n))}</p>
 	</div>
 </section>
 {/if}
@@ -416,7 +418,7 @@
 <!-- Source Distribution -->
 {#if sourceDistribution}
 <section class="insight-section">
-	<h2>Source Distribution</h2>
+	<h2>{t.hydration.sourceDistribution}</h2>
 	<div class="source-bar-container">
 		<div class="source-stacked-bar">
 			{#each sourceDistribution.sources as src}
@@ -443,7 +445,7 @@
 <!-- Intake Timing Patterns -->
 {#if store.items.length > 0}
 <section class="insight-section">
-	<h2>Intake Timing</h2>
+	<h2>{t.hydration.intakeTiming}</h2>
 	<div class="timing-chart">
 		{#each timingBlocks.blocks as block}
 			{@const ratio = timingBlocks.maxBlock > 0 ? block.total / timingBlocks.maxBlock : 0}
@@ -460,35 +462,35 @@
 			</div>
 		{/each}
 	</div>
-	<p class="timing-hint">Based on entry creation times. Identify gaps in your drinking pattern.</p>
+	<p class="timing-hint">{t.hydration.timingHint}</p>
 </section>
 {/if}
 
 <!-- Hydration Streak -->
 {#if store.items.length > 0}
 <section class="insight-section">
-	<h2>Streaks</h2>
+	<h2>{t.hydration.streaks}</h2>
 	<div class="streak-row">
 		<div class="streak-card">
 			<div class="streak-icon streak-fire">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
 			</div>
 			<span class="streak-value">{streakData.current}</span>
-			<span class="streak-label">Current streak</span>
+			<span class="streak-label">{t.hydration.currentStreak}</span>
 		</div>
 		<div class="streak-card">
 			<div class="streak-icon streak-trophy">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
 			</div>
 			<span class="streak-value">{streakData.best}</span>
-			<span class="streak-label">Best streak</span>
+			<span class="streak-label">{t.hydration.bestStreak}</span>
 		</div>
 		<div class="streak-card">
 			<div class="streak-icon streak-month">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
 			</div>
 			<span class="streak-value">{streakData.daysHitThisMonth}</span>
-			<span class="streak-label">Target hit this month</span>
+			<span class="streak-label">{t.hydration.targetHitMonth}</span>
 		</div>
 	</div>
 </section>
@@ -497,12 +499,12 @@
 <!-- Monthly Trend -->
 {#if store.items.length > 0}
 <section class="insight-section">
-	<h2>Last 30 Days</h2>
-	<div class="monthly-avg">Average: <strong>{monthlyTrend.avg >= 1000 ? (monthlyTrend.avg / 1000).toFixed(1) + 'L' : monthlyTrend.avg + 'ml'}</strong>/day</div>
+	<h2>{t.hydration.last30days}</h2>
+	<div class="monthly-avg">{t.hydration.averagePerDay}: <strong>{monthlyTrend.avg >= 1000 ? (monthlyTrend.avg / 1000).toFixed(1) + 'L' : monthlyTrend.avg + 'ml'}</strong>/day</div>
 	<svg class="monthly-chart" viewBox="0 0 600 160" preserveAspectRatio="xMidYMid meet">
 		<!-- Target line -->
 		<line x1="0" y1={monthlyTrend.targetY} x2="600" y2={monthlyTrend.targetY} stroke="var(--c-text-muted)" stroke-width="1" stroke-dasharray="6 3" />
-		<text x="595" y={monthlyTrend.targetY - 4} text-anchor="end" font-size="8" fill="var(--c-text-muted)">target</text>
+		<text x="595" y={monthlyTrend.targetY - 4} text-anchor="end" font-size="8" fill="var(--c-text-muted)">{t.today_page.target}</text>
 		<!-- Data points and lines -->
 		{#each monthlyTrend.days as day, i}
 			{@const x = (i / 29) * 580 + 10}
@@ -526,8 +528,8 @@
 {#if store.items.length === 0}
 <div class="empty-state">
 	<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-	<p>No hydration entries yet</p>
-	<p class="empty-hint">Use the quick buttons above to start tracking your water intake.</p>
+	<p>{t.hydration.noEntries}</p>
+	<p class="empty-hint">{t.hydration.noEntriesHint}</p>
 </div>
 {/if}
 
@@ -544,26 +546,26 @@
 			amount: amt,
 			source: fd.get('source') as string
 		});
-		toast.show('Updated');
+		toast.show(t.common.updated);
 		done();
 	}}>
 		<div class="row">
-			<label>Amount (ml) <input type="number" name="amount" value={data.amount} min="1" /></label>
+			<label>{t.hydration.amountMl} <input type="number" name="amount" value={data.amount} min="1" /></label>
 			<label>
-				Source
+				{t.hydration.source}
 				<select name="source">
-					<option value="water" selected={data.source === 'water'}>Water</option>
-					<option value="tea" selected={data.source === 'tea'}>Tea</option>
-					<option value="coffee" selected={data.source === 'coffee'}>Coffee</option>
-					<option value="juice" selected={data.source === 'juice'}>Juice</option>
-					<option value="other" selected={data.source === 'other'}>Other</option>
+					<option value="water" selected={data.source === 'water'}>{t.hydration.water}</option>
+					<option value="tea" selected={data.source === 'tea'}>{t.hydration.tea}</option>
+					<option value="coffee" selected={data.source === 'coffee'}>{t.hydration.coffee}</option>
+					<option value="juice" selected={data.source === 'juice'}>{t.hydration.juice}</option>
+					<option value="other" selected={data.source === 'other'}>{t.hydration.other}</option>
 				</select>
 			</label>
 		</div>
-		<label>Date <input type="date" name="date" value={data.date} /></label>
+		<label>{t.common.date} <input type="date" name="date" value={data.date} /></label>
 		<div class="edit-actions">
-			<button type="submit">Save</button>
-			<button type="button" onclick={done}>Cancel</button>
+			<button type="submit">{t.common.save}</button>
+			<button type="button" onclick={done}>{t.common.cancel}</button>
 		</div>
 	</form>
 {/snippet}
