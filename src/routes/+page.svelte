@@ -250,6 +250,22 @@
 
 	const weekWithData = $derived(weekScores.filter(s => s.hasData));
 
+	const weekGrid = $derived.by(() => {
+		return weekScores.map(s => {
+			const cks = store.items.filter(e => e.type === 'checkin' && dateOf(e) === s.date);
+			const last = cks[cks.length - 1];
+			return {
+				...s,
+				dayLabel: new Date(s.date + 'T12:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'es-ES', { weekday: 'short' }),
+				dayNum: new Date(s.date + 'T12:00:00').getDate(),
+				mood: last ? Number(last.data.mood) || null : null,
+				energy: last ? Number(last.data.energy) || null : null,
+				sleep: last ? Number(last.data.sleep) || null : null,
+				isToday: s.date === today
+			};
+		});
+	});
+
 	/* --- Score color --- */
 	function scoreColor(score: number): string {
 		if (score < 40) return '#e53e3e';
@@ -782,6 +798,29 @@
 			</div>
 		{/if}
 
+		<!-- Week Grid -->
+		{#if weekWithData.length >= 2}
+			<div class="week-grid-section">
+				<h2>{t.common.thisWeek}</h2>
+				<div class="week-grid">
+					{#each weekGrid as day}
+						<div class="week-grid-cell" class:today={day.isToday} class:empty={!day.hasData}>
+							<span class="wg-day">{day.dayLabel}</span>
+							<span class="wg-num">{day.dayNum}</span>
+							{#if day.hasData}
+								<span class="wg-score" style="color:{scoreColor(day.score)}">{day.score}</span>
+								{#if day.mood !== null}<span class="wg-metric">{t.common.mood} {day.mood}</span>{/if}
+								{#if day.energy !== null}<span class="wg-metric">{t.common.energy} {day.energy}</span>{/if}
+								{#if day.sleep !== null}<span class="wg-metric">{t.common.sleep} {day.sleep}h</span>{/if}
+							{:else}
+								<span class="wg-empty">—</span>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
 		<!-- Insights -->
 		{#if insights.length > 0}
 			<div class="insights-section">
@@ -1011,6 +1050,22 @@
 		color: var(--c-accent);
 		font-weight: 600;
 	}
+
+	/* Week Grid */
+	.week-grid-section { padding: 0.75rem 0; }
+	.week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+	.week-grid-cell {
+		display: flex; flex-direction: column; align-items: center; gap: 2px;
+		padding: 0.4rem 0.2rem; background: var(--c-bg-card); border: 1px solid var(--c-border);
+		border-radius: var(--radius); text-align: center; min-width: 0;
+	}
+	.week-grid-cell.today { border-color: var(--c-accent); }
+	.week-grid-cell.empty { opacity: 0.5; }
+	.wg-day { font-size: 0.6rem; color: var(--c-text-muted); text-transform: uppercase; font-weight: 600; }
+	.wg-num { font-size: 0.75rem; font-weight: 700; }
+	.wg-score { font-size: 1.1rem; font-weight: 700; }
+	.wg-metric { font-size: 0.55rem; color: var(--c-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+	.wg-empty { font-size: 1rem; color: var(--c-text-muted); }
 
 	/* Insights */
 	.insights-section {

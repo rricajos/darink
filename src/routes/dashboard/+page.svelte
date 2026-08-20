@@ -526,6 +526,30 @@
 		const composite = +((moodScore * 0.25 + energyScore * 0.2 + stressScore * 0.15 + habitScore * 0.15 + trainingScore * 0.15 + suppScore * 0.1) * 100).toFixed(0);
 		return { composite, moodScore: +(moodScore * 100).toFixed(0), energyScore: +(energyScore * 100).toFixed(0), stressScore: +(stressScore * 100).toFixed(0), habitScore: +(habitScore * 100).toFixed(0), trainingScore: +(trainingScore * 100).toFixed(0) };
 	});
+
+	const radarData = $derived.by(() => {
+		if (!healthIndex) return null;
+		const CX = 100, CY = 100, R = 75;
+		const axes = [
+			{ label: t.common.mood, val: healthIndex.moodScore },
+			{ label: t.common.energy, val: healthIndex.energyScore },
+			{ label: t.common.stress, val: healthIndex.stressScore },
+			{ label: t.dashboard.habitsScore, val: healthIndex.habitScore },
+			{ label: t.dashboard.trainingScore, val: healthIndex.trainingScore }
+		];
+		const N = axes.length;
+		const step = (2 * Math.PI) / N;
+		const start = -Math.PI / 2;
+		const pt = (i: number, r: number) => `${CX + r * Math.cos(start + i * step)},${CY + r * Math.sin(start + i * step)}`;
+		const grids = [25, 50, 75, 100].map(lv => axes.map((_, i) => pt(i, (lv / 100) * R)).join(' '));
+		const axisEnds = axes.map((_, i) => ({ x2: CX + R * Math.cos(start + i * step), y2: CY + R * Math.sin(start + i * step) }));
+		const dataPoints = axes.map((a, i) => pt(i, (a.val / 100) * R)).join(' ');
+		const labels = axes.map((a, i) => {
+			const lr = R + 18;
+			return { x: CX + lr * Math.cos(start + i * step), y: CY + lr * Math.sin(start + i * step), text: a.label, val: a.val };
+		});
+		return { grids, axisEnds, dataPoints, labels, CX, CY };
+	});
 </script>
 
 <svelte:head>
@@ -943,6 +967,22 @@
 		<span class="hi-value" style="color:{healthIndex.composite >= 70 ? '#38a169' : healthIndex.composite >= 40 ? '#e8a735' : '#e53e3e'}">{healthIndex.composite}</span>
 		<span class="hi-max">/100</span>
 	</div>
+	{#if radarData}
+	<div class="hi-radar">
+		<svg viewBox="0 0 200 200" class="radar-svg">
+			{#each radarData.grids as poly}
+				<polygon points={poly} fill="none" stroke="var(--c-border)" stroke-width="0.5" />
+			{/each}
+			{#each radarData.axisEnds as line}
+				<line x1={radarData.CX} y1={radarData.CY} x2={line.x2} y2={line.y2} stroke="var(--c-border)" stroke-width="0.5" />
+			{/each}
+			<polygon points={radarData.dataPoints} fill="var(--c-accent)" fill-opacity="0.2" stroke="var(--c-accent)" stroke-width="1.5" />
+			{#each radarData.labels as label}
+				<text x={label.x} y={label.y} text-anchor="middle" dominant-baseline="middle" font-size="8" fill="var(--c-text-muted)">{label.text} {label.val}</text>
+			{/each}
+		</svg>
+	</div>
+	{/if}
 	<div class="hi-breakdown">
 		{#each [
 			{ label: t.common.mood, val: healthIndex.moodScore },
@@ -1454,6 +1494,8 @@
 	.hi-bar-bg { flex: 1; height: 10px; background: var(--c-border); border-radius: 5px; overflow: hidden; }
 	.hi-bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s; }
 	.hi-val { width: 2rem; font-size: 0.8rem; font-weight: 600; }
+	.hi-radar { display: flex; justify-content: center; margin: 0.5rem 0; }
+	.radar-svg { width: 220px; height: 220px; }
 
 	/* Seasonal */
 	.seasonal-section { padding: 1.5rem 1rem 0; }

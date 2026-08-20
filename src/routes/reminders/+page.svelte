@@ -205,6 +205,31 @@
 	<button class="primary" onclick={addReminder}>{t.reminders.addReminder}</button>
 </section>
 
+<!-- Week overview -->
+{#if reminders.length > 0}
+<section class="week-overview">
+	<h2>{t.reminders.weekOverview}</h2>
+	<div class="wo-grid">
+		{#each DAY_LABELS as dayLabel, dayIdx}
+			{@const dayReminders = reminders.filter(r => r.enabled && r.days.includes(dayIdx))}
+			<div class="wo-col">
+				<span class="wo-day">{dayLabel}</span>
+				{#if dayReminders.length > 0}
+					{#each dayReminders as r}
+						<div class="wo-pill" title={r.label || r.type}>
+							<span class="wo-time">{r.time}</span>
+							<span class="wo-type">{r.type.slice(0, 3)}</span>
+						</div>
+					{/each}
+				{:else}
+					<span class="wo-empty">-</span>
+				{/if}
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
 <!-- Reminder list -->
 <section class="list">
 	<h2>{t.reminders.activeReminders}</h2>
@@ -475,6 +500,16 @@
 	.toggle.on .toggle-knob {
 		transform: translateX(18px);
 	}
+
+	/* Week overview */
+	.week-overview { padding: 0 1rem 1.5rem; }
+	.wo-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+	.wo-col { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+	.wo-day { font-size: 0.7rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; margin-bottom: 2px; }
+	.wo-pill { display: flex; flex-direction: column; align-items: center; background: var(--c-accent-bg); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 2px 4px; width: 100%; }
+	.wo-time { font-size: 0.65rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--c-text); }
+	.wo-type { font-size: 0.6rem; color: var(--c-accent); text-transform: uppercase; font-weight: 600; }
+	.wo-empty { font-size: 0.7rem; color: var(--c-text-muted); opacity: 0.4; }
 
 	/* Delete button */
 	.delete {

@@ -296,6 +296,41 @@
 </section>
 {/if}
 
+{#if tdee > 0}
+<section class="energy-section">
+	<h2>{t.profile.energyBalance}</h2>
+	{#if dailyAvgCalories}
+		{@const maxBar = Math.max(tdee, dailyAvgCalories)}
+		{@const diff = dailyAvgCalories - tdee}
+		{@const diffLabel = diff > 50 ? t.profile.surplus : diff < -50 ? t.profile.deficit : t.profile.balanced}
+		{@const diffColor = diff > 50 ? '#e53e3e' : diff < -50 ? '#38a169' : '#e8a735'}
+		<div class="energy-bars">
+			<div class="energy-row">
+				<span class="energy-label">{t.profile.tdee}</span>
+				<div class="energy-track">
+					<div class="energy-fill tdee-fill" style="width: {(tdee / maxBar) * 100}%"></div>
+				</div>
+				<span class="energy-val">{tdee}</span>
+			</div>
+			<div class="energy-row">
+				<span class="energy-label">{t.profile.intake}</span>
+				<div class="energy-track">
+					<div class="energy-fill intake-fill" style="width: {(dailyAvgCalories / maxBar) * 100}%"></div>
+				</div>
+				<span class="energy-val">{dailyAvgCalories}</span>
+			</div>
+		</div>
+		<div class="energy-summary" style="color: {diffColor}">
+			<span class="energy-diff">{diff > 0 ? '+' : ''}{diff} kcal</span>
+			<span class="energy-status">{diffLabel}</span>
+		</div>
+		<p class="energy-hint">{t.profile.avgLast30}</p>
+	{:else}
+		<p class="energy-hint">{t.profile.noIntakeData}</p>
+	{/if}
+</section>
+{/if}
+
 {#if weightHistory.length > 1}
 {@const pts = weightHistory}
 {@const minW = Math.min(...pts.map((p) => p.weight))}
@@ -456,6 +491,20 @@
 		font-weight: 500;
 		color: var(--c-accent);
 	}
+
+	.energy-section { padding: 1.5rem 1rem 0; }
+	.energy-bars { display: flex; flex-direction: column; gap: 0.5rem; }
+	.energy-row { display: flex; align-items: center; gap: 0.5rem; }
+	.energy-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); width: 45px; flex-shrink: 0; text-transform: uppercase; }
+	.energy-track { flex: 1; height: 18px; background: var(--c-accent-bg); border-radius: calc(var(--radius) / 2); overflow: hidden; }
+	.energy-fill { height: 100%; border-radius: calc(var(--radius) / 2); transition: width 0.3s ease; }
+	.tdee-fill { background: var(--c-accent); }
+	.intake-fill { background: var(--c-done); }
+	.energy-val { font-size: 0.8rem; font-weight: 700; width: 45px; text-align: right; font-variant-numeric: tabular-nums; }
+	.energy-summary { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; justify-content: center; }
+	.energy-diff { font-size: 1.1rem; font-weight: 700; }
+	.energy-status { font-size: 0.8rem; font-weight: 500; opacity: 0.8; }
+	.energy-hint { font-size: 0.75rem; color: var(--c-text-muted); margin-top: 0.3rem; text-align: center; }
 
 	@media (max-width: 359px) {
 		.metrics-row { flex-direction: column; }

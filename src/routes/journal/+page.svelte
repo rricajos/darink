@@ -103,6 +103,26 @@
 		return sorted.map(e => Number(e.data.mood ?? 5));
 	});
 
+	// --- Top words ---
+	const STOP_WORDS = new Set(['the','a','an','and','or','but','in','on','at','to','for','of','is','it','i','my','me','was','that','this','with','have','had','has','not','no','so','if','do','did','just','been','very','more','than','from','all','are','be','by','as','he','she','we','they','you','your','will','can','would','about','what','which','when','how','who','out','up','one','its','also','el','la','de','en','un','una','y','que','es','los','las','del','al','con','por','para','se','su','no','lo','le','mi','más','muy','como','sin','sobre','este','esta','pero','ya','hay','todo','eso','ser']);
+
+	const topWords = $derived.by(() => {
+		if (store.items.length < 3) return [];
+		const freq = new Map<string, number>();
+		for (const e of store.items) {
+			const text = String(e.data.text ?? '').toLowerCase().replace(/[^a-záéíóúüñ\s]/g, '');
+			for (const w of text.split(/\s+/)) {
+				if (w.length < 3 || STOP_WORDS.has(w)) continue;
+				freq.set(w, (freq.get(w) ?? 0) + 1);
+			}
+		}
+		return [...freq.entries()]
+			.filter(([, c]) => c >= 2)
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 8)
+			.map(([word, count]) => ({ word, count }));
+	});
+
 	// --- Writing prompts ---
 	const prompts = $derived(t.journal.prompts);
 
@@ -284,6 +304,24 @@
 			</div>
 		</section>
 	{/if}
+
+	{#if topWords.length > 0}
+		<section class="metrics">
+			<h2>{t.journal.topWords}</h2>
+			<div class="word-freq">
+				{#each topWords as tw}
+					{@const maxCount = topWords[0].count}
+					<div class="wf-row">
+						<span class="wf-word">{tw.word}</span>
+						<div class="wf-track">
+							<div class="wf-bar" style="width: {(tw.count / maxCount) * 100}%"></div>
+						</div>
+						<span class="wf-count">{tw.count}</span>
+					</div>
+				{/each}
+			</div>
+		</section>
+	{/if}
 {/if}
 
 <style>
@@ -346,4 +384,12 @@
 	.mood-chart { width: 100%; height: auto; display: block; }
 	.chart-labels { display: flex; justify-content: space-between; margin-top: 0.35rem; }
 	.chart-range { font-size: 0.7rem; color: var(--c-text-muted); font-weight: 600; }
+
+	/* Word frequency */
+	.word-freq { display: flex; flex-direction: column; gap: 0.35rem; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; }
+	.wf-row { display: flex; align-items: center; gap: 0.5rem; }
+	.wf-word { font-size: 0.8rem; font-weight: 600; width: 70px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.wf-track { flex: 1; height: 14px; background: var(--c-accent-bg); border-radius: calc(var(--radius) / 2); overflow: hidden; }
+	.wf-bar { height: 100%; background: var(--c-accent); border-radius: calc(var(--radius) / 2); transition: width 0.3s ease; }
+	.wf-count { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); width: 28px; text-align: right; }
 </style>

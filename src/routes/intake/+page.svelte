@@ -18,6 +18,10 @@
 	let meal = $state('other');
 	let timeStart = $state('');
 	let timeEnd = $state('');
+	let calories = $state('');
+	let protein = $state('');
+	let carbs = $state('');
+	let fat = $state('');
 
 	onMount(() => {
 		const now = new Date();
@@ -47,12 +51,18 @@
 	function submit() {
 		if (!validate()) return;
 		const today = new Date().toISOString().slice(0, 10);
-		entries.add('intake', {
+		const nutritionData: Record<string, unknown> = {
 			what: what.trim(), amount, mood: moodVal, meal,
 			whenStart: `${today} ${timeStart}`,
 			whenEnd: `${today} ${timeEnd}`
-		});
+		};
+		if (calories) nutritionData.calories = Number(calories);
+		if (protein) nutritionData.protein = Number(protein);
+		if (carbs) nutritionData.carbs = Number(carbs);
+		if (fat) nutritionData.fat = Number(fat);
+		entries.add('intake', nutritionData);
 		what = '';
+		calories = ''; protein = ''; carbs = ''; fat = '';
 		errors = {};
 		toast.show(t.intake.intakeLogged);
 	}
@@ -64,6 +74,10 @@
 		amount = String(last.data.amount || 'normal');
 		moodVal = String(last.data.mood || 'verde');
 		meal = String(last.data.meal || 'other');
+		calories = last.data.calories ? String(last.data.calories) : '';
+		protein = last.data.protein ? String(last.data.protein) : '';
+		carbs = last.data.carbs ? String(last.data.carbs) : '';
+		fat = last.data.fat ? String(last.data.fat) : '';
 		toast.show(t.common.prefilled);
 	}
 
@@ -94,6 +108,10 @@
 		amount = (item.last.amount as string) ?? 'normal';
 		moodVal = (item.last.mood as string) ?? 'verde';
 		meal = (item.last.meal as string) ?? 'other';
+		calories = item.last.calories ? String(item.last.calories) : '';
+		protein = item.last.protein ? String(item.last.protein) : '';
+		carbs = item.last.carbs ? String(item.last.carbs) : '';
+		fat = item.last.fat ? String(item.last.fat) : '';
 		toast.show(t.common.prefilled);
 	}
 
@@ -117,6 +135,20 @@
 		}
 
 		return { total, avgPerDay, mostCommon };
+	});
+
+	// --- Daily Macro Summary (today) ---
+	const dailyMacros = $derived.by(() => {
+		const today = new Date().toISOString().slice(0, 10);
+		const todayItems = store.items.filter(e => e.createdAt.startsWith(today));
+		let cal = 0, pro = 0, carb = 0, fa = 0, hasAny = false;
+		for (const e of todayItems) {
+			if (e.data.calories) { cal += Number(e.data.calories); hasAny = true; }
+			if (e.data.protein) { pro += Number(e.data.protein); hasAny = true; }
+			if (e.data.carbs) { carb += Number(e.data.carbs); hasAny = true; }
+			if (e.data.fat) { fa += Number(e.data.fat); hasAny = true; }
+		}
+		return { calories: Math.round(cal), protein: Math.round(pro * 10) / 10, carbs: Math.round(carb * 10) / 10, fat: Math.round(fa * 10) / 10, hasAny };
 	});
 
 	// --- Daily Intake Summary (today) ---
@@ -288,6 +320,12 @@
 		<label>{t.intake.timeStart} <input type="time" bind:value={timeStart} /></label>
 		<label>{t.intake.timeEnd} <input type="time" bind:value={timeEnd} /></label>
 	</div>
+	<div class="row nutrition-row">
+		<label>{t.intake.calories} <input type="number" bind:value={calories} min="0" step="1" placeholder="kcal" /></label>
+		<label>{t.intake.protein} <input type="number" bind:value={protein} min="0" step="0.1" placeholder="g" /></label>
+		<label>{t.intake.carbs} <input type="number" bind:value={carbs} min="0" step="0.1" placeholder="g" /></label>
+		<label>{t.intake.fat} <input type="number" bind:value={fat} min="0" step="0.1" placeholder="g" /></label>
+	</div>
 	<div class="form-actions">
 		<button class="primary" onclick={submit}>{t.intake.addEntry}</button>
 		{#if store.items.length > 0}
@@ -311,6 +349,31 @@
 		<div class="metric-card">
 			<span class="metric-value qs-food">{quickStats.mostCommon}</span>
 			<span class="metric-label">{t.intake.mostCommon}</span>
+		</div>
+	</div>
+</section>
+{/if}
+
+<!-- Daily Macro Summary -->
+{#if dailyMacros.hasAny}
+<section class="metrics macro-summary">
+	<h2>{t.intake.macroSummary}</h2>
+	<div class="metrics-row">
+		<div class="metric-card">
+			<span class="metric-value">{dailyMacros.calories}</span>
+			<span class="metric-label">{t.intake.kcal}</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{dailyMacros.protein}{t.intake.grams}</span>
+			<span class="metric-label">{t.intake.protein}</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{dailyMacros.carbs}{t.intake.grams}</span>
+			<span class="metric-label">{t.intake.carbs}</span>
+		</div>
+		<div class="metric-card">
+			<span class="metric-value">{dailyMacros.fat}{t.intake.grams}</span>
+			<span class="metric-label">{t.intake.fat}</span>
 		</div>
 	</div>
 </section>
@@ -344,14 +407,23 @@
 		e.preventDefault();
 		const fd = new FormData(e.currentTarget);
 		const today = new Date().toISOString().slice(0, 10);
-		entries.update(item.id, {
+		const updated: Record<string, unknown> = {
 			what: (fd.get('what') as string).trim(),
 			amount: fd.get('amount') as string,
 			mood: fd.get('mood') as string,
 			meal: fd.get('meal') as string,
 			whenStart: `${today} ${fd.get('timeStart')}`,
 			whenEnd: `${today} ${fd.get('timeEnd')}`
-		});
+		};
+		const cal = fd.get('calories') as string;
+		const pro = fd.get('protein') as string;
+		const carb = fd.get('carbs') as string;
+		const fa = fd.get('fat') as string;
+		if (cal) updated.calories = Number(cal);
+		if (pro) updated.protein = Number(pro);
+		if (carb) updated.carbs = Number(carb);
+		if (fa) updated.fat = Number(fa);
+		entries.update(item.id, updated);
 		toast.show(t.common.updated);
 		done();
 	}}>
@@ -388,6 +460,12 @@
 			<label>{t.intake.timeStart} <input type="time" name="timeStart" value={(data.whenStart as string)?.split(' ')[1] ?? ''} /></label>
 			<label>{t.intake.timeEnd} <input type="time" name="timeEnd" value={(data.whenEnd as string)?.split(' ')[1] ?? ''} /></label>
 		</div>
+		<div class="row nutrition-row">
+			<label>{t.intake.calories} <input type="number" name="calories" value={data.calories ?? ''} min="0" step="1" placeholder="kcal" /></label>
+			<label>{t.intake.protein} <input type="number" name="protein" value={data.protein ?? ''} min="0" step="0.1" placeholder="g" /></label>
+			<label>{t.intake.carbs} <input type="number" name="carbs" value={data.carbs ?? ''} min="0" step="0.1" placeholder="g" /></label>
+			<label>{t.intake.fat} <input type="number" name="fat" value={data.fat ?? ''} min="0" step="0.1" placeholder="g" /></label>
+		</div>
 		<div class="edit-actions">
 			<button type="submit">{t.common.save}</button>
 			<button type="button" onclick={done}>{t.common.cancel}</button>
@@ -408,6 +486,7 @@
 		<div class="intake-row">
 			<span class="ball {item.data.mood} {item.data.amount === 'poco' ? 'small' : item.data.amount === 'mucho' ? 'large' : ''}"></span>
 			<strong>{item.data.what}</strong>
+			{#if item.data.calories}<span class="kcal-badge">{item.data.calories} {t.intake.kcal}</span>{/if}
 			<span class="meal-badge">{t.intake[item.data.meal as keyof typeof t.intake] ?? t.intake.other}</span>
 			<span class="time">{(item.data.whenStart as string)?.split(' ')[1] ?? ''}</span>
 		</div>
@@ -695,6 +774,15 @@
 	.ball:global(.small) { transform: scale(0.7); }
 	.ball:global(.large) { transform: scale(1.3); }
 
+	.kcal-badge {
+		font-size: 0.7rem;
+		padding: 0.1rem 0.4rem;
+		border-radius: 8px;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		color: var(--c-text-muted);
+		font-weight: 600;
+	}
 	.meal-badge {
 		font-size: 0.7rem;
 		padding: 0.1rem 0.4rem;
@@ -710,6 +798,8 @@
 	.edit-actions { display: flex; gap: 0.5rem; }
 	.edit-actions button { flex: 1; }
 	.form-actions { display: flex; gap: 0.5rem; }
+	.nutrition-row label { min-width: 80px; }
+	.nutrition-row input { width: 100%; }
 	.form-actions button { flex: 1; }
 
 	h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }

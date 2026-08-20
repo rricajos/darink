@@ -5,6 +5,7 @@
 	import type { Entry } from '$lib/db';
 	import { onMount } from 'svelte';
 	import { useLocale } from '$lib/stores/locale.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	const { t } = useLocale();
 	const store = useEntries();
@@ -450,6 +451,40 @@
 		window.print();
 	}
 
+	function buildReportText(): string {
+		const lines: string[] = [`Darink — ${t.report.weeklyReport}`, weekLabel, ''];
+		if (weeklyScore.hasData) lines.push(`${t.report.score}: ${weeklyScore.score}/100`);
+		if (currentCheckins.count > 0) {
+			lines.push('', `${t.report.checkinAverages} (${currentCheckins.count}):`);
+			if (currentCheckins.mood !== null) lines.push(`  ${t.common.mood}: ${currentCheckins.mood}`);
+			if (currentCheckins.energy !== null) lines.push(`  ${t.common.energy}: ${currentCheckins.energy}`);
+			if (currentCheckins.sleep !== null) lines.push(`  ${t.common.sleep}: ${currentCheckins.sleep}h`);
+			if (currentCheckins.stress !== null) lines.push(`  ${t.common.stress}: ${currentCheckins.stress}`);
+		}
+		if (currentTraining.total > 0) {
+			lines.push('', `${t.report.training}: ${currentTraining.total} ${t.report.sessions}`);
+			for (const [type, count] of currentTraining.byType) lines.push(`  ${type}: ${count}`);
+		}
+		lines.push('', `${t.report.totalEntries}: ${weekEntries.length}`);
+		return lines.join('\n');
+	}
+
+	async function copyReport() {
+		await navigator.clipboard.writeText(buildReportText());
+		toast.show(t.report.copied);
+	}
+
+	function downloadReport() {
+		const blob = new Blob([JSON.stringify(weekEntries, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `darink-report-${isoDate(weekStart)}.json`;
+		a.click();
+		URL.revokeObjectURL(url);
+		toast.show(t.report.downloaded);
+	}
+
 	// --- Medication Adherence ---
 	let medicationRegimen = $state<Array<{ name: string; dose: string; frequency: string }>>([]);
 	onMount(() => {
@@ -622,6 +657,14 @@
 	<button class="print-btn" onclick={doPrint}>
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
 		{t.report.print}
+	</button>
+	<button class="share-btn" onclick={copyReport}>
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+		{t.report.copy}
+	</button>
+	<button class="share-btn" onclick={downloadReport}>
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+		{t.report.download}
 	</button>
 </section>
 
@@ -1168,6 +1211,17 @@
 		border-color: var(--c-accent);
 		font-weight: 600;
 	}
+	.share-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		color: var(--c-text);
+		font-weight: 600;
+		font-size: 0.8rem;
+	}
+	.share-btn:hover { border-color: var(--c-accent); color: var(--c-accent); background: var(--c-bg-card); }
 
 	/* Report */
 	.report {

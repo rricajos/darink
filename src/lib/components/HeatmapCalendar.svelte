@@ -1,5 +1,8 @@
 <script lang="ts">
 	import type { Entry } from '$lib/db';
+	import { useLocale } from '$lib/stores/locale.svelte';
+
+	const { t, locale } = useLocale();
 
 	let { items, typeFilter = null }: { items: Entry[]; typeFilter?: string | null } = $props();
 
@@ -10,8 +13,8 @@
 	const DAYS = 7;
 	const LABEL_LEFT = 28;
 	const LABEL_TOP = 16;
-	const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-	const DAY_LABELS: [number, string][] = [[1, 'Mon'], [3, 'Wed'], [5, 'Fri']];
+
+	const dayLabels = $derived([[1, t.days.mon], [3, t.days.wed], [5, t.days.fri]] as [number, string][]);
 
 	let hoveredCell = $state<{ x: number; y: number; date: string; count: number } | null>(null);
 
@@ -53,7 +56,7 @@
 			const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
 			if (!seenMonths.has(monthKey) && d.getDate() <= 7) {
 				seenMonths.add(monthKey);
-				monthMarkers.push({ col, label: MONTH_LABELS[d.getMonth()] });
+				monthMarkers.push({ col, label: t.heatmap.months[d.getMonth()] });
 			}
 		}
 
@@ -85,7 +88,7 @@
 
 	function formatDate(iso: string): string {
 		const d = new Date(iso + 'T12:00:00');
-		return d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
+		return d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
 	}
 </script>
 
@@ -94,7 +97,7 @@
 		class="heatmap-svg"
 		viewBox="0 0 {svgWidth} {svgHeight}"
 		role="img"
-		aria-label="Activity heatmap for the past year"
+		aria-label={t.heatmap.activityHeatmap}
 	>
 		<!-- Month labels -->
 		{#each gridData.monthMarkers as marker}
@@ -107,7 +110,7 @@
 		{/each}
 
 		<!-- Day labels -->
-		{#each DAY_LABELS as [row, label]}
+		{#each dayLabels as [row, label]}
 			<text
 				x={0}
 				y={LABEL_TOP + row * STEP + CELL - 1}
@@ -129,7 +132,7 @@
 				class="heatmap-cell"
 				role="gridcell"
 				tabindex="-1"
-				aria-label="{cell.date}: {cell.count} entries"
+				aria-label="{cell.date}: {cell.count} {cell.count === 1 ? t.heatmap.entry : t.heatmap.entries}"
 				onmouseenter={() => handleMouseEnter(cell)}
 				onmouseleave={handleMouseLeave}
 				onfocus={() => handleMouseEnter(cell)}
@@ -143,7 +146,7 @@
 			class="heatmap-tooltip"
 			style="left: {hoveredCell.x}px; top: {hoveredCell.y - 8}px;"
 		>
-			<strong>{hoveredCell.count} {hoveredCell.count === 1 ? 'entry' : 'entries'}</strong>
+			<strong>{hoveredCell.count} {hoveredCell.count === 1 ? t.heatmap.entry : t.heatmap.entries}</strong>
 			<span>{formatDate(hoveredCell.date)}</span>
 		</div>
 	{/if}

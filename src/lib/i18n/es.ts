@@ -228,7 +228,14 @@ const es: typeof import('./en').default = {
 		mostLoggedItems: 'Más registrados',
 		intakes: 'Comidas',
 		avgPerDay: 'Media / día',
-		topMood: 'Ánimo top'
+		topMood: 'Ánimo top',
+		calories: 'Calorías',
+		protein: 'Proteína (g)',
+		carbs: 'Carbos (g)',
+		fat: 'Grasa (g)',
+		macroSummary: 'Macros del día',
+		kcal: 'kcal',
+		grams: 'g'
 	},
 	training: {
 		title: 'Entreno',
@@ -757,6 +764,7 @@ const es: typeof import('./en').default = {
 		anotherPrompt: 'Otro tema',
 		allTime: 'Todo el tiempo',
 		moodTrend: 'Tendencia de ánimo',
+		topWords: 'Palabras frecuentes',
 		emptyHint: 'Empieza a escribir para capturar pensamientos, reflexiones y contexto sobre tu camino de salud.',
 		updated: 'Actualizado',
 		prompts: [
@@ -1166,7 +1174,11 @@ const es: typeof import('./en').default = {
 		sleepSignalLabel: 'Señal de sueño',
 		skinSignalLabel: 'Señal de piel',
 		hairSignalLabel: 'Señal de pelo',
-		genitalSignalLabel: 'Señal genital'
+		genitalSignalLabel: 'Señal genital',
+		copy: 'Copiar',
+		download: 'Descargar',
+		copied: 'Informe copiado al portapapeles',
+		downloaded: 'Informe descargado'
 	},
 	profile: {
 		title: 'Perfil',
@@ -1214,7 +1226,14 @@ const es: typeof import('./en').default = {
 		weightHistoryLast: 'Historial de peso (últimos {n})',
 		weightLegend: 'Peso',
 		bodyFatLegend: 'Grasa corporal',
-		notesPlaceholder: 'Condiciones, medicamentos, notas genéticas...'
+		notesPlaceholder: 'Condiciones, medicamentos, notas genéticas...',
+		energyBalance: 'Balance energético',
+		intake: 'Ingesta',
+		surplus: 'Superávit',
+		deficit: 'Déficit',
+		balanced: 'Equilibrado',
+		avgLast30: 'Media últimos 30 días',
+		noIntakeData: 'Registra calorías en Ingesta para ver la comparación'
 	},
 	reminders: {
 		title: 'Recordatorios',
@@ -1247,7 +1266,9 @@ const es: typeof import('./en').default = {
 		selectAtLeastOneDay: 'Selecciona al menos un día',
 		everyDay: 'Todos los días',
 		weekdays: 'Entre semana',
-		weekends: 'Fines de semana'
+		weekends: 'Fines de semana',
+		weekOverview: 'Esta semana',
+		noRemindersThisWeek: 'Sin recordatorios programados esta semana'
 	},
 	data: {
 		title: 'Datos',
@@ -1383,6 +1404,25 @@ const es: typeof import('./en').default = {
 		moodToggle: 'Ánimo',
 		energyToggle: 'Energía',
 		sleepToggle: 'Sueño'
+	},
+	quickLog: {
+		quickCheckin: 'Check-in rápido',
+		logHabit: 'Registrar hábito',
+		takeSupplement: 'Tomar suplemento',
+		quickJournal: 'Diario rápido',
+		whatsOnYourMind: '¿Qué tienes en mente?',
+		noSupplementsInStack: 'Sin suplementos en tu stack. Añádelos en la página de Suplementos.',
+		openQuickLog: 'Abrir registro rápido',
+		closeQuickLog: 'Cerrar registro rápido',
+		quickCheckinLogged: 'Check-in rápido registrado',
+		journalSaved: 'Entrada de diario guardada',
+		logged: 'registrado'
+	},
+	heatmap: {
+		months: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'] as readonly string[],
+		entry: 'registro',
+		entries: 'registros',
+		activityHeatmap: 'Mapa de calor de actividad del último año'
 	}
 };
 

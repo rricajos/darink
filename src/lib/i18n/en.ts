@@ -228,7 +228,14 @@ const en = {
 		mostLoggedItems: 'Most logged items',
 		intakes: 'Intakes',
 		avgPerDay: 'Avg / day',
-		topMood: 'Top mood'
+		topMood: 'Top mood',
+		calories: 'Calories',
+		protein: 'Protein (g)',
+		carbs: 'Carbs (g)',
+		fat: 'Fat (g)',
+		macroSummary: 'Daily macros',
+		kcal: 'kcal',
+		grams: 'g'
 	},
 	training: {
 		title: 'Training',
@@ -757,6 +764,7 @@ const en = {
 		anotherPrompt: 'Another prompt',
 		allTime: 'All time',
 		moodTrend: 'Mood trend',
+		topWords: 'Top words',
 		emptyHint: 'Start journaling to capture thoughts, reflections, and context around your health journey.',
 		updated: 'Updated',
 		prompts: [
@@ -1014,7 +1022,12 @@ const en = {
 		hypothesisPlaceholder: 'If I do X, then Y...',
 		variablePlaceholder: 'What you\'re changing',
 		protocolPlaceholder: 'Steps to follow',
-		resultPlaceholder: 'Observations, outcome...'
+		resultPlaceholder: 'Observations, outcome...',
+		completedBeforeAfter: 'Completed — Before / After analysis',
+		noPeriodData: 'Not enough check-in data for this period',
+		stress: 'Stress',
+		beforePeriod: 'Before',
+		afterPeriod: 'During'
 	},
 	records: {
 		title: 'Records',
@@ -1166,7 +1179,11 @@ const en = {
 		sleepSignalLabel: 'Sleep signal',
 		skinSignalLabel: 'Skin signal',
 		hairSignalLabel: 'Hair signal',
-		genitalSignalLabel: 'Genital signal'
+		genitalSignalLabel: 'Genital signal',
+		copy: 'Copy',
+		download: 'Download',
+		copied: 'Report copied to clipboard',
+		downloaded: 'Report downloaded'
 	},
 	profile: {
 		title: 'Profile',
@@ -1214,7 +1231,14 @@ const en = {
 		weightHistoryLast: 'Weight History (last {n})',
 		weightLegend: 'Weight',
 		bodyFatLegend: 'Body fat',
-		notesPlaceholder: 'Conditions, medications, genetic notes...'
+		notesPlaceholder: 'Conditions, medications, genetic notes...',
+		energyBalance: 'Energy Balance',
+		intake: 'Intake',
+		surplus: 'Surplus',
+		deficit: 'Deficit',
+		balanced: 'Balanced',
+		avgLast30: 'Avg last 30 days',
+		noIntakeData: 'Log calories in Intake to see comparison'
 	},
 	reminders: {
 		title: 'Reminders',
@@ -1247,7 +1271,9 @@ const en = {
 		selectAtLeastOneDay: 'Select at least one day',
 		everyDay: 'Every day',
 		weekdays: 'Weekdays',
-		weekends: 'Weekends'
+		weekends: 'Weekends',
+		weekOverview: 'This Week',
+		noRemindersThisWeek: 'No reminders scheduled this week'
 	},
 	data: {
 		title: 'Data',
@@ -1383,6 +1409,25 @@ const en = {
 		moodToggle: 'Mood',
 		energyToggle: 'Energy',
 		sleepToggle: 'Sleep'
+	},
+	quickLog: {
+		quickCheckin: 'Quick Check-in',
+		logHabit: 'Log Habit',
+		takeSupplement: 'Take Supplement',
+		quickJournal: 'Quick Journal',
+		whatsOnYourMind: "What's on your mind?",
+		noSupplementsInStack: 'No supplements in your stack. Add them in Supplements page.',
+		openQuickLog: 'Open quick log',
+		closeQuickLog: 'Close quick log',
+		quickCheckinLogged: 'Quick check-in logged',
+		journalSaved: 'Journal entry saved',
+		logged: 'logged'
+	},
+	heatmap: {
+		months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as readonly string[],
+		entry: 'entry',
+		entries: 'entries',
+		activityHeatmap: 'Activity heatmap for the past year'
 	}
 } as const;
 

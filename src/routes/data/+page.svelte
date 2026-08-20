@@ -75,6 +75,36 @@
 		});
 	});
 
+	/* --- Weekly entry timeline (12 weeks) --- */
+	const weeklyTimeline = $derived.by(() => {
+		const now = new Date();
+		const WEEKS = 12;
+		const buckets: { weekLabel: string; counts: Record<string, number>; total: number }[] = [];
+		for (let w = WEEKS - 1; w >= 0; w--) {
+			const start = new Date(now);
+			start.setDate(start.getDate() - w * 7 - start.getDay() + 1);
+			const end = new Date(start);
+			end.setDate(end.getDate() + 7);
+			const startIso = start.toISOString().slice(0, 10);
+			const endIso = end.toISOString().slice(0, 10);
+			const label = `${start.getDate()}/${start.getMonth() + 1}`;
+			const counts: Record<string, number> = {};
+			let total = 0;
+			for (const e of store.items) {
+				const d = e.createdAt.slice(0, 10);
+				if (d >= startIso && d < endIso) {
+					const baseType = e.type.includes('.') ? e.type.split('.')[0] : e.type;
+					counts[baseType] = (counts[baseType] || 0) + 1;
+					total++;
+				}
+			}
+			buckets.push({ weekLabel: label, counts, total });
+		}
+		const types = [...new Set(buckets.flatMap(b => Object.keys(b.counts)))].sort();
+		const maxTotal = Math.max(1, ...buckets.map(b => b.total));
+		return { buckets, types, maxTotal };
+	});
+
 	/* --- Entry count stats --- */
 	const entryStats = $derived.by(() => {
 		const all = store.items;
@@ -462,6 +492,42 @@
 		</div>
 	</div>
 </section>
+{/if}
+
+<!-- Weekly Timeline -->
+{#if store.items.length > 0}
+	{@const tl = weeklyTimeline}
+	{@const chartW = 300}
+	{@const chartH = 100}
+	{@const barW = chartW / tl.buckets.length - 2}
+	<section class="timeline-chart-section">
+		<h2>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+			{t.data.entryDistribution}
+		</h2>
+		<svg class="stacked-chart" viewBox="0 0 {chartW} {chartH + 15}" preserveAspectRatio="xMidYMid meet">
+			{#each tl.buckets as bucket, i}
+				{@const x = i * (chartW / tl.buckets.length) + 1}
+				{@const segments = tl.types.map(type => ({ type, count: bucket.counts[type] || 0 }))}
+				{#each segments.reduce((acc, seg) => {
+					const prev = acc.length > 0 ? acc[acc.length - 1].yEnd : 0;
+					const h = (seg.count / tl.maxTotal) * chartH;
+					acc.push({ type: seg.type, y: chartH - prev - h, h, yEnd: prev + h });
+					return acc;
+				}, [] as { type: string; y: number; h: number; yEnd: number }[]) as seg}
+					{#if seg.h > 0}
+						<rect x={x} y={seg.y} width={barW} height={seg.h} rx="1" fill={getTypeColor(seg.type)} opacity="0.85" />
+					{/if}
+				{/each}
+				<text x={x + barW / 2} y={chartH + 12} text-anchor="middle" font-size="5" fill="var(--c-text-muted)">{bucket.weekLabel}</text>
+			{/each}
+		</svg>
+		<div class="stacked-legend">
+			{#each weeklyTimeline.types as type}
+				<span class="legend-item"><span class="legend-swatch" style="background: {getTypeColor(type)}"></span> {type}</span>
+			{/each}
+		</div>
+	</section>
 {/if}
 
 <!-- Search -->
@@ -1342,6 +1408,11 @@
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 	}
+
+	/* Weekly Timeline */
+	.timeline-chart-section { padding: 0 1rem 1rem; }
+	.stacked-chart { width: 100%; height: 115px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.5rem; }
+	.stacked-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; justify-content: center; }
 
 	/* Auto-backup */
 	.backup-section {

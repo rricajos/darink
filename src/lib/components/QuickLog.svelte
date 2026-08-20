@@ -4,15 +4,18 @@
 	import { ui } from '$lib/db';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
+	import { useLocale } from '$lib/stores/locale.svelte';
 
-	const defaultHabits = [
-		{ id: 'cold', label: 'Cold exposure' },
-		{ id: 'sun', label: 'Sun exposure' },
-		{ id: 'fasting', label: 'Fasting' },
-		{ id: 'meditation', label: 'Meditation' },
-		{ id: 'wimhof', label: 'Wim Hof' },
-		{ id: 'ejaculation', label: 'Ejaculation control' }
-	];
+	const { t } = useLocale();
+
+	const defaultHabits = $derived.by(() => [
+		{ id: 'cold', label: t.habits.cold },
+		{ id: 'sun', label: t.habits.sun },
+		{ id: 'fasting', label: t.habits.fasting },
+		{ id: 'meditation', label: t.habits.meditation },
+		{ id: 'wimhof', label: t.habits.wimhof },
+		{ id: 'ejaculation', label: t.habits.ejaculation }
+	]);
 
 	let open = $state(false);
 	let panel = $state<'habits' | 'supplements' | 'journal' | null>(null);
@@ -65,19 +68,19 @@
 
 	function quickCheckin() {
 		entries.add('checkin', { mood: 5, energy: 5, stress: 5, sleep: 7, date: today() });
-		toast.show('Quick check-in logged');
+		toast.show(t.quickLog.quickCheckinLogged);
 		close();
 	}
 
 	function logHabit(id: string, label: string) {
 		entries.add('habit', { date: today(), habit: id, duration: 0, notes: '' });
-		toast.show(`${label} logged`);
+		toast.show(`${label} ${t.quickLog.logged}`);
 		close();
 	}
 
 	function logSupplement(item: { name: string; dose: string; timing: string }) {
 		entries.add('supplement', { date: today(), name: item.name, dose: item.dose, timing: item.timing, notes: '' });
-		toast.show(`${item.name} logged`);
+		toast.show(`${item.name} ${t.quickLog.logged}`);
 		close();
 	}
 
@@ -85,7 +88,7 @@
 		const text = journalText.trim();
 		if (!text) return;
 		entries.add('journal', { date: today(), text, mood: 5 });
-		toast.show('Journal entry saved');
+		toast.show(t.quickLog.journalSaved);
 		close();
 	}
 </script>
@@ -106,36 +109,36 @@
 						<span class="ql-action-icon">
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>
 						</span>
-						<span class="ql-action-label">Quick Check-in</span>
+						<span class="ql-action-label">{t.quickLog.quickCheckin}</span>
 					</button>
 
 					<button class="ql-action" onclick={() => panel = 'habits'}>
 						<span class="ql-action-icon">
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
 						</span>
-						<span class="ql-action-label">Log Habit</span>
+						<span class="ql-action-label">{t.quickLog.logHabit}</span>
 					</button>
 
 					<button class="ql-action" onclick={() => panel = 'supplements'}>
 						<span class="ql-action-icon">
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" rx="4"/><path d="M12 8v8"/></svg>
 						</span>
-						<span class="ql-action-label">Take Supplement</span>
+						<span class="ql-action-label">{t.quickLog.takeSupplement}</span>
 					</button>
 
 					<button class="ql-action" onclick={() => panel = 'journal'}>
 						<span class="ql-action-icon">
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
 						</span>
-						<span class="ql-action-label">Quick Journal</span>
+						<span class="ql-action-label">{t.quickLog.quickJournal}</span>
 					</button>
 				{:else if panel === 'habits'}
 					<div class="ql-panel">
 						<div class="ql-panel-header">
-							<button class="ql-back" onclick={() => panel = null} aria-label="Back">
+							<button class="ql-back" onclick={() => panel = null} aria-label={t.common.back}>
 								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
 							</button>
-							<span class="ql-panel-title">Log Habit</span>
+							<span class="ql-panel-title">{t.quickLog.logHabit}</span>
 						</div>
 						<div class="ql-chips">
 							{#each allHabits as h}
@@ -146,10 +149,10 @@
 				{:else if panel === 'supplements'}
 					<div class="ql-panel">
 						<div class="ql-panel-header">
-							<button class="ql-back" onclick={() => panel = null} aria-label="Back">
+							<button class="ql-back" onclick={() => panel = null} aria-label={t.common.back}>
 								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
 							</button>
-							<span class="ql-panel-title">Take Supplement</span>
+							<span class="ql-panel-title">{t.quickLog.takeSupplement}</span>
 						</div>
 						<div class="ql-chips">
 							{#if supplementStack.length > 0}
@@ -159,32 +162,32 @@
 									</button>
 								{/each}
 							{:else}
-								<p class="ql-empty">No supplements in your stack. Add them in Supplements page.</p>
+								<p class="ql-empty">{t.quickLog.noSupplementsInStack}</p>
 							{/if}
 						</div>
 					</div>
 				{:else if panel === 'journal'}
 					<div class="ql-panel">
 						<div class="ql-panel-header">
-							<button class="ql-back" onclick={() => panel = null} aria-label="Back">
+							<button class="ql-back" onclick={() => panel = null} aria-label={t.common.back}>
 								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
 							</button>
-							<span class="ql-panel-title">Quick Journal</span>
+							<span class="ql-panel-title">{t.quickLog.quickJournal}</span>
 						</div>
 						<textarea
 							class="ql-textarea"
 							rows="3"
-							placeholder="What's on your mind?"
+							placeholder={t.quickLog.whatsOnYourMind}
 							bind:value={journalText}
 						></textarea>
-						<button class="ql-save primary" onclick={saveJournal} disabled={!journalText.trim()}>Save</button>
+						<button class="ql-save primary" onclick={saveJournal} disabled={!journalText.trim()}>{t.common.save}</button>
 					</div>
 				{/if}
 			</div>
 		{/if}
 
 		<!-- FAB button -->
-		<button class="ql-fab" class:open onclick={toggle} aria-label={open ? 'Close quick log' : 'Open quick log'}>
+		<button class="ql-fab" class:open onclick={toggle} aria-label={open ? t.quickLog.closeQuickLog : t.quickLog.openQuickLog}>
 			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
 		</button>
 	</div>
