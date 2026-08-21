@@ -1156,7 +1156,8 @@ const en = {
 		medication: 'Medication',
 		symptom: 'Symptom',
 		today: 'Today',
-		yesterday: 'Yesterday'
+		yesterday: 'Yesterday',
+		searchEntries: 'Search entries...'
 	},
 	report: {
 		title: 'Report',
@@ -1316,6 +1317,7 @@ const en = {
 		everyDay: 'Every day',
 		weekdays: 'Weekdays',
 		weekends: 'Weekends',
+		mwf: 'MWF',
 		weekOverview: 'This Week',
 		noRemindersThisWeek: 'No reminders scheduled this week'
 	},

@@ -1151,7 +1151,8 @@ const es: typeof import('./en').default = {
 		medication: 'Medicamento',
 		symptom: 'Síntoma',
 		today: 'Hoy',
-		yesterday: 'Ayer'
+		yesterday: 'Ayer',
+		searchEntries: 'Buscar entradas...'
 	},
 	report: {
 		title: 'Informe',
@@ -1311,6 +1312,7 @@ const es: typeof import('./en').default = {
 		everyDay: 'Todos los días',
 		weekdays: 'Entre semana',
 		weekends: 'Fines de semana',
+		mwf: 'LMV',
 		weekOverview: 'Esta semana',
 		noRemindersThisWeek: 'Sin recordatorios programados esta semana'
 	},

@@ -706,6 +706,59 @@
 		ui.patch({ onboardingComplete: true });
 	}
 
+	/* --- Daily goals progress (from goals page) --- */
+	interface Goal {
+		id: string;
+		label: string;
+		type: 'daily' | 'weekly';
+		metric: string;
+		target: number;
+		unit: string;
+	}
+
+	const savedGoals = $derived.by(() => {
+		const saved = ui.get().goals;
+		return Array.isArray(saved) ? saved as Goal[] : [];
+	});
+
+	const dailyGoals = $derived(savedGoals.filter(g => g.type === 'daily'));
+
+	function getGoalProgress(goal: Goal): number {
+		const todayItems = store.items.filter(e => dateOf(e) === today);
+		switch (goal.metric) {
+			case 'signal.sleep.hours': {
+				const sleeps = todayItems.filter(e => e.type === 'signal.sleep');
+				if (sleeps.length === 0) return 0;
+				return +(sleeps.reduce((s, e) => s + Number(e.data.hours || 0), 0) / sleeps.length).toFixed(1);
+			}
+			case 'intake.water': {
+				const hydrationEntries = todayItems.filter(e => e.type === 'hydration');
+				const waterIntakes = todayItems.filter(e =>
+					e.type === 'intake' &&
+					typeof e.data.what === 'string' &&
+					(e.data.what.toLowerCase().includes('water') || e.data.what.toLowerCase().includes('agua'))
+				);
+				return hydrationEntries.length + waterIntakes.length;
+			}
+			case 'training.count':
+				return todayItems.filter(e => e.type.startsWith('training.')).length;
+			case 'habit.meditation':
+				return todayItems.filter(e => e.type === 'habit' && e.data.habit === 'meditation').length;
+			case 'checkin.count':
+				return todayItems.filter(e => e.type === 'checkin').length;
+			default:
+				return todayItems.filter(e => e.type === goal.metric).length;
+		}
+	}
+
+	const dailyGoalProgress = $derived.by(() => {
+		return dailyGoals.map(g => {
+			const current = getGoalProgress(g);
+			const pct = g.target > 0 ? Math.min(Math.round((current / g.target) * 100), 100) : 0;
+			return { goal: g, current, pct, done: current >= g.target };
+		});
+	});
+
 	/* --- What's missing --- */
 	const missingItems = $derived.by(() => {
 		const items: Array<{ label: string; hint: string; href: string; icon: string }> = [];
@@ -907,6 +960,29 @@
 				</svg>
 			</div>
 		</div>
+
+		<!-- Daily goal progress -->
+		{#if dailyGoalProgress.length > 0}
+			<div class="goals-strip">
+				<div class="goals-strip-header">
+					<h2>{t.goals.dailyGoals}</h2>
+					<a href="/goals" class="goals-link">{dailyGoalProgress.filter(g => g.done).length}/{dailyGoalProgress.length}</a>
+				</div>
+				<div class="goals-strip-list">
+					{#each dailyGoalProgress as gp}
+						<div class="goal-mini" class:goal-mini-done={gp.done}>
+							<div class="goal-mini-top">
+								<span class="goal-mini-label">{gp.goal.label}</span>
+								<span class="goal-mini-val">{gp.current}/{gp.goal.target}{gp.goal.unit ? gp.goal.unit : ''}</span>
+							</div>
+							<div class="goal-mini-bar">
+								<div class="goal-mini-fill" class:complete={gp.done} style="width:{gp.pct}%"></div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
 
 		<!-- 7-day trend sparkline -->
 		{#if weekWithData.length >= 2}
@@ -1260,6 +1336,77 @@
 	.donut-label {
 		font-size: 8px;
 		font-weight: 500;
+	}
+
+	/* Goals strip */
+	.goals-strip {
+		padding: 0 0 0.5rem;
+	}
+
+	.goals-strip-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.goals-link {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--c-accent);
+		text-decoration: none;
+	}
+
+	.goals-strip-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.goal-mini {
+		padding: 0.45rem 0.65rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+	}
+
+	.goal-mini-done {
+		border-color: var(--c-done);
+	}
+
+	.goal-mini-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.25rem;
+	}
+
+	.goal-mini-label {
+		font-size: 0.8rem;
+		font-weight: 600;
+	}
+
+	.goal-mini-val {
+		font-size: 0.72rem;
+		color: var(--c-text-muted);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.goal-mini-bar {
+		height: 4px;
+		background: var(--c-border);
+		border-radius: 2px;
+		overflow: hidden;
+	}
+
+	.goal-mini-fill {
+		height: 100%;
+		background: var(--c-accent);
+		border-radius: 2px;
+		transition: width 0.3s ease;
+	}
+
+	.goal-mini-fill.complete {
+		background: var(--c-done);
 	}
 
 	/* 7-day trend */

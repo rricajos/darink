@@ -189,7 +189,15 @@
 		</label>
 	</div>
 	<div class="days-row">
-		<span class="days-label">{t.reminders.days}</span>
+		<div class="days-presets">
+			<span class="days-label">{t.reminders.days}</span>
+			<div class="preset-btns">
+				<button type="button" class="preset" onclick={() => { formDays = [true,true,true,true,true,true,true]; }}>{t.reminders.everyDay}</button>
+				<button type="button" class="preset" onclick={() => { formDays = [true,true,true,true,true,false,false]; }}>{t.reminders.weekdays}</button>
+				<button type="button" class="preset" onclick={() => { formDays = [false,false,false,false,false,true,true]; }}>{t.reminders.weekends}</button>
+				<button type="button" class="preset" onclick={() => { formDays = [true,false,true,false,true,false,false]; }}>{t.reminders.mwf}</button>
+			</div>
+		</div>
 		<div class="days-grid">
 			{#each DAY_LABELS as day, i}
 				<label class="day-check" class:checked={formDays[i]}>
@@ -342,6 +350,39 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+	}
+
+	.days-presets {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.preset-btns {
+		display: flex;
+		gap: 0.25rem;
+		flex-wrap: wrap;
+	}
+
+	.preset {
+		font-size: 0.7rem;
+		padding: 0.2rem 0.5rem;
+		border-radius: 12px;
+		border: 1px solid var(--c-border);
+		background: var(--c-bg-card);
+		color: var(--c-text-muted);
+		cursor: pointer;
+		font-weight: 500;
+		white-space: nowrap;
+	}
+
+	.preset:hover {
+		border-color: var(--c-accent);
+		color: var(--c-accent);
+		background: var(--c-bg-card);
+		transform: none;
+		box-shadow: none;
 	}
 
 	.days-label {

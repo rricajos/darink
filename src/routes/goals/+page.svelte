@@ -136,12 +136,13 @@
 				return +(total / sleeps.length).toFixed(1);
 			}
 			case 'intake.water': {
+				const hydration = filtered.filter(e => e.type === 'hydration');
 				const waters = filtered.filter(e =>
 					e.type === 'intake' &&
 					typeof e.data.what === 'string' &&
 					(e.data.what.toLowerCase().includes('water') || e.data.what.toLowerCase().includes('agua'))
 				);
-				return waters.length;
+				return hydration.length + waters.length;
 			}
 			case 'training.count': {
 				return filtered.filter(e => e.type.startsWith('training.')).length;
@@ -316,11 +317,13 @@
 				return +(total / sleeps.length).toFixed(1);
 			}
 			case 'intake.water': {
-				return dayItems.filter(e =>
+				const hydration = dayItems.filter(e => e.type === 'hydration').length;
+				const waterIntakes = dayItems.filter(e =>
 					e.type === 'intake' &&
 					typeof e.data.what === 'string' &&
 					(e.data.what.toLowerCase().includes('water') || e.data.what.toLowerCase().includes('agua'))
 				).length;
+				return hydration + waterIntakes;
 			}
 			case 'training.count': {
 				return dayItems.filter(e => e.type.startsWith('training.')).length;

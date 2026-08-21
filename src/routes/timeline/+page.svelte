@@ -181,6 +181,7 @@
 	let enabledTypes = $state<Set<string>>(new Set(allTypes));
 	let filtersOpen = $state(false);
 	let visibleCount = $state(50);
+	let searchQuery = $state('');
 
 	function toggleType(type: string): void {
 		const next = new Set(enabledTypes);
@@ -203,11 +204,20 @@
 		visibleCount = 50;
 	}
 
+	function matchesSearch(data: Record<string, unknown>, query: string): boolean {
+		for (const val of Object.values(data)) {
+			if (typeof val === 'string' && val.toLowerCase().includes(query)) return true;
+			if (typeof val === 'number' && String(val).includes(query)) return true;
+		}
+		return false;
+	}
+
 	/* --- Filtered + sorted entries --- */
 	const filtered = $derived.by(() => {
 		const from = dateFrom + 'T00:00:00';
 		const to = dateTo + 'T23:59:59';
 		const hasTags = selectedTags.length > 0;
+		const q = searchQuery.trim().toLowerCase();
 		return store.items
 			.filter((e) => {
 				if (!enabledTypes.has(e.type)) return false;
@@ -217,6 +227,7 @@
 					if (!Array.isArray(tags)) return false;
 					if (!selectedTags.every((st) => tags.includes(st))) return false;
 				}
+				if (q && !matchesSearch(e.data, q) && !e.type.toLowerCase().includes(q)) return false;
 				return true;
 			})
 			.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -372,6 +383,15 @@
 
 <!-- Filter bar -->
 <section class="filter-bar">
+	<div class="search-bar">
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+		<input type="text" class="search-input" bind:value={searchQuery} placeholder={t.timeline.searchEntries} />
+		{#if searchQuery}
+			<button class="search-clear" onclick={() => { searchQuery = ''; }} aria-label={t.common.close}>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+			</button>
+		{/if}
+	</div>
 	<div class="date-filters">
 		<label class="date-label">
 			{t.timeline.from}
@@ -543,6 +563,49 @@
 	/* --- Filter bar --- */
 	.filter-bar {
 		padding: 0 1rem 0.5rem;
+	}
+
+	.search-bar {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.4rem 0.6rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		margin-bottom: 0.5rem;
+		color: var(--c-text-muted);
+	}
+
+	.search-bar:focus-within {
+		border-color: var(--c-accent);
+	}
+
+	.search-input {
+		flex: 1;
+		border: none;
+		background: transparent;
+		font-size: 0.85rem;
+		color: var(--c-text);
+		padding: 0.15rem 0;
+		outline: none;
+	}
+
+	.search-clear {
+		background: none;
+		border: none;
+		padding: 0.15rem;
+		cursor: pointer;
+		color: var(--c-text-muted);
+		display: flex;
+		align-items: center;
+	}
+
+	.search-clear:hover {
+		color: var(--c-text);
+		background: none;
+		transform: none;
+		box-shadow: none;
 	}
 
 	.date-filters {
