@@ -562,14 +562,14 @@
 		const weekAgo = daysAgo(7);
 		const recentEntries = store.items.filter((e) => e.createdAt >= weekAgo + 'T00:00:00');
 		const categories = [
-			{ name: t.timeline.checkin, hasData: recentEntries.some((e) => e.type === 'checkin') },
-			{ name: t.insights.habitsMetric, hasData: recentEntries.some((e) => e.type === 'habit') },
-			{ name: t.insights.supplMetric, hasData: recentEntries.some((e) => e.type === 'supplement') },
-			{ name: t.insights.trainingMetric, hasData: recentEntries.some((e) => e.type.startsWith('training.')) },
-			{ name: t.insights.hydrationMetric, hasData: recentEntries.some((e) => e.type === 'hydration') },
-			{ name: t.report.journal, hasData: recentEntries.some((e) => e.type === 'journal') }
+			{ name: t.timeline.checkin, href: '/checkin', hasData: recentEntries.some((e) => e.type === 'checkin') },
+			{ name: t.insights.habitsMetric, href: '/habits', hasData: recentEntries.some((e) => e.type === 'habit') },
+			{ name: t.insights.supplMetric, href: '/supplements', hasData: recentEntries.some((e) => e.type === 'supplement') },
+			{ name: t.insights.trainingMetric, href: '/training', hasData: recentEntries.some((e) => e.type.startsWith('training.')) },
+			{ name: t.insights.hydrationMetric, href: '/hydration', hasData: recentEntries.some((e) => e.type === 'hydration') },
+			{ name: t.report.journal, href: '/journal', hasData: recentEntries.some((e) => e.type === 'journal') }
 		];
-		const missing = categories.filter((c) => !c.hasData).map((c) => c.name);
+		const missing = categories.filter((c) => !c.hasData);
 
 		return { longestGoodStreak, loggingStreak, mostConsistent, missing };
 	});
@@ -938,7 +938,10 @@
 		<h3>{t.insights.missingData}</h3>
 		<div class="missing-chips">
 			{#each consistency.missing as cat}
-				<span class="missing-chip">{cat}</span>
+				<a href={cat.href} class="missing-chip missing-link">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+					{cat.name}
+				</a>
 			{/each}
 		</div>
 	</div>
@@ -1288,13 +1291,24 @@
 		gap: 0.3rem;
 	}
 	.missing-chip {
-		display: inline-block;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
 		padding: 0.2rem 0.5rem;
 		background: rgba(245, 158, 11, 0.1);
 		border: 1px solid rgba(245, 158, 11, 0.3);
 		border-radius: 12px;
 		font-size: 0.75rem;
 		color: #f59e0b;
+	}
+	.missing-link {
+		text-decoration: none;
+		cursor: pointer;
+		transition: background 0.15s, border-color 0.15s;
+	}
+	.missing-link:hover {
+		background: rgba(245, 158, 11, 0.2);
+		border-color: #f59e0b;
 	}
 
 	/* Empty State */

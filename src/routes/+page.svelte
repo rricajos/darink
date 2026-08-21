@@ -764,6 +764,15 @@
 	});
 
 	const dailyGoals = $derived(savedGoals.filter(g => g.type === 'daily'));
+	const weeklyGoals = $derived(savedGoals.filter(g => g.type === 'weekly'));
+
+	function weekStartStr(): string {
+		const d = new Date();
+		const day = d.getDay();
+		const diff = day === 0 ? 6 : day - 1;
+		d.setDate(d.getDate() - diff);
+		return d.toISOString().slice(0, 10);
+	}
 
 	function getGoalProgress(goal: Goal): number {
 		const todayItems = store.items.filter(e => dateOf(e) === today);
@@ -793,9 +802,42 @@
 		}
 	}
 
+	function getWeeklyGoalProgress(goal: Goal): number {
+		const wStart = weekStartStr();
+		const weekItems = store.items.filter(e => dateOf(e) >= wStart);
+		switch (goal.metric) {
+			case 'signal.sleep.hours': {
+				const sleeps = weekItems.filter(e => e.type === 'signal.sleep');
+				if (sleeps.length === 0) return 0;
+				return +(sleeps.reduce((s, e) => s + Number(e.data.hours || 0), 0) / sleeps.length).toFixed(1);
+			}
+			case 'intake.water': {
+				return weekItems.filter(e => e.type === 'hydration').length +
+					weekItems.filter(e => e.type === 'intake' && typeof e.data.what === 'string' &&
+						(e.data.what.toLowerCase().includes('water') || e.data.what.toLowerCase().includes('agua'))).length;
+			}
+			case 'training.count':
+				return weekItems.filter(e => e.type.startsWith('training.')).length;
+			case 'habit.meditation':
+				return weekItems.filter(e => e.type === 'habit' && e.data.habit === 'meditation').length;
+			case 'checkin.count':
+				return weekItems.filter(e => e.type === 'checkin').length;
+			default:
+				return weekItems.filter(e => e.type === goal.metric).length;
+		}
+	}
+
 	const dailyGoalProgress = $derived.by(() => {
 		return dailyGoals.map(g => {
 			const current = getGoalProgress(g);
+			const pct = g.target > 0 ? Math.min(Math.round((current / g.target) * 100), 100) : 0;
+			return { goal: g, current, pct, done: current >= g.target };
+		});
+	});
+
+	const weeklyGoalProgress = $derived.by(() => {
+		return weeklyGoals.map(g => {
+			const current = getWeeklyGoalProgress(g);
 			const pct = g.target > 0 ? Math.min(Math.round((current / g.target) * 100), 100) : 0;
 			return { goal: g, current, pct, done: current >= g.target };
 		});
@@ -1026,6 +1068,29 @@
 				</div>
 				<div class="goals-strip-list">
 					{#each dailyGoalProgress as gp}
+						<div class="goal-mini" class:goal-mini-done={gp.done}>
+							<div class="goal-mini-top">
+								<span class="goal-mini-label">{gp.goal.label}</span>
+								<span class="goal-mini-val">{gp.current}/{gp.goal.target}{gp.goal.unit ? gp.goal.unit : ''}</span>
+							</div>
+							<div class="goal-mini-bar">
+								<div class="goal-mini-fill" class:complete={gp.done} style="width:{gp.pct}%"></div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Weekly goal progress -->
+		{#if weeklyGoalProgress.length > 0}
+			<div class="goals-strip">
+				<div class="goals-strip-header">
+					<h2>{t.goals.weeklyGoals}</h2>
+					<a href="/goals" class="goals-link">{weeklyGoalProgress.filter(g => g.done).length}/{weeklyGoalProgress.length}</a>
+				</div>
+				<div class="goals-strip-list">
+					{#each weeklyGoalProgress as gp}
 						<div class="goal-mini" class:goal-mini-done={gp.done}>
 							<div class="goal-mini-top">
 								<span class="goal-mini-label">{gp.goal.label}</span>

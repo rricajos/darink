@@ -110,6 +110,30 @@
 		sleep = Number(last.data.sleep) || 7;
 		toast.show(t.common.prefilled);
 	}
+
+	const moodDistribution = $derived.by(() => {
+		if (store.items.length < 5) return null;
+		const buckets = Array.from({ length: 10 }, (_, i) => ({ value: i + 1, count: 0 }));
+		for (const e of store.items) {
+			const m = Math.round(Number(e.data.mood) || 5);
+			if (m >= 1 && m <= 10) buckets[m - 1].count++;
+		}
+		const maxCount = Math.max(...buckets.map(b => b.count), 1);
+		return { buckets, maxCount };
+	});
+
+	const periodComparison = $derived.by(() => {
+		if (store.items.length < 3) return null;
+		const mornings = store.items.filter(e => e.data.period === 'morning');
+		const nights = store.items.filter(e => e.data.period === 'night');
+		if (mornings.length < 2 || nights.length < 2) return null;
+		const avg = (arr: typeof store.items, field: string) =>
+			+(arr.reduce((s, e) => s + (Number(e.data[field]) || 0), 0) / arr.length).toFixed(1);
+		return {
+			morning: { mood: avg(mornings, 'mood'), energy: avg(mornings, 'energy'), stress: avg(mornings, 'stress'), count: mornings.length },
+			night: { mood: avg(nights, 'mood'), energy: avg(nights, 'energy'), stress: avg(nights, 'stress'), count: nights.length }
+		};
+	});
 </script>
 
 <svelte:head>
@@ -402,6 +426,49 @@
 </section>
 {/if}
 
+{#if moodDistribution}
+<section class="analytics">
+	<h2>{t.checkin.moodDistribution ?? 'Mood Distribution'}</h2>
+	<div class="distrib-chart">
+		{#each moodDistribution.buckets as bucket}
+			<div class="distrib-col">
+				<div class="distrib-bar-wrap">
+					<div class="distrib-bar" style="height:{(bucket.count / moodDistribution.maxCount) * 100}%;background:{bucket.value <= 3 ? '#e53e3e' : bucket.value <= 6 ? '#e8a735' : '#22c55e'}"></div>
+				</div>
+				<span class="distrib-count">{bucket.count}</span>
+				<span class="distrib-val">{bucket.value}</span>
+			</div>
+		{/each}
+	</div>
+</section>
+{/if}
+
+{#if periodComparison}
+<section class="analytics">
+	<h2>{t.checkin.morningVsNight ?? 'Morning vs Night'}</h2>
+	<div class="period-grid">
+		<div class="period-header"></div>
+		<div class="period-header period-h-label">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+			AM ({periodComparison.morning.count})
+		</div>
+		<div class="period-header period-h-label">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+			PM ({periodComparison.night.count})
+		</div>
+		<div class="period-metric">{t.common.mood}</div>
+		<div class="period-val" style="font-weight:{periodComparison.morning.mood >= periodComparison.night.mood ? 700 : 400}">{periodComparison.morning.mood}</div>
+		<div class="period-val" style="font-weight:{periodComparison.night.mood >= periodComparison.morning.mood ? 700 : 400}">{periodComparison.night.mood}</div>
+		<div class="period-metric">{t.common.energy}</div>
+		<div class="period-val" style="font-weight:{periodComparison.morning.energy >= periodComparison.night.energy ? 700 : 400}">{periodComparison.morning.energy}</div>
+		<div class="period-val" style="font-weight:{periodComparison.night.energy >= periodComparison.morning.energy ? 700 : 400}">{periodComparison.night.energy}</div>
+		<div class="period-metric">{t.common.stress}</div>
+		<div class="period-val" style="font-weight:{periodComparison.morning.stress <= periodComparison.night.stress ? 700 : 400}">{periodComparison.morning.stress}</div>
+		<div class="period-val" style="font-weight:{periodComparison.night.stress <= periodComparison.morning.stress ? 700 : 400}">{periodComparison.night.stress}</div>
+	</div>
+</section>
+{/if}
+
 <style>
 	.field-error { font-size: 0.75rem; color: var(--c-cancel); margin-top: 0.15rem; display: block; }
 	.field-has-error { color: var(--c-cancel); }
@@ -470,4 +537,66 @@
 	.consistency-card { flex: 1; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
 	.consistency-value { font-size: 1.4rem; font-weight: 700; }
 	.consistency-label { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; }
+
+	/* Mood Distribution */
+	.distrib-chart {
+		display: flex;
+		align-items: flex-end;
+		gap: 3px;
+		height: 110px;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.5rem 0.4rem 0;
+	}
+	.distrib-col {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		height: 100%;
+		justify-content: flex-end;
+	}
+	.distrib-bar-wrap {
+		width: 100%;
+		height: 70%;
+		display: flex;
+		align-items: flex-end;
+	}
+	.distrib-bar {
+		width: 100%;
+		border-radius: 3px 3px 0 0;
+		min-height: 2px;
+		transition: height 0.3s;
+	}
+	.distrib-count { font-size: 0.6rem; font-weight: 600; margin-top: 2px; color: var(--c-text-muted); }
+	.distrib-val { font-size: 0.65rem; font-weight: 700; }
+
+	/* Period Comparison */
+	.period-grid {
+		display: grid;
+		grid-template-columns: 1.2fr 1fr 1fr;
+		gap: 0;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+	.period-grid > div {
+		padding: 0.5rem 0.6rem;
+		font-size: 0.8rem;
+		border-bottom: 1px solid var(--c-border);
+	}
+	.period-grid > div:nth-last-child(-n+3) { border-bottom: none; }
+	.period-header {
+		font-weight: 600;
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		color: var(--c-text-muted);
+		letter-spacing: 0.03em;
+		background: var(--c-bg);
+	}
+	.period-h-label { display: flex; align-items: center; gap: 0.3rem; }
+	.period-metric { font-weight: 500; }
+	.period-val { text-align: center; font-variant-numeric: tabular-nums; }
 </style>

@@ -199,7 +199,9 @@ const en = {
 		energyMustBe: 'Energy must be between 1 and 10',
 		stressMustBe: 'Stress must be between 1 and 10',
 		sleepMustBe: 'Sleep must be between 0 and 24 hours',
-		sleepH: 'Sleep (h)'
+		sleepH: 'Sleep (h)',
+		moodDistribution: 'Mood Distribution',
+		morningVsNight: 'Morning vs Night'
 	},
 	intake: {
 		title: 'Intake',
@@ -1159,7 +1161,9 @@ const en = {
 		today: 'Today',
 		yesterday: 'Yesterday',
 		searchEntries: 'Search entries...',
-		bodyLabs: 'Body & Labs'
+		bodyLabs: 'Body & Labs',
+		select: 'Select',
+		selected: 'selected'
 	},
 	report: {
 		title: 'Report',

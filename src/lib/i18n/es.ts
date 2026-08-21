@@ -199,7 +199,9 @@ const es: typeof import('./en').default = {
 		energyMustBe: 'La energía debe estar entre 1 y 10',
 		stressMustBe: 'El estrés debe estar entre 1 y 10',
 		sleepMustBe: 'El sueño debe estar entre 0 y 24 horas',
-		sleepH: 'Sueño (h)'
+		sleepH: 'Sueño (h)',
+		moodDistribution: 'Distribución de Ánimo',
+		morningVsNight: 'Mañana vs Noche'
 	},
 	intake: {
 		title: 'Comida',
@@ -1154,7 +1156,9 @@ const es: typeof import('./en').default = {
 		today: 'Hoy',
 		yesterday: 'Ayer',
 		searchEntries: 'Buscar entradas...',
-		bodyLabs: 'Cuerpo y Análisis'
+		bodyLabs: 'Cuerpo y Análisis',
+		select: 'Seleccionar',
+		selected: 'seleccionados'
 	},
 	report: {
 		title: 'Informe',

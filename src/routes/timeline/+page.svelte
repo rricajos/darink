@@ -395,6 +395,46 @@
 		return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 	}
 
+	let selectMode = $state(false);
+	let selectedIds = $state<Set<string>>(new Set());
+
+	function toggleSelectMode() {
+		selectMode = !selectMode;
+		selectedIds = new Set();
+	}
+
+	function toggleSelect(id: string, ev: Event) {
+		ev.stopPropagation();
+		const next = new Set(selectedIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedIds = next;
+	}
+
+	function selectAll() {
+		selectedIds = new Set(filtered.map(e => e.id));
+	}
+
+	function deselectAll() {
+		selectedIds = new Set();
+	}
+
+	function bulkDelete() {
+		const count = selectedIds.size;
+		if (count === 0) return;
+		const removed: Entry[] = [];
+		for (const id of selectedIds) {
+			const entry = store.items.find(e => e.id === id);
+			if (entry) { entries.remove(id); removed.push(entry); }
+		}
+		selectedIds = new Set();
+		selectMode = false;
+		toast.show(`${count} ${t.common.deleted}`, {
+			label: t.common.undo,
+			fn: () => { for (const e of removed) entries.restore(e); }
+		});
+	}
+
 	let confirmDeleteId = $state<string | null>(null);
 
 	function deleteEntry(entry: Entry) {
@@ -508,6 +548,11 @@
 		</label>
 	</div>
 
+	<div class="filter-actions">
+	<button class="toggle-filters" onclick={toggleSelectMode} class:active={selectMode}>
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+		{t.timeline.select ?? 'Select'}
+	</button>
 	<button class="toggle-filters" onclick={() => filtersOpen = !filtersOpen}>
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
 		{t.timeline.types} ({enabledTypes.size}/{allTypes.length})
@@ -573,7 +618,25 @@
 	</div>
 	{/if}
 	{/if}
+	</div>
 </section>
+
+<!-- Bulk action bar -->
+{#if selectMode}
+<section class="bulk-bar">
+	<div class="bulk-info">
+		<span>{selectedIds.size} {t.timeline.selected ?? 'selected'}</span>
+		<div class="bulk-btns-sm">
+			<button class="bulk-sm" onclick={selectAll}>{t.timeline.all}</button>
+			<button class="bulk-sm" onclick={deselectAll}>{t.timeline.none}</button>
+		</div>
+	</div>
+	<button class="bulk-delete" onclick={bulkDelete} disabled={selectedIds.size === 0}>
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+		{t.common.delete}
+	</button>
+</section>
+{/if}
 
 <!-- Daily activity density -->
 {#if dailyDensity.length > 0 && filtered.length > 0}
@@ -646,8 +709,11 @@
 		{#each group.entries as entry}
 			{@const color = getTypeColor(entry.type)}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div class="entry-card" class:expanded={expandedId === entry.id} style="--entry-color: {color}" onclick={() => { if (editingId !== entry.id) toggleExpand(entry.id); }}>
+			<div class="entry-card" class:expanded={expandedId === entry.id} class:selected={selectedIds.has(entry.id)} style="--entry-color: {color}" onclick={() => { if (selectMode) { const next = new Set(selectedIds); if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id); selectedIds = next; } else if (editingId !== entry.id) toggleExpand(entry.id); }}>
 				<div class="entry-top">
+					{#if selectMode}
+						<input type="checkbox" class="entry-check" checked={selectedIds.has(entry.id)} onclick={(e) => e.stopPropagation()} onchange={() => { const next = new Set(selectedIds); if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id); selectedIds = next; }} />
+					{/if}
 					<span class="type-badge" style="background: {color}">{getTypeLabel(entry.type)}</span>
 					<div class="entry-top-right">
 						<span class="entry-time">{formatTime(entry.createdAt)}</span>
@@ -1304,6 +1370,81 @@
 		color: var(--c-text);
 		transform: none;
 		box-shadow: none;
+	}
+
+	/* --- Bulk select --- */
+	.filter-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.filter-actions .toggle-filters {
+		flex: 1;
+	}
+	.toggle-filters.active {
+		border-color: var(--c-accent);
+		color: var(--c-accent);
+		background: var(--c-accent-bg);
+	}
+	.bulk-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.5rem 1rem;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-accent);
+		border-radius: var(--radius);
+		margin: 0 1rem 0.5rem;
+	}
+	.bulk-info {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.85rem;
+		font-weight: 600;
+	}
+	.bulk-btns-sm {
+		display: flex;
+		gap: 0.25rem;
+	}
+	.bulk-sm {
+		padding: 0.15rem 0.4rem;
+		font-size: 0.7rem;
+		border: 1px solid var(--c-border);
+		border-radius: 4px;
+		background: var(--c-bg);
+		color: var(--c-text-muted);
+		cursor: pointer;
+	}
+	.bulk-sm:hover {
+		border-color: var(--c-accent);
+		color: var(--c-accent);
+	}
+	.bulk-delete {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.35rem 0.75rem;
+		background: var(--c-cancel, #e53e3e);
+		color: #fff;
+		border: none;
+		border-radius: var(--radius);
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.bulk-delete:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+	.entry-card.selected {
+		border-color: var(--c-accent);
+		background: var(--c-accent-bg);
+	}
+	.entry-check {
+		width: 16px;
+		height: 16px;
+		accent-color: var(--c-accent);
+		flex-shrink: 0;
 	}
 
 	/* --- Load more --- */
