@@ -410,6 +410,71 @@
 		});
 	}
 
+	let expandedId = $state<string | null>(null);
+	let editingId = $state<string | null>(null);
+	let editData = $state<Record<string, unknown>>({});
+
+	function toggleExpand(id: string) {
+		if (expandedId === id) {
+			expandedId = null;
+			editingId = null;
+		} else {
+			expandedId = id;
+			editingId = null;
+		}
+		confirmDeleteId = null;
+	}
+
+	function startEdit(entry: Entry) {
+		editingId = entry.id;
+		editData = { ...entry.data };
+	}
+
+	function cancelEdit() {
+		editingId = null;
+		editData = {};
+	}
+
+	function saveEdit(entry: Entry) {
+		entries.update(entry.id, editData);
+		editingId = null;
+		editData = {};
+		toast.show(`${getTypeLabel(entry.type)} ${t.common.updated}`);
+	}
+
+	const hiddenFields = new Set(['tags', 'date']);
+
+	function fieldLabel(key: string): string {
+		const map: Record<string, string> = {
+			mood: t.common.mood, energy: t.common.energy, sleep: t.common.sleep, stress: t.common.stress,
+			what: t.intake.whatLabel, amount: t.intake.amount,
+			exercise: t.training.exercise, sets: t.training.sets, reps: t.training.reps, rir: t.training.rir,
+			weight: t.training.weight, activity: t.training.activity, distanceKm: t.training.distanceKm,
+			durationMin: t.training.durationMin, name: t.training.name, rounds: t.training.rounds,
+			progression: t.training.progression, level: t.training.level, routine: t.training.routine,
+			duration: t.training.duration, habit: t.habits.habit, dose: t.medications.doseLabel,
+			hours: t.sleep.hoursLabel, quality: t.sleep.qualityLabel,
+			oiliness: t.skin.oiliness, elasticity: t.skin.elasticity,
+			density: t.hair.density, shedding: t.hair.shedding,
+			libido: t.genital.libido, sensitivity: t.genital.sensitivity,
+			text: t.journal.title, source: t.hydration.source,
+			hypothesis: t.experiments.hypothesis, status: t.experiments.status,
+			medication: t.medications.medication, symptom: t.symptoms.symptom,
+			severity: t.medications.severity, marker: t.bloodwork.marker,
+			value: t.bloodwork.value, unit: t.bloodwork.unit,
+			morningErection: t.genital.morningErection, bodyFat: t.profile.bodyFat,
+			notes: t.common.notes
+		};
+		return map[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+	}
+
+	function formatFieldValue(val: unknown): string {
+		if (val === null || val === undefined) return '—';
+		if (typeof val === 'boolean') return val ? t.common.yes : t.common.no;
+		if (Array.isArray(val)) return val.join(', ');
+		return String(val);
+	}
+
 	function formatTime(iso: string): string {
 		return iso.slice(11, 16);
 	}
@@ -580,7 +645,8 @@
 		</div>
 		{#each group.entries as entry}
 			{@const color = getTypeColor(entry.type)}
-			<div class="entry-card" style="--entry-color: {color}">
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="entry-card" class:expanded={expandedId === entry.id} style="--entry-color: {color}" onclick={() => { if (editingId !== entry.id) toggleExpand(entry.id); }}>
 				<div class="entry-top">
 					<span class="type-badge" style="background: {color}">{getTypeLabel(entry.type)}</span>
 					<div class="entry-top-right">
@@ -588,7 +654,7 @@
 						<button
 							class="entry-delete"
 							class:confirm={confirmDeleteId === entry.id}
-							onclick={() => deleteEntry(entry)}
+							onclick={(e) => { e.stopPropagation(); deleteEntry(entry); }}
 							aria-label={t.common.delete}
 							title={confirmDeleteId === entry.id ? t.common.confirmDelete : t.common.delete}
 						>
@@ -606,6 +672,44 @@
 						{#each entry.data.tags as tag}
 							<span class="entry-tag">{tag}</span>
 						{/each}
+					</div>
+				{/if}
+				{#if expandedId === entry.id}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div class="entry-expanded" onclick={(e) => e.stopPropagation()}>
+						{#if editingId === entry.id}
+							<div class="edit-form">
+								{#each Object.entries(editData).filter(([k]) => !hiddenFields.has(k)) as [key, val] (key)}
+									<label class="edit-field">
+										<span class="edit-label">{fieldLabel(key)}</span>
+										{#if typeof val === 'boolean'}
+											<input type="checkbox" checked={val} onchange={(e) => { editData[key] = (e.target as HTMLInputElement).checked; }} />
+										{:else if typeof val === 'number'}
+											<input type="number" class="edit-input" value={val} oninput={(e) => { editData[key] = Number((e.target as HTMLInputElement).value); }} />
+										{:else}
+											<input type="text" class="edit-input" value={String(val ?? '')} oninput={(e) => { editData[key] = (e.target as HTMLInputElement).value; }} />
+										{/if}
+									</label>
+								{/each}
+								<div class="edit-actions">
+									<button class="edit-save" onclick={() => saveEdit(entry)}>{t.common.save}</button>
+									<button class="edit-cancel" onclick={cancelEdit}>{t.common.cancel}</button>
+								</div>
+							</div>
+						{:else}
+							<div class="detail-fields">
+								{#each Object.entries(entry.data).filter(([k]) => !hiddenFields.has(k)) as [key, val]}
+									<div class="detail-row">
+										<span class="detail-key">{fieldLabel(key)}</span>
+										<span class="detail-val">{formatFieldValue(val)}</span>
+									</div>
+								{/each}
+							</div>
+							<button class="edit-entry-btn" onclick={() => startEdit(entry)}>
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+								{t.common.edit}
+							</button>
+						{/if}
 					</div>
 				{/if}
 			</div>
@@ -1083,6 +1187,123 @@
 	.top-type-count {
 		font-size: 0.62rem;
 		opacity: 0.75;
+	}
+
+	/* --- Expanded entry --- */
+	.entry-card {
+		cursor: pointer;
+	}
+
+	.entry-card.expanded {
+		border-color: var(--c-accent);
+	}
+
+	.entry-expanded {
+		margin-top: 0.4rem;
+		padding-top: 0.4rem;
+		border-top: 1px solid var(--c-border);
+	}
+
+	.detail-fields {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 0.15rem 0.6rem;
+		font-size: 0.8rem;
+	}
+
+	.detail-key {
+		color: var(--c-text-muted);
+		font-weight: 500;
+		white-space: nowrap;
+	}
+
+	.detail-val {
+		color: var(--c-text);
+		word-break: break-word;
+	}
+
+	.edit-entry-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		margin-top: 0.4rem;
+		font-size: 0.75rem;
+		padding: 0.25rem 0.6rem;
+		border-radius: var(--radius);
+		color: var(--c-accent);
+		background: none;
+		border: 1px solid var(--c-accent);
+	}
+
+	.edit-entry-btn:hover {
+		background: color-mix(in srgb, var(--c-accent) 10%, transparent);
+		transform: none;
+		box-shadow: none;
+	}
+
+	.edit-form {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.edit-field {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.8rem;
+	}
+
+	.edit-label {
+		min-width: 5rem;
+		color: var(--c-text-muted);
+		font-weight: 500;
+		font-size: 0.75rem;
+	}
+
+	.edit-input {
+		flex: 1;
+		padding: 0.25rem 0.4rem;
+		font-size: 0.8rem;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		background: var(--c-bg);
+		color: var(--c-text);
+	}
+
+	.edit-actions {
+		display: flex;
+		gap: 0.35rem;
+		margin-top: 0.3rem;
+	}
+
+	.edit-save {
+		font-size: 0.75rem;
+		padding: 0.3rem 0.8rem;
+		background: var(--c-accent);
+		color: #fff;
+		border: none;
+		border-radius: var(--radius);
+	}
+
+	.edit-save:hover {
+		transform: none;
+		box-shadow: none;
+	}
+
+	.edit-cancel {
+		font-size: 0.75rem;
+		padding: 0.3rem 0.8rem;
+		background: none;
+		color: var(--c-text-muted);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+	}
+
+	.edit-cancel:hover {
+		color: var(--c-text);
+		transform: none;
+		box-shadow: none;
 	}
 
 	/* --- Load more --- */

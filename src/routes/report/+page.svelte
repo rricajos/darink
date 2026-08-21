@@ -485,6 +485,122 @@
 		toast.show(t.report.downloaded);
 	}
 
+	async function shareReportImage() {
+		const w = 600, h = 400;
+		const canvas = document.createElement('canvas');
+		canvas.width = w;
+		canvas.height = h;
+		const ctx = canvas.getContext('2d')!;
+
+		const isDark = document.documentElement.classList.contains('dark');
+		const bg = isDark ? '#1a1a2e' : '#ffffff';
+		const fg = isDark ? '#e0e0e0' : '#1a1a2e';
+		const muted = isDark ? '#888' : '#888';
+		const accent = '#4aa3ff';
+		const green = '#22c55e';
+
+		ctx.fillStyle = bg;
+		ctx.roundRect(0, 0, w, h, 16);
+		ctx.fill();
+
+		ctx.fillStyle = accent;
+		ctx.fillRect(0, 0, w, 5);
+
+		ctx.fillStyle = fg;
+		ctx.font = 'bold 22px system-ui, sans-serif';
+		ctx.fillText('Darink — ' + t.report.weeklyReport, 30, 45);
+
+		ctx.fillStyle = muted;
+		ctx.font = '14px system-ui, sans-serif';
+		ctx.fillText(weekLabel, 30, 68);
+
+		if (weeklyScore.hasData) {
+			const sc = weeklyScore.score;
+			const color = sc >= 70 ? green : sc >= 40 ? '#e8a735' : '#e53e3e';
+			ctx.fillStyle = color;
+			ctx.font = 'bold 56px system-ui, sans-serif';
+			ctx.textAlign = 'right';
+			ctx.fillText(String(sc), w - 40, 60);
+			ctx.fillStyle = muted;
+			ctx.font = '13px system-ui, sans-serif';
+			ctx.fillText('/100', w - 40, 78);
+			ctx.textAlign = 'left';
+		}
+
+		let y = 110;
+		const metrics: Array<[string, string]> = [];
+		if (currentCheckins.mood !== null) metrics.push([t.common.mood, `${currentCheckins.mood}/10`]);
+		if (currentCheckins.energy !== null) metrics.push([t.common.energy, `${currentCheckins.energy}/10`]);
+		if (currentCheckins.sleep !== null) metrics.push([t.common.sleep, `${currentCheckins.sleep}h`]);
+		if (currentCheckins.stress !== null) metrics.push([t.common.stress, `${currentCheckins.stress}/10`]);
+
+		if (metrics.length > 0) {
+			const colW = (w - 60) / metrics.length;
+			for (let i = 0; i < metrics.length; i++) {
+				const x = 30 + i * colW;
+				ctx.fillStyle = fg;
+				ctx.font = 'bold 24px system-ui, sans-serif';
+				ctx.fillText(metrics[i][1], x, y);
+				ctx.fillStyle = muted;
+				ctx.font = '12px system-ui, sans-serif';
+				ctx.fillText(metrics[i][0], x, y + 18);
+			}
+			y += 50;
+		}
+
+		ctx.strokeStyle = isDark ? '#333' : '#e5e5e5';
+		ctx.lineWidth = 1;
+		ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(w - 30, y); ctx.stroke();
+		y += 25;
+
+		if (currentTraining.total > 0) {
+			ctx.fillStyle = fg;
+			ctx.font = 'bold 16px system-ui, sans-serif';
+			ctx.fillText(`${t.report.training}: ${currentTraining.total} ${t.report.sessions}`, 30, y);
+			y += 24;
+			for (const [type, count] of currentTraining.byType.slice(0, 4)) {
+				ctx.fillStyle = muted;
+				ctx.font = '13px system-ui, sans-serif';
+				ctx.fillText(`  ${type}: ${count}`, 30, y);
+				y += 18;
+			}
+			y += 8;
+		}
+
+		if (currentHabits.length > 0) {
+			ctx.fillStyle = fg;
+			ctx.font = 'bold 16px system-ui, sans-serif';
+			ctx.fillText(`${t.report.habits}: ${currentHabits.length}`, 30, y);
+			y += 22;
+		}
+
+		ctx.fillStyle = fg;
+		ctx.font = 'bold 16px system-ui, sans-serif';
+		ctx.fillText(`${t.report.totalEntries}: ${weekEntries.length}`, 30, y);
+
+		ctx.fillStyle = muted;
+		ctx.font = '11px system-ui, sans-serif';
+		ctx.textAlign = 'right';
+		ctx.fillText('darink.app', w - 20, h - 15);
+		ctx.textAlign = 'left';
+
+		canvas.toBlob(async (blob) => {
+			if (!blob) return;
+			const file = new File([blob], `darink-report-${isoDate(weekStart)}.png`, { type: 'image/png' });
+			if (navigator.share && navigator.canShare?.({ files: [file] })) {
+				await navigator.share({ files: [file], title: `Darink Report — ${weekLabel}` });
+			} else {
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = file.name;
+				a.click();
+				URL.revokeObjectURL(url);
+				toast.show(t.report.imageDownloaded);
+			}
+		}, 'image/png');
+	}
+
 	// --- Medication Adherence ---
 	let medicationRegimen = $state<Array<{ name: string; dose: string; frequency: string }>>([]);
 	onMount(() => {
@@ -665,6 +781,10 @@
 	<button class="share-btn" onclick={downloadReport}>
 		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
 		{t.report.download}
+	</button>
+	<button class="share-btn" onclick={shareReportImage}>
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+		{t.report.shareImage}
 	</button>
 </section>
 

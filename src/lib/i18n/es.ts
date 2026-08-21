@@ -165,7 +165,8 @@ const es: typeof import('./en').default = {
 		yesterdayVsToday: 'Ayer vs Hoy',
 		noYesterdayData: 'Sin datos de ayer',
 		storageUsed: 'Almacenamiento usado',
-		storageOf: 'de ~5 MB'
+		storageOf: 'de ~5 MB',
+		yourWeek: 'Tu Semana'
 	},
 	checkin: {
 		title: 'Check-in',
@@ -1224,7 +1225,9 @@ const es: typeof import('./en').default = {
 		copy: 'Copiar',
 		download: 'Descargar',
 		copied: 'Informe copiado al portapapeles',
-		downloaded: 'Informe descargado'
+		downloaded: 'Informe descargado',
+		shareImage: 'Compartir Imagen',
+		imageDownloaded: 'Imagen del informe descargada'
 	},
 	profile: {
 		title: 'Perfil',
@@ -1466,7 +1469,9 @@ const es: typeof import('./en').default = {
 		logged: 'registrado',
 		quickWater: 'Registrar agua',
 		waterLogged: '250ml de agua registrado',
-		waterLoggedShort: 'agua registrada'
+		waterLoggedShort: 'agua registrada',
+		quickMedication: 'Registrar Medicamento',
+		noMedicationsConfigured: 'Sin medicamentos configurados. Añádelos en la página de Medicamentos.'
 	},
 	heatmap: {
 		months: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'] as readonly string[],

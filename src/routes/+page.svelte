@@ -518,6 +518,48 @@
 		return result.slice(0, 4);
 	});
 
+	/* --- Weekly digest --- */
+	const weekDigest = $derived.by(() => {
+		const allItems = store.items;
+		function weekEntries(startAgo: number) {
+			const dates: string[] = [];
+			for (let i = startAgo; i < startAgo + 7; i++) dates.push(isoForDaysAgo(i));
+			return allItems.filter(e => dates.includes(dateOf(e)));
+		}
+
+		const thisW = weekEntries(0);
+		const lastW = weekEntries(7);
+		if (thisW.length === 0 && lastW.length === 0) return null;
+
+		function avgField(items: Entry[], type: string, field: string): number {
+			const vals = items.filter(e => e.type === type).map(e => Number(e.data[field]) || 0).filter(v => v > 0);
+			return vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : 0;
+		}
+
+		const metrics: Array<{ label: string; current: number; previous: number; unit: string }> = [];
+
+		const thisMood = avgField(thisW, 'checkin', 'mood');
+		const lastMood = avgField(lastW, 'checkin', 'mood');
+		if (thisMood > 0 || lastMood > 0) metrics.push({ label: t.common.mood, current: thisMood, previous: lastMood, unit: '' });
+
+		const thisEnergy = avgField(thisW, 'checkin', 'energy');
+		const lastEnergy = avgField(lastW, 'checkin', 'energy');
+		if (thisEnergy > 0 || lastEnergy > 0) metrics.push({ label: t.common.energy, current: thisEnergy, previous: lastEnergy, unit: '' });
+
+		const thisSleep = avgField(thisW, 'checkin', 'sleep');
+		const lastSleep = avgField(lastW, 'checkin', 'sleep');
+		if (thisSleep > 0 || lastSleep > 0) metrics.push({ label: t.common.sleep, current: thisSleep, previous: lastSleep, unit: 'h' });
+
+		const thisTraining = thisW.filter(e => e.type.startsWith('training.')).length;
+		const lastTraining = lastW.filter(e => e.type.startsWith('training.')).length;
+		metrics.push({ label: t.today_page.training, current: thisTraining, previous: lastTraining, unit: '' });
+
+		const thisEntries = thisW.length;
+		const lastEntries = lastW.length;
+
+		return { metrics, thisEntries, lastEntries };
+	});
+
 	/* --- Daily completion donut --- */
 	const completionData = $derived.by(() => {
 		const total = 6;
@@ -759,6 +801,20 @@
 		});
 	});
 
+	/* --- Hydration quick-add --- */
+	const hydrationTarget = $derived(Number(ui.get().hydrationTarget) || 0);
+	const todayHydrationMl = $derived.by(() => {
+		return store.items
+			.filter(e => e.type === 'hydration' && dateOf(e) === today)
+			.reduce((sum, e) => sum + (Number(e.data.amount) || 0), 0);
+	});
+	const hydrationPct = $derived(hydrationTarget > 0 ? Math.min(Math.round((todayHydrationMl / hydrationTarget) * 100), 100) : 0);
+
+	function quickWater(ml: number) {
+		entries.add('hydration', { date: today, amount: ml, unit: 'ml' });
+		toast.show(`${ml}ml ${t.quickLog.waterLoggedShort}`);
+	}
+
 	/* --- What's missing --- */
 	const missingItems = $derived.by(() => {
 		const items: Array<{ label: string; hint: string; href: string; icon: string }> = [];
@@ -984,6 +1040,24 @@
 			</div>
 		{/if}
 
+		<!-- Hydration quick-add -->
+		{#if hydrationTarget > 0}
+			<div class="hydration-quick">
+				<div class="hydration-header">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--c-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+					<span class="hydration-label">{t.more.hydration}</span>
+					<span class="hydration-val">{(todayHydrationMl / 1000).toFixed(1)}L {t.today_page.hydrationOf} {(hydrationTarget / 1000).toFixed(1)}L</span>
+				</div>
+				<div class="hydration-bar">
+					<div class="hydration-fill" class:full={todayHydrationMl >= hydrationTarget} style="width:{hydrationPct}%"></div>
+				</div>
+				<div class="hydration-btns">
+					<button class="hydration-btn" onclick={() => quickWater(250)}>+250ml</button>
+					<button class="hydration-btn" onclick={() => quickWater(500)}>+500ml</button>
+				</div>
+			</div>
+		{/if}
+
 		<!-- 7-day trend sparkline -->
 		{#if weekWithData.length >= 2}
 			<div class="trend-section">
@@ -1032,6 +1106,40 @@
 								{#if day.sleep !== null}<span class="wg-metric">{t.common.sleep} {day.sleep}h</span>{/if}
 							{:else}
 								<span class="wg-empty">—</span>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Weekly digest -->
+		{#if weekDigest}
+			<div class="week-digest">
+				<div class="wd-header">
+					<h2>{t.today_page.yourWeek}</h2>
+					<a href="/report" class="wd-link">{t.report.title} →</a>
+				</div>
+				<div class="wd-stats">
+					<div class="wd-stat">
+						<span class="wd-stat-val">{weekDigest.thisEntries}</span>
+						<span class="wd-stat-label">{t.common.entries}</span>
+						{#if weekDigest.thisEntries !== weekDigest.lastEntries}
+							{@const d = weekDigest.thisEntries - weekDigest.lastEntries}
+							<span class="wd-delta" class:up={d > 0} class:down={d < 0}>
+								{d > 0 ? '↑' : '↓'}{Math.abs(d)}
+							</span>
+						{/if}
+					</div>
+					{#each weekDigest.metrics as m}
+						<div class="wd-stat">
+							<span class="wd-stat-val">{m.current}{m.unit}</span>
+							<span class="wd-stat-label">{m.label}</span>
+							{#if m.previous > 0 && Math.round((m.current - m.previous) * 10) !== 0}
+								{@const d = Math.round((m.current - m.previous) * 10) / 10}
+								<span class="wd-delta" class:up={d > 0} class:down={d < 0}>
+									{d > 0 ? '↑' : '↓'}{Math.abs(d)}
+								</span>
 							{/if}
 						</div>
 					{/each}
@@ -1407,6 +1515,147 @@
 
 	.goal-mini-fill.complete {
 		background: var(--c-done);
+	}
+
+	/* Weekly digest */
+	.week-digest {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.6rem 0.75rem;
+		margin-top: 0.5rem;
+	}
+
+	.wd-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.4rem;
+	}
+
+	.wd-header h2 {
+		margin: 0;
+		font-size: 0.85rem;
+	}
+
+	.wd-link {
+		font-size: 0.7rem;
+		color: var(--c-accent);
+		text-decoration: none;
+		font-weight: 500;
+	}
+
+	.wd-stats {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		justify-content: space-around;
+	}
+
+	.wd-stat {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.05rem;
+		min-width: 3.5rem;
+	}
+
+	.wd-stat-val {
+		font-size: 1rem;
+		font-weight: 700;
+		color: var(--c-text);
+		font-variant-numeric: tabular-nums;
+		line-height: 1.2;
+	}
+
+	.wd-stat-label {
+		font-size: 0.6rem;
+		color: var(--c-text-muted);
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.wd-delta {
+		font-size: 0.6rem;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.wd-delta.up { color: var(--c-done); }
+	.wd-delta.down { color: #e53e3e; }
+
+	/* Hydration quick-add */
+	.hydration-quick {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.6rem 0.75rem;
+		margin-top: 0.5rem;
+	}
+
+	.hydration-header {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin-bottom: 0.35rem;
+	}
+
+	.hydration-label {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--c-text);
+	}
+
+	.hydration-val {
+		margin-left: auto;
+		font-size: 0.72rem;
+		color: var(--c-text-muted);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.hydration-bar {
+		height: 6px;
+		background: var(--c-border);
+		border-radius: 3px;
+		overflow: hidden;
+		margin-bottom: 0.4rem;
+	}
+
+	.hydration-fill {
+		height: 100%;
+		background: var(--c-accent);
+		border-radius: 3px;
+		transition: width 0.3s ease;
+	}
+
+	.hydration-fill.full {
+		background: var(--c-done);
+	}
+
+	.hydration-btns {
+		display: flex;
+		gap: 0.35rem;
+	}
+
+	.hydration-btn {
+		flex: 1;
+		padding: 0.3rem 0;
+		font-size: 0.75rem;
+		font-weight: 600;
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		background: var(--c-accent-bg);
+		color: var(--c-accent);
+		cursor: pointer;
+	}
+
+	.hydration-btn:hover {
+		background: var(--c-accent);
+		color: #fff;
+		border-color: var(--c-accent);
+		transform: none;
+		box-shadow: none;
 	}
 
 	/* 7-day trend */

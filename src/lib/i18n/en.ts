@@ -165,7 +165,8 @@ const en = {
 		yesterdayVsToday: 'Yesterday vs Today',
 		noYesterdayData: 'No data from yesterday',
 		storageUsed: 'Storage used',
-		storageOf: 'of ~5 MB'
+		storageOf: 'of ~5 MB',
+		yourWeek: 'Your Week'
 	},
 	checkin: {
 		title: 'Check-in',
@@ -1229,7 +1230,9 @@ const en = {
 		copy: 'Copy',
 		download: 'Download',
 		copied: 'Report copied to clipboard',
-		downloaded: 'Report downloaded'
+		downloaded: 'Report downloaded',
+		shareImage: 'Share Image',
+		imageDownloaded: 'Report image downloaded'
 	},
 	profile: {
 		title: 'Profile',
@@ -1471,7 +1474,9 @@ const en = {
 		logged: 'logged',
 		quickWater: 'Log Water',
 		waterLogged: '250ml water logged',
-		waterLoggedShort: 'water logged'
+		waterLoggedShort: 'water logged',
+		quickMedication: 'Log Medication',
+		noMedicationsConfigured: 'No medications configured. Add them in the Medications page.'
 	},
 	heatmap: {
 		months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as readonly string[],

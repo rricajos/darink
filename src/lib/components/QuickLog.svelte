@@ -19,7 +19,7 @@
 	]);
 
 	let open = $state(false);
-	let panel = $state<'habits' | 'supplements' | 'journal' | 'water' | null>(null);
+	let panel = $state<'habits' | 'supplements' | 'journal' | 'water' | 'medications' | null>(null);
 	let journalText = $state('');
 	let customWaterMl = $state(300);
 	let mounted = $state(false);
@@ -97,6 +97,19 @@
 
 	function logSupplement(item: { name: string; dose: string; timing: string }) {
 		const e = entries.add('supplement', { date: today(), name: item.name, dose: item.dose, timing: item.timing, notes: '' });
+		toast.show(`${item.name} ${t.quickLog.logged}`, { label: t.common.undo, fn: () => undoAction(e.id) });
+		close();
+	}
+
+	const medicationRegimen = $derived.by(() => {
+		const saved = ui.get().medicationRegimen;
+		return Array.isArray(saved) ? saved as Array<{ name: string; dose: string; frequency: string }> : [];
+	});
+
+	function logMedication(item: { name: string; dose: string }) {
+		const h = new Date().getHours();
+		const slot = h < 12 ? 'morning' : h < 17 ? 'noon' : 'evening';
+		const e = entries.add('medication', { date: today(), name: item.name, dose: item.dose, time: slot, sideEffects: [], severity: 0, notes: '' });
 		toast.show(`${item.name} ${t.quickLog.logged}`, { label: t.common.undo, fn: () => undoAction(e.id) });
 		close();
 	}
@@ -195,6 +208,13 @@
 						<span class="ql-action-label">{t.quickLog.takeSupplement}</span>
 					</button>
 
+					<button class="ql-action" onclick={() => panel = 'medications'}>
+						<span class="ql-action-icon">
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+						</span>
+						<span class="ql-action-label">{t.quickLog.quickMedication}</span>
+					</button>
+
 					<button class="ql-action" onclick={() => panel = 'journal'}>
 						<span class="ql-action-icon">
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
@@ -254,6 +274,26 @@
 						<div class="ql-water-custom">
 							<input type="number" class="ql-water-input" min="50" step="50" bind:value={customWaterMl} />
 							<button class="ql-water-go" onclick={() => quickWater(customWaterMl)}>ml</button>
+						</div>
+					</div>
+				{:else if panel === 'medications'}
+					<div class="ql-panel">
+						<div class="ql-panel-header">
+							<button class="ql-back" onclick={() => panel = null} aria-label={t.common.back}>
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+							</button>
+							<span class="ql-panel-title">{t.quickLog.quickMedication}</span>
+						</div>
+						<div class="ql-chips">
+							{#if medicationRegimen.length > 0}
+								{#each medicationRegimen as item}
+									<button class="ql-chip" onclick={() => logMedication(item)}>
+										{item.name}{#if item.dose} <span class="ql-chip-meta">{item.dose}</span>{/if}
+									</button>
+								{/each}
+							{:else}
+								<p class="ql-empty">{t.quickLog.noMedicationsConfigured}</p>
+							{/if}
 						</div>
 					</div>
 				{:else if panel === 'journal'}
@@ -438,6 +478,7 @@
 	.ql-action:nth-child(3) { animation-delay: 0.08s; }
 	.ql-action:nth-child(4) { animation-delay: 0.11s; }
 	.ql-action:nth-child(5) { animation-delay: 0.14s; }
+	.ql-action:nth-child(6) { animation-delay: 0.17s; }
 
 	.ql-action-icon {
 		width: 40px;
