@@ -685,7 +685,11 @@ const es: typeof import('./en').default = {
 		timeMorning: 'Mañana',
 		timeNoon: 'Mediodía',
 		timeEvening: 'Noche',
-		timeNight: 'Noche'
+		timeNight: 'Noche',
+		adherenceStreaks: 'Rachas de Adherencia',
+		currentStreak: 'actual',
+		bestStreak: 'mejor',
+		adherenceRate: 'tasa 30d'
 	},
 	symptoms: {
 		title: 'Síntomas',
@@ -814,6 +818,9 @@ const es: typeof import('./en').default = {
 		topWords: 'Palabras frecuentes',
 		emptyHint: 'Empieza a escribir para capturar pensamientos, reflexiones y contexto sobre tu camino de salud.',
 		updated: 'Actualizado',
+		entryLength: 'Tendencia de Extensión',
+		avgWords: 'Palabras/entrada media',
+		words: 'palabras',
 		prompts: [
 			'¿Cómo se siente tu cuerpo hoy?',
 			'¿De qué estás agradecido?',
@@ -1110,7 +1117,13 @@ const es: typeof import('./en').default = {
 		habitStreaks: 'Rachas de hábitos',
 		checkinPeaks: 'Picos de check-in',
 		bodyComposition: 'Composición corporal',
-		daysAgoLabel: 'días atrás'
+		daysAgoLabel: 'días atrás',
+		supplementRecords: 'Récords de Suplementos',
+		medicationRecords: 'Récords de Medicación',
+		streak: 'racha',
+		mostTakenSupplement: 'Suplemento más tomado',
+		adherence: 'adherencia',
+		totalDosesLogged: 'Total dosis registradas'
 	},
 	timeline: {
 		title: 'Línea temporal',
@@ -1381,7 +1394,10 @@ const es: typeof import('./en').default = {
 		clear: 'Limpiar',
 		tagCloud: 'Nube de etiquetas',
 		results: 'resultados',
-		noMatchSearch: 'Ningún registro coincide con tu búsqueda.'
+		noMatchSearch: 'Ningún registro coincide con tu búsqueda.',
+		activityHeatmap: 'Actividad 90 Días',
+		less: 'Menos',
+		more: 'Más'
 	},
 	ref: {
 		title: 'Referencia',

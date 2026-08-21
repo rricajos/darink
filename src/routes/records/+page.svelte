@@ -250,12 +250,87 @@
 		return records;
 	});
 
+	/* --- Supplement Records --- */
+	const supplementRecords = $derived.by(() => {
+		const items = store.items;
+		const records: Record[] = [];
+		const suppEntries = items.filter(e => e.type === 'supplement');
+		if (suppEntries.length === 0) return records;
+
+		const byName = new Map<string, string[]>();
+		for (const e of suppEntries) {
+			const name = (e.data.name as string) ?? '';
+			if (!name) continue;
+			const d = entryDate(e);
+			if (!byName.has(name)) byName.set(name, []);
+			byName.get(name)!.push(d);
+		}
+
+		for (const [name, dates] of byName) {
+			const unique = [...new Set(dates)].sort();
+			let bestStreak = 1, run = 1;
+			for (let i = 1; i < unique.length; i++) {
+				const prev = new Date(unique[i - 1] + 'T00:00:00');
+				const curr = new Date(unique[i] + 'T00:00:00');
+				if ((curr.getTime() - prev.getTime()) / 86400000 === 1) {
+					run++;
+					if (run > bestStreak) bestStreak = run;
+				} else { run = 1; }
+			}
+			records.push({ title: `${name} ${t.records.streak}`, value: `${bestStreak} ${t.common.days}`, date: '' });
+		}
+
+		const mostTaken = [...byName.entries()].sort((a, b) => b[1].length - a[1].length)[0];
+		if (mostTaken) {
+			records.push({ title: t.records.mostTakenSupplement, value: `${mostTaken[0]} (${mostTaken[1].length}x)`, date: '' });
+		}
+
+		return records;
+	});
+
+	/* --- Medication Records --- */
+	const medicationRecords = $derived.by(() => {
+		const items = store.items;
+		const records: Record[] = [];
+		const medEntries = items.filter(e => e.type === 'medication');
+		if (medEntries.length === 0) return records;
+
+		const byName = new Map<string, string[]>();
+		for (const e of medEntries) {
+			const name = (e.data.name as string) ?? '';
+			if (!name) continue;
+			const d = entryDate(e);
+			if (!byName.has(name)) byName.set(name, []);
+			byName.get(name)!.push(d);
+		}
+
+		for (const [name, dates] of byName) {
+			const unique = [...new Set(dates)].sort();
+			let bestStreak = 1, run = 1;
+			for (let i = 1; i < unique.length; i++) {
+				const prev = new Date(unique[i - 1] + 'T00:00:00');
+				const curr = new Date(unique[i] + 'T00:00:00');
+				if ((curr.getTime() - prev.getTime()) / 86400000 === 1) {
+					run++;
+					if (run > bestStreak) bestStreak = run;
+				} else { run = 1; }
+			}
+			records.push({ title: `${name} ${t.records.adherence}`, value: `${bestStreak} ${t.common.days}`, date: '' });
+		}
+
+		records.push({ title: t.records.totalDosesLogged, value: `${medEntries.length}`, date: '' });
+
+		return records;
+	});
+
 	const hasAnyRecords = $derived(
 		trainingRecords.length > 0 ||
 		habitRecords.length > 0 ||
 		consistencyRecords.length > 0 ||
 		checkinRecords.length > 0 ||
-		weightRecords.length > 0
+		weightRecords.length > 0 ||
+		supplementRecords.length > 0 ||
+		medicationRecords.length > 0
 	);
 
 	interface Section {
@@ -271,6 +346,8 @@
 		if (consistencyRecords.length > 0) result.push({ title: t.records.consistency, icon: 'calendar', records: consistencyRecords });
 		if (checkinRecords.length > 0) result.push({ title: t.records.checkinRecords, icon: 'star', records: checkinRecords });
 		if (weightRecords.length > 0) result.push({ title: t.records.weightRecords, icon: 'scale', records: weightRecords });
+		if (supplementRecords.length > 0) result.push({ title: t.records.supplementRecords, icon: 'pill', records: supplementRecords });
+		if (medicationRecords.length > 0) result.push({ title: t.records.medicationRecords, icon: 'pill', records: medicationRecords });
 		return result;
 	});
 
@@ -430,6 +507,8 @@
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
 			{:else if section.icon === 'scale'}
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+			{:else if section.icon === 'pill'}
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
 			{/if}
 			<h2>{section.title}</h2>
 		</div>

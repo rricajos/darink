@@ -153,6 +153,47 @@
 		return days;
 	});
 
+	/* --- Per-medication adherence streaks --- */
+	const medStreaks = $derived.by(() => {
+		if (scheduledMeds.length === 0) return [];
+		const results: { name: string; currentStreak: number; bestStreak: number; adherenceRate: number }[] = [];
+		for (const med of scheduledMeds) {
+			const slotsPerDay = doseSlotsForFreq(med.frequency).length;
+			if (slotsPerDay === 0) continue;
+			const dayMap = new Map<string, number>();
+			for (const e of store.items) {
+				if ((e.data.name as string)?.toLowerCase() !== med.name.toLowerCase()) continue;
+				const d = (e.data.date as string) ?? e.createdAt.slice(0, 10);
+				dayMap.set(d, (dayMap.get(d) ?? 0) + 1);
+			}
+			const sortedDays = [...dayMap.keys()].sort();
+			if (sortedDays.length === 0) { results.push({ name: med.name, currentStreak: 0, bestStreak: 0, adherenceRate: 0 }); continue; }
+			let bestStreak = 1, currentStreak = 1;
+			for (let i = 1; i < sortedDays.length; i++) {
+				const prev = new Date(sortedDays[i - 1] + 'T00:00:00');
+				const curr = new Date(sortedDays[i] + 'T00:00:00');
+				const diff = (curr.getTime() - prev.getTime()) / 86400000;
+				if (diff === 1) { currentStreak++; if (currentStreak > bestStreak) bestStreak = currentStreak; }
+				else currentStreak = 1;
+			}
+			const lastDay = sortedDays[sortedDays.length - 1];
+			const todayD = new Date().toISOString().slice(0, 10);
+			const gapToToday = (new Date(todayD + 'T00:00:00').getTime() - new Date(lastDay + 'T00:00:00').getTime()) / 86400000;
+			if (gapToToday > 1) currentStreak = 0;
+			let totalExpected = 0, totalTaken = 0;
+			const last30 = new Date(); last30.setDate(last30.getDate() - 29);
+			for (let i = 0; i < 30; i++) {
+				const d = new Date(last30); d.setDate(d.getDate() + i);
+				const key = d.toISOString().slice(0, 10);
+				totalExpected += slotsPerDay;
+				totalTaken += Math.min(dayMap.get(key) ?? 0, slotsPerDay);
+			}
+			const adherenceRate = totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 0;
+			results.push({ name: med.name, currentStreak, bestStreak, adherenceRate });
+		}
+		return results;
+	});
+
 	/* --- Side effect frequency --- */
 	const sideEffectCounts = $derived.by(() => {
 		const counts = new Map<string, number>();
@@ -325,6 +366,36 @@
 			{/if}
 		{/each}
 	</svg>
+</section>
+{/if}
+
+<!-- Adherence Streaks -->
+{#if medStreaks.length > 0}
+<section class="streaks-section">
+	<h2>{t.medications.adherenceStreaks}</h2>
+	<div class="streaks-grid">
+		{#each medStreaks as ms}
+			<div class="streak-card">
+				<strong class="streak-med-name">{ms.name}</strong>
+				<div class="streak-stats">
+					<div class="streak-stat">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14 0-5.5 3-7 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.5-2.26 1.4-3.2l1.1 1.2"/></svg>
+						<span class="streak-num" class:streak-active={ms.currentStreak > 0}>{ms.currentStreak}</span>
+						<span class="streak-label">{t.medications.currentStreak}</span>
+					</div>
+					<div class="streak-stat">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+						<span class="streak-num">{ms.bestStreak}</span>
+						<span class="streak-label">{t.medications.bestStreak}</span>
+					</div>
+					<div class="streak-stat">
+						<span class="streak-pct" class:pct-high={ms.adherenceRate >= 80} class:pct-mid={ms.adherenceRate >= 50 && ms.adherenceRate < 80} class:pct-low={ms.adherenceRate < 50}>{ms.adherenceRate}%</span>
+						<span class="streak-label">{t.medications.adherenceRate}</span>
+					</div>
+				</div>
+			</div>
+		{/each}
+	</div>
 </section>
 {/if}
 
@@ -768,6 +839,26 @@
 		font-size: 0.8rem;
 		text-transform: capitalize;
 	}
+
+	/* Adherence Streaks */
+	.streaks-section { padding: 0 1rem 1rem; }
+	.streaks-grid { display: flex; flex-direction: column; gap: 0.4rem; }
+	.streak-card {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.6rem 0.75rem;
+	}
+	.streak-med-name { font-size: 0.9rem; display: block; margin-bottom: 0.4rem; }
+	.streak-stats { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+	.streak-stat { display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; color: var(--c-text-muted); }
+	.streak-num { font-weight: 700; font-size: 1rem; color: var(--c-text); }
+	.streak-num.streak-active { color: var(--c-done); }
+	.streak-label { font-size: 0.7rem; }
+	.streak-pct { font-weight: 700; font-size: 1rem; }
+	.streak-pct.pct-high { color: var(--c-done); }
+	.streak-pct.pct-mid { color: #e6a817; }
+	.streak-pct.pct-low { color: var(--c-cancel); }
 
 	.empty-hint {
 		font-size: 0.85rem;

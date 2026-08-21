@@ -123,6 +123,28 @@
 			.map(([word, count]) => ({ word, count }));
 	});
 
+	// --- Entry length trend (last 30 entries) ---
+	const entryLengthTrend = $derived.by(() => {
+		if (store.items.length < 3) return [];
+		const sorted = [...store.items]
+			.sort((a, b) => String(a.data.date ?? '').localeCompare(String(b.data.date ?? '')))
+			.slice(-30);
+		return sorted.map(e => ({
+			date: String(e.data.date ?? e.createdAt.slice(0, 10)),
+			words: wordCount(String(e.data.text ?? ''))
+		}));
+	});
+
+	const maxWords = $derived(
+		entryLengthTrend.length > 0 ? Math.max(...entryLengthTrend.map(d => d.words), 1) : 1
+	);
+
+	const avgEntryLength = $derived(
+		entryLengthTrend.length > 0
+			? Math.round(entryLengthTrend.reduce((s, d) => s + d.words, 0) / entryLengthTrend.length)
+			: 0
+	);
+
 	// --- Writing prompts ---
 	const prompts = $derived(t.journal.prompts);
 
@@ -322,6 +344,51 @@
 			</div>
 		</section>
 	{/if}
+
+	{#if entryLengthTrend.length >= 3}
+		<section class="metrics">
+			<h2>{t.journal.entryLength}</h2>
+			<div class="chart-card">
+				<div class="length-stats">
+					<span class="length-avg">{t.journal.avgWords}: <strong>{avgEntryLength}</strong></span>
+				</div>
+				<svg viewBox="0 0 280 80" class="length-chart">
+					<polyline
+						fill="none"
+						stroke="var(--c-accent)"
+						stroke-width="2"
+						stroke-linejoin="round"
+						stroke-linecap="round"
+						points={entryLengthTrend.map((d, i) => {
+							const x = entryLengthTrend.length === 1 ? 140 : 10 + (i / (entryLengthTrend.length - 1)) * 260;
+							const y = 70 - (d.words / maxWords) * 60;
+							return `${x},${y}`;
+						}).join(' ')}
+					/>
+					<polygon
+						fill="var(--c-accent)"
+						opacity="0.1"
+						points={`10,70 ${entryLengthTrend.map((d, i) => {
+							const x = entryLengthTrend.length === 1 ? 140 : 10 + (i / (entryLengthTrend.length - 1)) * 260;
+							const y = 70 - (d.words / maxWords) * 60;
+							return `${x},${y}`;
+						}).join(' ')} ${10 + ((entryLengthTrend.length - 1) / (entryLengthTrend.length - 1)) * 260},70`}
+					/>
+					{#each entryLengthTrend as d, i}
+						{@const x = entryLengthTrend.length === 1 ? 140 : 10 + (i / (entryLengthTrend.length - 1)) * 260}
+						{@const y = 70 - (d.words / maxWords) * 60}
+						<circle cx={x} cy={y} r="2.5" fill="var(--c-accent)">
+							<title>{d.date}: {d.words} {t.journal.words}</title>
+						</circle>
+					{/each}
+				</svg>
+				<div class="chart-labels">
+					<span class="chart-range">{entryLengthTrend[0].date}</span>
+					<span class="chart-range">{entryLengthTrend[entryLengthTrend.length - 1].date}</span>
+				</div>
+			</div>
+		</section>
+	{/if}
 {/if}
 
 <style>
@@ -392,4 +459,10 @@
 	.wf-track { flex: 1; height: 14px; background: var(--c-accent-bg); border-radius: calc(var(--radius) / 2); overflow: hidden; }
 	.wf-bar { height: 100%; background: var(--c-accent); border-radius: calc(var(--radius) / 2); transition: width 0.3s ease; }
 	.wf-count { font-size: 0.75rem; font-weight: 600; color: var(--c-text-muted); width: 28px; text-align: right; }
+
+	/* Entry length trend */
+	.length-chart { width: 100%; height: auto; display: block; }
+	.length-stats { display: flex; justify-content: flex-end; margin-bottom: 0.35rem; }
+	.length-avg { font-size: 0.75rem; color: var(--c-text-muted); }
+	.length-avg strong { color: var(--c-accent); }
 </style>

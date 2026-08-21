@@ -685,7 +685,11 @@ const en = {
 		timeMorning: 'Morning',
 		timeNoon: 'Noon',
 		timeEvening: 'Evening',
-		timeNight: 'Night'
+		timeNight: 'Night',
+		adherenceStreaks: 'Adherence Streaks',
+		currentStreak: 'current',
+		bestStreak: 'best',
+		adherenceRate: '30d rate'
 	},
 	symptoms: {
 		title: 'Symptoms',
@@ -814,6 +818,9 @@ const en = {
 		topWords: 'Top words',
 		emptyHint: 'Start journaling to capture thoughts, reflections, and context around your health journey.',
 		updated: 'Updated',
+		entryLength: 'Entry Length Trend',
+		avgWords: 'Avg words/entry',
+		words: 'words',
 		prompts: [
 			'How is your body feeling today?',
 			'What are you grateful for?',
@@ -1115,7 +1122,13 @@ const en = {
 		habitStreaks: 'Habit streaks',
 		checkinPeaks: 'Check-in peaks',
 		bodyComposition: 'Body composition',
-		daysAgoLabel: 'days ago'
+		daysAgoLabel: 'days ago',
+		supplementRecords: 'Supplement Records',
+		medicationRecords: 'Medication Records',
+		streak: 'streak',
+		mostTakenSupplement: 'Most taken supplement',
+		adherence: 'adherence',
+		totalDosesLogged: 'Total doses logged'
 	},
 	timeline: {
 		title: 'Timeline',
@@ -1386,7 +1399,10 @@ const en = {
 		clear: 'Clear',
 		tagCloud: 'Tag cloud',
 		results: 'results',
-		noMatchSearch: 'No entries match your search.'
+		noMatchSearch: 'No entries match your search.',
+		activityHeatmap: '90-Day Activity',
+		less: 'Less',
+		more: 'More'
 	},
 	ref: {
 		title: 'Reference',

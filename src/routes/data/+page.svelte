@@ -408,6 +408,36 @@
 		toast.show(t.data.removedDuplicates.replace('{n}', String(count)));
 	}
 
+	/* --- 90-day activity heatmap --- */
+	const activityHeatmap = $derived.by(() => {
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const dayCounts = new Map<string, number>();
+		for (const e of store.items) {
+			const d = e.createdAt.slice(0, 10);
+			dayCounts.set(d, (dayCounts.get(d) ?? 0) + 1);
+		}
+		const cells: { date: string; count: number; col: number; row: number }[] = [];
+		const DAYS = 91;
+		const startDate = new Date(today);
+		startDate.setDate(startDate.getDate() - DAYS + 1);
+		const startDow = startDate.getDay() === 0 ? 6 : startDate.getDay() - 1;
+		let maxCount = 1;
+		for (let i = 0; i < DAYS; i++) {
+			const d = new Date(startDate);
+			d.setDate(d.getDate() + i);
+			const key = d.toISOString().slice(0, 10);
+			const count = dayCounts.get(key) ?? 0;
+			if (count > maxCount) maxCount = count;
+			const dayIndex = startDow + i;
+			const col = Math.floor(dayIndex / 7);
+			const row = dayIndex % 7;
+			cells.push({ date: key, count, col, row });
+		}
+		const totalCols = cells.length > 0 ? cells[cells.length - 1].col + 1 : 1;
+		return { cells, maxCount, totalCols };
+	});
+
 	const dataQuality = $derived.by(() => {
 		const all = store.items;
 		let missing = 0;
@@ -528,6 +558,46 @@
 			{/each}
 		</div>
 	</section>
+{/if}
+
+<!-- 90-Day Activity Heatmap -->
+{#if store.items.length > 0}
+<section class="heatmap-section">
+	<h2>
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+		{t.data.activityHeatmap}
+	</h2>
+	<div class="heatmap-wrapper">
+		<div class="heatmap-days">
+			<span>{t.common.mon}</span>
+			<span></span>
+			<span>{t.common.wed}</span>
+			<span></span>
+			<span>{t.common.fri}</span>
+			<span></span>
+			<span></span>
+		</div>
+		<div class="heatmap-grid" style="grid-template-columns: repeat({activityHeatmap.totalCols}, 12px)">
+			{#each activityHeatmap.cells as cell}
+				{@const intensity = cell.count > 0 ? Math.max(0.2, cell.count / activityHeatmap.maxCount) : 0}
+				<div
+					class="heatmap-cell"
+					style="grid-column: {cell.col + 1}; grid-row: {cell.row + 1}; {cell.count > 0 ? `background: color-mix(in srgb, var(--c-accent) ${Math.round(intensity * 100)}%, transparent); border-color: color-mix(in srgb, var(--c-accent) ${Math.round(intensity * 60)}%, var(--c-border))` : ''}"
+					title="{cell.date}: {cell.count} {cell.count === 1 ? 'entry' : 'entries'}"
+				></div>
+			{/each}
+		</div>
+	</div>
+	<div class="heatmap-legend">
+		<span class="heatmap-legend-label">{t.data.less}</span>
+		<div class="heatmap-cell heatmap-legend-cell"></div>
+		<div class="heatmap-cell heatmap-legend-cell" style="background: color-mix(in srgb, var(--c-accent) 25%, transparent)"></div>
+		<div class="heatmap-cell heatmap-legend-cell" style="background: color-mix(in srgb, var(--c-accent) 50%, transparent)"></div>
+		<div class="heatmap-cell heatmap-legend-cell" style="background: color-mix(in srgb, var(--c-accent) 75%, transparent)"></div>
+		<div class="heatmap-cell heatmap-legend-cell" style="background: var(--c-accent)"></div>
+		<span class="heatmap-legend-label">{t.data.more}</span>
+	</div>
+</section>
 {/if}
 
 <!-- Search -->
@@ -851,6 +921,22 @@
 		color: var(--c-text-muted);
 		margin-top: 0.35rem;
 	}
+
+	/* Activity Heatmap */
+	.heatmap-section { padding: 0 1rem 1.5rem; }
+	.heatmap-wrapper { display: flex; gap: 0.35rem; overflow-x: auto; padding-bottom: 0.25rem; }
+	.heatmap-days { display: flex; flex-direction: column; gap: 2px; padding-top: 0; flex-shrink: 0; }
+	.heatmap-days span { height: 10px; font-size: 0.55rem; color: var(--c-text-muted); line-height: 10px; text-align: right; width: 20px; }
+	.heatmap-grid { display: grid; grid-template-rows: repeat(7, 10px); gap: 2px; }
+	.heatmap-cell {
+		width: 10px; height: 10px;
+		border-radius: 2px;
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+	}
+	.heatmap-legend { display: flex; align-items: center; gap: 3px; margin-top: 0.5rem; justify-content: flex-end; }
+	.heatmap-legend-label { font-size: 0.6rem; color: var(--c-text-muted); }
+	.heatmap-legend-cell { width: 10px; height: 10px; flex-shrink: 0; }
 
 	/* Results */
 	.results {
