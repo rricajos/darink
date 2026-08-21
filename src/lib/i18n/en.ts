@@ -1157,7 +1157,8 @@ const en = {
 		symptom: 'Symptom',
 		today: 'Today',
 		yesterday: 'Yesterday',
-		searchEntries: 'Search entries...'
+		searchEntries: 'Search entries...',
+		bodyLabs: 'Body & Labs'
 	},
 	report: {
 		title: 'Report',
@@ -1469,7 +1470,8 @@ const en = {
 		journalSaved: 'Journal entry saved',
 		logged: 'logged',
 		quickWater: 'Log Water',
-		waterLogged: '250ml water logged'
+		waterLogged: '250ml water logged',
+		waterLoggedShort: 'water logged'
 	},
 	heatmap: {
 		months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as readonly string[],

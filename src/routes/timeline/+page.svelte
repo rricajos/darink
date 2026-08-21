@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { useEntries } from '$lib/stores/entries.svelte';
+	import { useEntries, entries } from '$lib/stores/entries.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
+	import type { Entry } from '$lib/db';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { useLocale } from '$lib/stores/locale.svelte';
 
@@ -171,6 +173,29 @@
 		'experiment',
 		'journal', 'hydration', 'weight', 'measurement', 'bloodwork', 'medication', 'symptom'
 	];
+
+	interface TypeGroup {
+		label: string;
+		types: string[];
+	}
+
+	const typeGroups = $derived.by((): TypeGroup[] => [
+		{ label: t.more.healthTracking, types: ['checkin', 'intake', 'hydration', 'habit', 'supplement', 'medication', 'symptom', 'journal'] },
+		{ label: t.more.training, types: ['training.strength', 'training.cardio', 'training.hiit', 'training.rings', 'training.mobility'] },
+		{ label: t.more.signals, types: ['signal.sleep', 'signal.skin', 'signal.hair', 'signal.genital'] },
+		{ label: t.timeline.bodyLabs, types: ['weight', 'measurement', 'bloodwork', 'experiment'] }
+	]);
+
+	function toggleGroup(types: string[]): void {
+		const allOn = types.every(t => enabledTypes.has(t));
+		const next = new Set(enabledTypes);
+		for (const t of types) {
+			if (allOn) next.delete(t);
+			else next.add(t);
+		}
+		enabledTypes = next;
+		visibleCount = 50;
+	}
 
 	/* --- Filter state --- */
 	const today = new Date();
@@ -370,6 +395,21 @@
 		return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 	}
 
+	let confirmDeleteId = $state<string | null>(null);
+
+	function deleteEntry(entry: Entry) {
+		if (confirmDeleteId !== entry.id) {
+			confirmDeleteId = entry.id;
+			return;
+		}
+		entries.remove(entry.id);
+		confirmDeleteId = null;
+		toast.show(`${getTypeLabel(entry.type)} ${t.common.deleted}`, {
+			label: t.common.undo,
+			fn: () => entries.restore(entry)
+		});
+	}
+
 	function formatTime(iso: string): string {
 		return iso.slice(11, 16);
 	}
@@ -415,18 +455,27 @@
 			<button class="sm" onclick={selectAllTypes}>{t.timeline.all}</button>
 			<button class="sm" onclick={deselectAllTypes}>{t.timeline.none}</button>
 		</div>
-		<div class="type-chips">
-			{#each allTypes as type}
-				<button
-					class="type-chip"
-					class:active={enabledTypes.has(type)}
-					style="--chip-color: {getTypeColor(type)}"
-					onclick={() => toggleType(type)}
-				>
-					{getTypeLabel(type)}
+		{#each typeGroups as group}
+			{@const allOn = group.types.every(t => enabledTypes.has(t))}
+			<div class="type-group">
+				<button class="type-group-header" onclick={() => toggleGroup(group.types)}>
+					<span class="type-group-label">{group.label}</span>
+					<span class="type-group-toggle" class:all-on={allOn}>{allOn ? '−' : '+'}</span>
 				</button>
-			{/each}
-		</div>
+				<div class="type-chips">
+					{#each group.types as type}
+						<button
+							class="type-chip"
+							class:active={enabledTypes.has(type)}
+							style="--chip-color: {getTypeColor(type)}"
+							onclick={() => toggleType(type)}
+						>
+							{getTypeLabel(type)}
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/each}
 	</div>
 	{/if}
 
@@ -534,7 +583,22 @@
 			<div class="entry-card" style="--entry-color: {color}">
 				<div class="entry-top">
 					<span class="type-badge" style="background: {color}">{getTypeLabel(entry.type)}</span>
-					<span class="entry-time">{formatTime(entry.createdAt)}</span>
+					<div class="entry-top-right">
+						<span class="entry-time">{formatTime(entry.createdAt)}</span>
+						<button
+							class="entry-delete"
+							class:confirm={confirmDeleteId === entry.id}
+							onclick={() => deleteEntry(entry)}
+							aria-label={t.common.delete}
+							title={confirmDeleteId === entry.id ? t.common.confirmDelete : t.common.delete}
+						>
+							{#if confirmDeleteId === entry.id}
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--c-cancel)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+							{:else}
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+							{/if}
+						</button>
+					</div>
 				</div>
 				<div class="entry-summary">{summarize(entry.type, entry.data)}</div>
 				{#if Array.isArray(entry.data.tags) && entry.data.tags.length > 0}
@@ -679,6 +743,54 @@
 		border-radius: 4px;
 	}
 
+	.type-group {
+		margin-top: 0.4rem;
+	}
+
+	.type-group-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		background: none;
+		border: none;
+		padding: 0.2rem 0;
+		cursor: pointer;
+		margin-bottom: 0.25rem;
+	}
+
+	.type-group-header:hover {
+		background: none;
+		transform: none;
+		box-shadow: none;
+	}
+
+	.type-group-label {
+		font-size: 0.68rem;
+		font-weight: 600;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.type-group-toggle {
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: var(--c-text-muted);
+		width: 18px;
+		height: 18px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: var(--c-border);
+	}
+
+	.type-group-toggle.all-on {
+		background: var(--c-accent);
+		color: #fff;
+	}
+
 	.type-chips {
 		display: flex;
 		flex-wrap: wrap;
@@ -768,10 +880,52 @@
 		line-height: 1.5;
 	}
 
+	.entry-top-right {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
 	.entry-time {
 		font-size: 0.7rem;
 		color: var(--c-text-muted);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.entry-delete {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: none;
+		border: none;
+		padding: 0.2rem;
+		cursor: pointer;
+		color: var(--c-text-muted);
+		opacity: 0;
+		transition: opacity 0.15s, color 0.15s;
+		border-radius: var(--radius);
+	}
+
+	.entry-card:hover .entry-delete {
+		opacity: 1;
+	}
+
+	.entry-delete.confirm {
+		opacity: 1;
+		background: color-mix(in srgb, var(--c-cancel) 10%, transparent);
+	}
+
+	.entry-delete:hover {
+		color: var(--c-cancel);
+		background: none;
+		transform: none;
+		box-shadow: none;
+	}
+
+	@media (max-width: 599px) {
+		.entry-delete {
+			opacity: 0.5;
+		}
 	}
 
 	.entry-summary {

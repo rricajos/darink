@@ -19,8 +19,9 @@
 	]);
 
 	let open = $state(false);
-	let panel = $state<'habits' | 'supplements' | 'journal' | null>(null);
+	let panel = $state<'habits' | 'supplements' | 'journal' | 'water' | null>(null);
 	let journalText = $state('');
+	let customWaterMl = $state(300);
 	let mounted = $state(false);
 
 	const isHome = $derived(page.url.pathname === '/');
@@ -82,9 +83,9 @@
 		close();
 	}
 
-	function quickWater() {
-		const e = entries.add('hydration', { date: today(), amount: 250, unit: 'ml' });
-		toast.show(t.quickLog.waterLogged, { label: t.common.undo, fn: () => undoAction(e.id) });
+	function quickWater(ml: number) {
+		const e = entries.add('hydration', { date: today(), amount: ml, unit: 'ml' });
+		toast.show(`${ml}ml ${t.quickLog.waterLoggedShort}`, { label: t.common.undo, fn: () => undoAction(e.id) });
 		close();
 	}
 
@@ -97,6 +98,38 @@
 	function logSupplement(item: { name: string; dose: string; timing: string }) {
 		const e = entries.add('supplement', { date: today(), name: item.name, dose: item.dose, timing: item.timing, notes: '' });
 		toast.show(`${item.name} ${t.quickLog.logged}`, { label: t.common.undo, fn: () => undoAction(e.id) });
+		close();
+	}
+
+	const repeatableTypes = new Set(['intake', 'habit', 'supplement', 'hydration']);
+
+	function repeatLabel(e: { type: string; data: Record<string, unknown> }): string {
+		if (e.type === 'intake') return `${e.data.what ?? '?'}`;
+		if (e.type === 'habit') return `${e.data.habit ?? '?'}`;
+		if (e.type === 'supplement') return `${e.data.name ?? '?'}`;
+		if (e.type === 'hydration') return `${e.data.amount ?? '?'}ml`;
+		return e.type;
+	}
+
+	const recentEntries = $derived.by(() => {
+		const seen = new Set<string>();
+		const result: Array<{ type: string; data: Record<string, unknown>; label: string }> = [];
+		const sorted = allEntries.items.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
+		for (const e of sorted) {
+			if (!repeatableTypes.has(e.type)) continue;
+			const key = `${e.type}:${repeatLabel(e)}`;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			result.push({ type: e.type, data: e.data, label: repeatLabel(e) });
+			if (result.length >= 3) break;
+		}
+		return result;
+	});
+
+	function repeatEntry(item: { type: string; data: Record<string, unknown>; label: string }) {
+		const data = { ...item.data, date: today() };
+		const e = entries.add(item.type, data);
+		toast.show(`${item.label} ${t.quickLog.logged}`, { label: t.common.undo, fn: () => undoAction(e.id) });
 		close();
 	}
 
@@ -120,6 +153,19 @@
 		{#if open}
 			<div class="ql-menu">
 				{#if panel === null}
+					<!-- Repeat last -->
+					{#if recentEntries.length > 0}
+						<div class="ql-repeat">
+							<span class="ql-repeat-title">{t.common.repeatLast}</span>
+							<div class="ql-repeat-items">
+								{#each recentEntries as item}
+									<button class="ql-repeat-btn" onclick={() => repeatEntry(item)}>
+										<span class="ql-repeat-label">{item.label}</span>
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
 					<!-- Action buttons -->
 					<button class="ql-action" onclick={quickCheckin}>
 						<span class="ql-action-icon">
@@ -128,7 +174,7 @@
 						<span class="ql-action-label">{t.quickLog.quickCheckin}</span>
 					</button>
 
-					<button class="ql-action" onclick={quickWater}>
+					<button class="ql-action" onclick={() => panel = 'water'}>
 						<span class="ql-action-icon">
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
 						</span>
@@ -187,6 +233,27 @@
 							{:else}
 								<p class="ql-empty">{t.quickLog.noSupplementsInStack}</p>
 							{/if}
+						</div>
+					</div>
+				{:else if panel === 'water'}
+					<div class="ql-panel">
+						<div class="ql-panel-header">
+							<button class="ql-back" onclick={() => panel = null} aria-label={t.common.back}>
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+							</button>
+							<span class="ql-panel-title">{t.quickLog.quickWater}</span>
+						</div>
+						<div class="ql-water-btns">
+							<button class="ql-water-btn" onclick={() => quickWater(250)}>
+								<span class="ql-water-amount">250</span><span class="ql-water-unit">ml</span>
+							</button>
+							<button class="ql-water-btn" onclick={() => quickWater(500)}>
+								<span class="ql-water-amount">500</span><span class="ql-water-unit">ml</span>
+							</button>
+						</div>
+						<div class="ql-water-custom">
+							<input type="number" class="ql-water-input" min="50" step="50" bind:value={customWaterMl} />
+							<button class="ql-water-go" onclick={() => quickWater(customWaterMl)}>ml</button>
 						</div>
 					</div>
 				{:else if panel === 'journal'}
@@ -296,6 +363,61 @@
 		flex-direction: column;
 		gap: 8px;
 		animation: ql-slide-up 0.2s ease;
+	}
+
+	/* Repeat last */
+	.ql-repeat {
+		background: var(--c-bg-card);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		padding: 0.5rem 0.6rem;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+		animation: ql-pop-in 0.15s ease;
+	}
+
+	.ql-repeat-title {
+		font-size: 0.65rem;
+		font-weight: 600;
+		color: var(--c-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		display: block;
+		margin-bottom: 0.3rem;
+	}
+
+	.ql-repeat-items {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+	}
+
+	.ql-repeat-btn {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.25rem 0.5rem;
+		font-size: 0.75rem;
+		font-weight: 500;
+		background: var(--c-accent-bg);
+		border: 1px solid var(--c-border);
+		border-radius: 14px;
+		color: var(--c-text);
+		cursor: pointer;
+		transition: border-color 0.15s, background 0.15s;
+	}
+
+	.ql-repeat-btn:hover {
+		border-color: var(--c-accent);
+		background: var(--c-accent);
+		color: #fff;
+		transform: none;
+		box-shadow: none;
+	}
+
+	.ql-repeat-label {
+		max-width: 120px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	/* Action buttons */
@@ -444,6 +566,80 @@
 		font-size: 0.8rem;
 		color: var(--c-text-muted);
 		margin: 0;
+	}
+
+	/* Water panel */
+	.ql-water-btns {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.ql-water-btn {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.05rem;
+		padding: 0.6rem 0.5rem;
+		background: var(--c-accent-bg);
+		border: 1px solid var(--c-border);
+		border-radius: var(--radius);
+		cursor: pointer;
+		transition: border-color 0.15s, background 0.15s;
+	}
+
+	.ql-water-btn:hover {
+		border-color: var(--c-accent);
+		background: var(--c-accent);
+		color: #fff;
+		transform: none;
+		box-shadow: none;
+	}
+
+	.ql-water-amount {
+		font-size: 1.1rem;
+		font-weight: 700;
+	}
+
+	.ql-water-unit {
+		font-size: 0.65rem;
+		color: var(--c-text-muted);
+	}
+
+	.ql-water-btn:hover .ql-water-unit {
+		color: rgba(255,255,255,0.8);
+	}
+
+	.ql-water-custom {
+		display: flex;
+		gap: 0.35rem;
+	}
+
+	.ql-water-input {
+		flex: 1;
+		font-size: 0.85rem;
+		padding: 0.35rem 0.5rem;
+		text-align: center;
+	}
+
+	.ql-water-go {
+		padding: 0.35rem 0.65rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		background: var(--c-accent);
+		color: #fff;
+		border: none;
+		border-radius: var(--radius);
+		cursor: pointer;
+	}
+
+	.ql-water-go:hover {
+		opacity: 0.9;
+		background: var(--c-accent);
+		color: #fff;
+		transform: none;
+		box-shadow: none;
 	}
 
 	/* Journal textarea & save */

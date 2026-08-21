@@ -1152,7 +1152,8 @@ const es: typeof import('./en').default = {
 		symptom: 'Síntoma',
 		today: 'Hoy',
 		yesterday: 'Ayer',
-		searchEntries: 'Buscar entradas...'
+		searchEntries: 'Buscar entradas...',
+		bodyLabs: 'Cuerpo y Análisis'
 	},
 	report: {
 		title: 'Informe',
@@ -1464,7 +1465,8 @@ const es: typeof import('./en').default = {
 		journalSaved: 'Entrada de diario guardada',
 		logged: 'registrado',
 		quickWater: 'Registrar agua',
-		waterLogged: '250ml de agua registrado'
+		waterLogged: '250ml de agua registrado',
+		waterLoggedShort: 'agua registrada'
 	},
 	heatmap: {
 		months: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'] as readonly string[],
