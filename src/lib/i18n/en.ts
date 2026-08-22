@@ -265,7 +265,11 @@ const en = {
 		fat: 'Fat (g)',
 		macroSummary: 'Daily macros',
 		kcal: 'kcal',
-		grams: 'g'
+		grams: 'g',
+		macroTrend: 'Macro Ratio Trend',
+		proteinLabel: 'Protein',
+		carbsLabel: 'Carbs',
+		fatLabel: 'Fat'
 	},
 	training: {
 		title: 'Training',
@@ -397,7 +401,8 @@ const en = {
 		fuelInsight: 'Fuel & Performance',
 		preWorkoutMeal: 'Pre-workout meal days',
 		noPreWorkout: 'No pre-workout meal days',
-		moodHigherWith: 'mood when fueled before training'
+		moodHigherWith: 'mood when fueled before training',
+		trainingBalance: 'Training Balance'
 	},
 	dashboard: {
 		title: 'Dashboard',
@@ -874,7 +879,8 @@ const en = {
 		mostTracked: 'Most tracked',
 		avgFrequency: 'Avg frequency',
 		none: 'None',
-		vs: 'vs'
+		vs: 'vs',
+		scoreTrajectory: 'Score Trajectory'
 	},
 	sleep: {
 		title: 'Sleep',
@@ -1081,7 +1087,12 @@ const en = {
 		noPeriodData: 'Not enough check-in data for this period',
 		stress: 'Stress',
 		beforePeriod: 'Before',
-		afterPeriod: 'During'
+		afterPeriod: 'During',
+		completionPatterns: 'Completion Patterns',
+		completionRateLabel: 'Completion rate',
+		abandonRateLabel: 'Abandon rate',
+		avgCompletionTime: 'Avg completion time',
+		avgAbandonTime: 'Avg abandon time'
 	},
 	records: {
 		title: 'Records',

@@ -200,8 +200,7 @@ const es: typeof import('./en').default = {
 		stressMustBe: 'El estrés debe estar entre 1 y 10',
 		sleepMustBe: 'El sueño debe estar entre 0 y 24 horas',
 		sleepH: 'Sueño (h)',
-		moodDistribution: 'Distribución de Ánimo',
-		morningVsNight: 'Mañana vs Noche'
+		moodDistribution: 'Distribución de Ánimo'
 	},
 	intake: {
 		title: 'Comida',
@@ -265,7 +264,11 @@ const es: typeof import('./en').default = {
 		fat: 'Grasa (g)',
 		macroSummary: 'Macros del día',
 		kcal: 'kcal',
-		grams: 'g'
+		grams: 'g',
+		macroTrend: 'Tendencia de Macros',
+		proteinLabel: 'Proteína',
+		carbsLabel: 'Carbos',
+		fatLabel: 'Grasa'
 	},
 	training: {
 		title: 'Entreno',
@@ -397,7 +400,8 @@ const es: typeof import('./en').default = {
 		fuelInsight: 'Combustible y rendimiento',
 		preWorkoutMeal: 'Días con comida pre-entreno',
 		noPreWorkout: 'Días sin comida pre-entreno',
-		moodHigherWith: 'ánimo cuando comes antes de entrenar'
+		moodHigherWith: 'ánimo cuando comes antes de entrenar',
+		trainingBalance: 'Balance de Entreno'
 	},
 	dashboard: {
 		title: 'Panel',
@@ -874,7 +878,8 @@ const es: typeof import('./en').default = {
 		mostTracked: 'Más registrada',
 		avgFrequency: 'Frecuencia media',
 		none: 'Ninguna',
-		vs: 'vs'
+		vs: 'vs',
+		scoreTrajectory: 'Trayectoria de Puntuación'
 	},
 	sleep: {
 		title: 'Sueño',
@@ -1076,7 +1081,17 @@ const es: typeof import('./en').default = {
 		hypothesisPlaceholder: 'Si hago X, entonces Y...',
 		variablePlaceholder: 'Lo que estás cambiando',
 		protocolPlaceholder: 'Pasos a seguir',
-		resultPlaceholder: 'Observaciones, resultado...'
+		resultPlaceholder: 'Observaciones, resultado...',
+		completedBeforeAfter: 'Completado — Análisis Antes / Después',
+		noPeriodData: 'No hay suficientes datos de check-in para este período',
+		stress: 'Estrés',
+		beforePeriod: 'Antes',
+		afterPeriod: 'Durante',
+		completionPatterns: 'Patrones de Finalización',
+		completionRateLabel: 'Tasa de finalización',
+		abandonRateLabel: 'Tasa de abandono',
+		avgCompletionTime: 'Tiempo medio de finalización',
+		avgAbandonTime: 'Tiempo medio de abandono'
 	},
 	records: {
 		title: 'Récords',

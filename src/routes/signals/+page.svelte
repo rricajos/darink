@@ -123,6 +123,46 @@
 		return `M ${x1} ${y1} A ${r} ${r} 0 1 1 ${x2} ${y2}`;
 	}
 
+	// --- Composite Score Trajectory ---
+	const scoreTrajectory = $derived.by(() => {
+		const dateMap = new Map<string, { sleep?: Entry; skin?: Entry; hair?: Entry; genital?: Entry }>();
+		for (const e of sleepSorted) { const d = e.createdAt.slice(0, 10); if (!dateMap.has(d)) dateMap.set(d, {}); dateMap.get(d)!.sleep = e; }
+		for (const e of skinSorted) { const d = e.createdAt.slice(0, 10); if (!dateMap.has(d)) dateMap.set(d, {}); dateMap.get(d)!.skin = e; }
+		for (const e of hairSorted) { const d = e.createdAt.slice(0, 10); if (!dateMap.has(d)) dateMap.set(d, {}); dateMap.get(d)!.hair = e; }
+		for (const e of genitalSorted) { const d = e.createdAt.slice(0, 10); if (!dateMap.has(d)) dateMap.set(d, {}); dateMap.get(d)!.genital = e; }
+
+		const lastKnown = { sleep: null as Entry | null, skin: null as Entry | null, hair: null as Entry | null, genital: null as Entry | null };
+		const sortedDates = [...dateMap.keys()].sort();
+		const points: { date: string; score: number }[] = [];
+
+		for (const date of sortedDates) {
+			const day = dateMap.get(date)!;
+			if (day.sleep) lastKnown.sleep = day.sleep;
+			if (day.skin) lastKnown.skin = day.skin;
+			if (day.hair) lastKnown.hair = day.hair;
+			if (day.genital) lastKnown.genital = day.genital;
+
+			const active = [lastKnown.sleep, lastKnown.skin, lastKnown.hair, lastKnown.genital].filter(Boolean).length;
+			if (active < 2) continue;
+
+			let total = 0, weight = 0;
+			if (lastKnown.sleep) {
+				const hours = Math.max(0, Math.min(10, ((Number(lastKnown.sleep.data.hours) - 4) / 4) * 10));
+				const quality = Number(lastKnown.sleep.data.quality);
+				total += ((hours + quality) / 2) * 0.4; weight += 0.4;
+			}
+			if (lastKnown.skin) { total += Number(lastKnown.skin.data.elasticity) * 0.2; weight += 0.2; }
+			if (lastKnown.hair) { total += Number(lastKnown.hair.data.density) * 0.15; weight += 0.15; }
+			if (lastKnown.genital) { total += Number(lastKnown.genital.data.libido) * 0.25; weight += 0.25; }
+
+			points.push({ date, score: Math.round((total / weight) * 10) });
+		}
+		return points.slice(-30);
+	});
+	const trajMaxS = $derived(scoreTrajectory.length > 0 ? Math.max(...scoreTrajectory.map(p => p.score), 1) : 1);
+	const trajMinS = $derived(scoreTrajectory.length > 0 ? Math.min(...scoreTrajectory.map(p => p.score), 0) : 0);
+	const trajRange = $derived(trajMaxS - trajMinS || 1);
+
 	// --- Cross-Signal Correlation ---
 	function pearson(xs: number[], ys: number[]): number | null {
 		const n = Math.min(xs.length, ys.length);
@@ -413,6 +453,49 @@
 </section>
 {/if}
 
+<!-- Composite Score Trajectory -->
+{#if scoreTrajectory.length >= 3}
+<section class="overview">
+	<h2>{t.signals.scoreTrajectory}</h2>
+	<div class="trajectory-card">
+		<svg viewBox="0 0 280 80" class="trajectory-chart">
+			<polyline
+				fill="none"
+				stroke="var(--c-accent)"
+				stroke-width="2"
+				stroke-linejoin="round"
+				stroke-linecap="round"
+				points={scoreTrajectory.map((p, i) => {
+					const x = scoreTrajectory.length === 1 ? 140 : 10 + (i / (scoreTrajectory.length - 1)) * 260;
+					const y = 70 - ((p.score - trajMinS) / trajRange) * 55;
+					return `${x},${y}`;
+				}).join(' ')}
+			/>
+			<polygon
+				fill="var(--c-accent)"
+				opacity="0.08"
+				points={`10,70 ${scoreTrajectory.map((p, i) => {
+					const x = scoreTrajectory.length === 1 ? 140 : 10 + (i / (scoreTrajectory.length - 1)) * 260;
+					const y = 70 - ((p.score - trajMinS) / trajRange) * 55;
+					return `${x},${y}`;
+				}).join(' ')} 270,70`}
+			/>
+			{#each scoreTrajectory as p, i}
+				{@const x = scoreTrajectory.length === 1 ? 140 : 10 + (i / (scoreTrajectory.length - 1)) * 260}
+				{@const y = 70 - ((p.score - trajMinS) / trajRange) * 55}
+				<circle cx={x} cy={y} r="2.5" fill={gaugeColor(p.score)}>
+					<title>{p.date}: {p.score}/100</title>
+				</circle>
+			{/each}
+		</svg>
+		<div class="trajectory-range">
+			<span>{scoreTrajectory[0].date}</span>
+			<span>{scoreTrajectory[scoreTrajectory.length - 1].date}</span>
+		</div>
+	</div>
+</section>
+{/if}
+
 <!-- Trend Alerts -->
 {#if trendAlerts.length > 0}
 <section class="overview">
@@ -549,4 +632,9 @@
 	.summary-card { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.2rem; }
 	.summary-value { font-size: 1.1rem; font-weight: 700; }
 	.summary-label { font-size: 0.65rem; color: var(--c-text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; }
+
+	/* Score Trajectory */
+	.trajectory-card { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; }
+	.trajectory-chart { width: 100%; height: auto; display: block; }
+	.trajectory-range { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--c-text-muted); margin-top: 0.25rem; }
 </style>

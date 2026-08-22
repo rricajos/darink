@@ -174,6 +174,33 @@
 		};
 	});
 
+	/* --- Completion Patterns --- */
+	const completionPatterns = $derived.by(() => {
+		const all = store.items;
+		if (all.length < 3) return null;
+		const byStatus: Record<string, { count: number; avgDuration: number; durations: number[] }> = {};
+		for (const e of all) {
+			const st = (e.data.status as string) ?? 'active';
+			if (!byStatus[st]) byStatus[st] = { count: 0, avgDuration: 0, durations: [] };
+			byStatus[st].count++;
+			if (st !== 'active') {
+				const dur = Math.max(0, Math.floor((new Date(e.updatedAt).getTime() - new Date(e.createdAt).getTime()) / 86400000));
+				byStatus[st].durations.push(dur);
+			}
+		}
+		for (const st of Object.keys(byStatus)) {
+			const d = byStatus[st].durations;
+			byStatus[st].avgDuration = d.length > 0 ? Math.round(d.reduce((a, b) => a + b, 0) / d.length) : 0;
+		}
+		const completionRate = all.length > 0
+			? Math.round((byStatus['completed']?.count ?? 0) / all.length * 100)
+			: 0;
+		const abandonRate = all.length > 0
+			? Math.round((byStatus['abandoned']?.count ?? 0) / all.length * 100)
+			: 0;
+		return { byStatus, completionRate, abandonRate, total: all.length };
+	});
+
 	function submit() {
 		if (!hypothesis.trim()) return;
 		entries.add('experiment', {
@@ -372,6 +399,51 @@
 			<span class="tl-label">{bar.hypothesisTrunc}</span>
 		</div>
 		{/each}
+	</div>
+</section>
+{/if}
+
+<!-- Completion Patterns -->
+{#if completionPatterns}
+<section class="patterns-section">
+	<h2>{t.experiments.completionPatterns}</h2>
+	<div class="patterns-grid">
+		<div class="pattern-card">
+			<span class="pattern-value pattern-done">{completionPatterns.completionRate}%</span>
+			<span class="pattern-label">{t.experiments.completionRateLabel}</span>
+		</div>
+		<div class="pattern-card">
+			<span class="pattern-value pattern-abandon">{completionPatterns.abandonRate}%</span>
+			<span class="pattern-label">{t.experiments.abandonRateLabel}</span>
+		</div>
+		{#if completionPatterns.byStatus['completed']}
+			<div class="pattern-card">
+				<span class="pattern-value">{completionPatterns.byStatus['completed'].avgDuration}<span class="pattern-unit">d</span></span>
+				<span class="pattern-label">{t.experiments.avgCompletionTime}</span>
+			</div>
+		{/if}
+		{#if completionPatterns.byStatus['abandoned']}
+			<div class="pattern-card">
+				<span class="pattern-value">{completionPatterns.byStatus['abandoned'].avgDuration}<span class="pattern-unit">d</span></span>
+				<span class="pattern-label">{t.experiments.avgAbandonTime}</span>
+			</div>
+		{/if}
+	</div>
+	<div class="pattern-bar-wrap">
+		{#if completionPatterns.byStatus['completed']?.count}
+			<div class="pattern-bar-seg pattern-bar-done" style="width: {completionPatterns.completionRate}%" title="{t.experiments.completed}: {completionPatterns.byStatus['completed'].count}"></div>
+		{/if}
+		{#if completionPatterns.byStatus['active']?.count}
+			<div class="pattern-bar-seg pattern-bar-active" style="width: {Math.round((completionPatterns.byStatus['active'].count / completionPatterns.total) * 100)}%" title="{t.experiments.active}: {completionPatterns.byStatus['active'].count}"></div>
+		{/if}
+		{#if completionPatterns.byStatus['abandoned']?.count}
+			<div class="pattern-bar-seg pattern-bar-abandon" style="width: {completionPatterns.abandonRate}%" title="{t.experiments.abandoned}: {completionPatterns.byStatus['abandoned'].count}"></div>
+		{/if}
+	</div>
+	<div class="pattern-legend">
+		<span class="legend-item"><span class="legend-swatch" style="background: var(--c-done)"></span> {t.experiments.completed}</span>
+		<span class="legend-item"><span class="legend-swatch" style="background: var(--c-accent)"></span> {t.experiments.active}</span>
+		<span class="legend-item"><span class="legend-swatch" style="background: var(--c-cancel)"></span> {t.experiments.abandoned}</span>
 	</div>
 </section>
 {/if}
@@ -714,4 +786,20 @@
 			max-width: 5rem;
 		}
 	}
+
+	/* Completion Patterns */
+	.patterns-section { padding: 0 1rem 1.5rem; }
+	.patterns-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-bottom: 0.75rem; }
+	.pattern-card { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
+	.pattern-value { font-size: 1.3rem; font-weight: 700; }
+	.pattern-value.pattern-done { color: var(--c-done); }
+	.pattern-value.pattern-abandon { color: var(--c-cancel); }
+	.pattern-unit { font-size: 0.75rem; font-weight: 400; color: var(--c-text-muted); }
+	.pattern-label { font-size: 0.65rem; color: var(--c-text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; }
+	.pattern-bar-wrap { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 0.5rem; background: var(--c-border); }
+	.pattern-bar-seg { height: 100%; min-width: 2px; }
+	.pattern-bar-done { background: var(--c-done); }
+	.pattern-bar-active { background: var(--c-accent); }
+	.pattern-bar-abandon { background: var(--c-cancel); }
+	.pattern-legend { display: flex; gap: 0.75rem; justify-content: center; }
 </style>

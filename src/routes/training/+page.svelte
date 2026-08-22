@@ -344,6 +344,27 @@
 		return { avgWith, avgWithout, diff, withCount: withMeal.length, withoutCount: withoutMeal.length };
 	});
 
+	// --- 10. Cross-training balance donut ---
+	const trainingBalance = $derived.by(() => {
+		if (trainingEntries.length < 3) return { segments: [], total: 0 };
+		const counts: Record<string, number> = {};
+		for (const tt of TRAINING_TYPES) counts[tt] = 0;
+		for (const e of trainingEntries) counts[e.type] = (counts[e.type] || 0) + 1;
+		const total = trainingEntries.length;
+		let offset = 0;
+		const segments = TRAINING_TYPES
+			.map(tt => {
+				const count = counts[tt];
+				const pct = count / total;
+				const dash = pct * 100;
+				const seg = { type: tt, label: TYPE_LABELS[tt] ?? tt, count, pct: Math.round(pct * 100), dash, offset, color: TYPE_COLORS[tt] };
+				offset += dash;
+				return seg;
+			})
+			.filter(s => s.count > 0);
+		return { segments, total };
+	});
+
 	// --- SVG chart helpers ---
 	function polylinePoints(
 		data: { x: number; y: number }[],
@@ -622,6 +643,39 @@
 							<span class="dot" style="background:{TYPE_COLORS[tt]}"></span>
 							{TYPE_LABELS[tt]}
 						</span>
+					{/each}
+				</div>
+			</div>
+		</section>
+	{/if}
+	<!-- 10. Cross-Training Balance -->
+	{#if trainingBalance.segments.length > 1}
+		<section class="analytics">
+			<h2>{t.training.trainingBalance}</h2>
+			<div class="balance-wrapper">
+				<svg class="balance-donut" viewBox="0 0 42 42" role="img" aria-label="Training balance donut">
+					{#each trainingBalance.segments as seg}
+						<circle
+							cx="21" cy="21" r="15.915"
+							fill="none"
+							stroke={seg.color}
+							stroke-width="5"
+							stroke-dasharray="{seg.dash} {100 - seg.dash}"
+							stroke-dashoffset="{-seg.offset}"
+							transform="rotate(-90 21 21)"
+						/>
+					{/each}
+					<text x="21" y="22" text-anchor="middle" fill="var(--c-text)" font-size="5" font-weight="700">{trainingBalance.total}</text>
+					<text x="21" y="26" text-anchor="middle" fill="var(--c-text-muted)" font-size="2.8">{t.training.sessions}</text>
+				</svg>
+				<div class="balance-legend">
+					{#each trainingBalance.segments as seg}
+						<div class="balance-legend-item">
+							<span class="legend-swatch" style="background: {seg.color}"></span>
+							<span class="balance-legend-name">{seg.label}</span>
+							<span class="balance-legend-pct">{seg.pct}%</span>
+							<span class="balance-legend-count">{seg.count}</span>
+						</div>
 					{/each}
 				</div>
 			</div>
@@ -907,4 +961,13 @@
 		color: var(--c-text-muted);
 		margin-left: 0.15rem;
 	}
+
+	/* Training Balance Donut */
+	.balance-wrapper { display: flex; align-items: center; gap: 1rem; }
+	.balance-donut { width: 110px; height: 110px; flex-shrink: 0; }
+	.balance-legend { flex: 1; display: flex; flex-direction: column; gap: 0.3rem; }
+	.balance-legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; }
+	.balance-legend-name { flex: 1; }
+	.balance-legend-pct { font-weight: 700; color: var(--c-text); min-width: 2.5rem; text-align: right; }
+	.balance-legend-count { font-size: 0.7rem; color: var(--c-text-muted); min-width: 1.5rem; text-align: right; }
 </style>

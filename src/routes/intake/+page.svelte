@@ -217,6 +217,27 @@
 		return { slots, totalWithTime, show };
 	});
 
+	// --- Macro ratio trend (last 14 days) ---
+	const macroTrend = $derived.by(() => {
+		const now = new Date();
+		const days: { date: string; label: string; protein: number; carbs: number; fat: number; total: number }[] = [];
+		for (let i = 13; i >= 0; i--) {
+			const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+			const ds = d.toISOString().slice(0, 10);
+			const dayItems = store.items.filter(e => e.createdAt.startsWith(ds));
+			let pro = 0, carb = 0, fa = 0;
+			for (const e of dayItems) {
+				if (e.data.protein) pro += Number(e.data.protein);
+				if (e.data.carbs) carb += Number(e.data.carbs);
+				if (e.data.fat) fa += Number(e.data.fat);
+			}
+			const total = pro + carb + fa;
+			days.push({ date: ds, label: `${d.getDate()}/${d.getMonth() + 1}`, protein: pro, carbs: carb, fat: fa, total });
+		}
+		const hasMacros = days.some(d => d.total > 0);
+		return { days, hasMacros };
+	});
+
 	// --- Food-Mood Correlation ---
 	const foodMoodCorrelation = $derived.by(() => {
 		const foodDays = new Map<string, Set<string>>();
@@ -577,6 +598,36 @@
 	</section>
 {/if}
 
+<!-- Analytics: Macro Ratio Trend -->
+{#if macroTrend.hasMacros}
+	<section class="chart-section">
+		<h2>
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+			{t.intake.macroTrend}
+		</h2>
+		<svg class="macro-trend-chart" viewBox="0 0 280 90" preserveAspectRatio="xMidYMid meet">
+			{#each macroTrend.days as day, i}
+				{@const x = i * (280 / 14) + 1}
+				{@const barW = 280 / 14 - 2}
+				{@const pP = day.total > 0 ? (day.protein / day.total) * 70 : 0}
+				{@const pC = day.total > 0 ? (day.carbs / day.total) * 70 : 0}
+				{@const pF = day.total > 0 ? (day.fat / day.total) * 70 : 0}
+				<rect x={x} y={70 - pP - pC - pF} width={barW} height={pF} rx="1" fill="#f59e0b" opacity="0.85" />
+				<rect x={x} y={70 - pP - pC} width={barW} height={pC} rx="0" fill="#3b82f6" opacity="0.85" />
+				<rect x={x} y={70 - pP} width={barW} height={pP} rx="0" fill="var(--c-done)" opacity="0.85" />
+				{#if i % 3 === 0}
+					<text x={x + barW / 2} y="85" text-anchor="middle" font-size="5" fill="var(--c-text-muted)">{day.label}</text>
+				{/if}
+			{/each}
+		</svg>
+		<div class="macro-legend">
+			<span class="legend-item"><span class="legend-swatch" style="background: var(--c-done)"></span> {t.intake.proteinLabel}</span>
+			<span class="legend-item"><span class="legend-swatch" style="background: #3b82f6"></span> {t.intake.carbsLabel}</span>
+			<span class="legend-item"><span class="legend-swatch" style="background: #f59e0b"></span> {t.intake.fatLabel}</span>
+		</div>
+	</section>
+{/if}
+
 <!-- Analytics: Meal timing chart (intakes per hour of day) -->
 {#if store.items.length > 0}
 	{@const hourCounts = Array.from({ length: 18 }, (_, i) => ({ hour: i + 6, count: 0 }))}
@@ -864,4 +915,8 @@
 	.corr-negative { color: #dc143c; }
 	.corr-info { font-size: 0.7rem; color: var(--c-text-muted); width: 55px; text-align: right; }
 	.corr-note { font-size: 0.7rem; color: var(--c-text-muted); margin-top: 0.35rem; font-style: italic; }
+
+	/* Macro trend */
+	.macro-trend-chart { width: 100%; height: 90px; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: var(--radius); }
+	.macro-legend { display: flex; gap: 0.75rem; margin-top: 0.35rem; justify-content: center; }
 </style>
